@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>qudipy.qutils.math &mdash; QuDiPy Documentation 1.0.0 documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/language_data.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> QuDiPy Documentation
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">QuDiPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">qudipy.qutils.math</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for qudipy.qutils.math</h1><div class="highlight"><pre>
+<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s1">&#39;inner_prod&#39;</span><span class="p">,</span><span class="s1">&#39;partial_trace&#39;</span><span class="p">,</span> <span class="s1">&#39;project_up&#39;</span><span class="p">,</span> <span class="s1">&#39;project_down&#39;</span><span class="p">,</span> <span class="s1">&#39;matrix_sqrt&#39;</span><span class="p">,</span> 
+        <span class="s1">&#39;partial_trace_general&#39;</span> <span class="c1"># , &#39;fidelity&#39;, &#39;purity&#39;</span>
+        <span class="p">]</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">linalg</span> <span class="k">as</span> <span class="n">la</span>
+
+<div class="viewcode-block" id="inner_prod"><a class="viewcode-back" href="../../../qudipy.qutils.html#qudipy.qutils.math.inner_prod">[docs]</a><span class="k">def</span> <span class="nf">inner_prod</span><span class="p">(</span><span class="n">gparams</span><span class="p">,</span> <span class="n">wf1</span><span class="p">,</span> <span class="n">wf2</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Evaluates the inner product between two complex wavefunctions.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    gparams : GridParameters class</span>
+<span class="sd">        Contains grid and potential information.</span>
+<span class="sd">    wf1 : complex array</span>
+<span class="sd">        &#39;Bra&#39; wavefunction for the inner product. If grid is 2D, then the </span>
+<span class="sd">        array should be in meshgrid format.</span>
+<span class="sd">    wf2 : complex array</span>
+<span class="sd">        &#39;Ket&#39; wavefunction for the inner product. If grid is 2D, then the </span>
+<span class="sd">        array should be in meshgrid format.</span>
+<span class="sd">        </span>
+<span class="sd">    Keyword Arguments</span>
+<span class="sd">    ----------------</span>
+<span class="sd">    None.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    inn_prod : complex float</span>
+<span class="sd">        The inner product between the two inputted wavefunctions.</span>
+
+<span class="sd">    &#39;&#39;&#39;</span>
+    
+    <span class="k">if</span> <span class="n">gparams</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s1">&#39;1D&#39;</span><span class="p">:</span>
+        <span class="n">inn_prod</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">trapz</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">wf1</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span><span class="n">wf2</span><span class="p">),</span> <span class="n">x</span><span class="o">=</span><span class="n">gparams</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">gparams</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s1">&#39;2D&#39;</span><span class="p">:</span>
+        <span class="n">inn_prod</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">trapz</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">trapz</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">wf1</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">wf2</span><span class="p">),</span> 
+                                     <span class="n">x</span><span class="o">=</span><span class="n">gparams</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">gparams</span><span class="o">.</span><span class="n">y</span><span class="p">)</span>
+            
+    <span class="k">return</span> <span class="n">inn_prod</span></div>
+
+<span class="k">def</span> <span class="nf">expectation_value</span><span class="p">(</span><span class="n">gparams</span><span class="p">,</span> <span class="n">wf</span><span class="p">,</span> <span class="n">operator</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Evaluates the expectation value for an observable of a wavefunction.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    gparams : GridParameters class</span>
+<span class="sd">        Contains grid and potential information.</span>
+<span class="sd">    wf : complex array</span>
+<span class="sd">        Wavefunction for the expectation value. If grid is 2D, then the </span>
+<span class="sd">        array should be in meshgrid format.</span>
+<span class="sd">    operator : complex array</span>
+<span class="sd">        Matrix representation of the operator for the expectation value.</span>
+<span class="sd">        </span>
+<span class="sd">    Keyword Arguments</span>
+<span class="sd">    ----------------</span>
+<span class="sd">    None.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    exp_val : complex float</span>
+<span class="sd">        The expectation value for the observable of a wavefunction.</span>
+
+<span class="sd">    &#39;&#39;&#39;</span>
+    
+    <span class="k">if</span> <span class="n">gparams</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s1">&#39;1D&#39;</span><span class="p">:</span>
+        <span class="n">exp_val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">trapz</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">wf</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">operator</span><span class="p">,</span> <span class="n">wf</span><span class="p">)),</span> 
+                           <span class="n">x</span><span class="o">=</span><span class="n">gparams</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">gparams</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s1">&#39;2D&#39;</span><span class="p">:</span>
+        <span class="n">exp_val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">trapz</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">trapz</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">wf</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">operator</span><span class="p">,</span> <span class="n">wf</span><span class="p">)),</span> 
+                           <span class="n">x</span><span class="o">=</span><span class="n">gparams</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">gparams</span><span class="o">.</span><span class="n">y</span><span class="p">)</span>
+            
+    <span class="k">return</span> <span class="n">exp_val</span>
+
+<span class="k">def</span> <span class="nf">matrix_element</span><span class="p">(</span><span class="n">gparams</span><span class="p">,</span> <span class="n">wf1</span><span class="p">,</span> <span class="n">wf2</span><span class="p">,</span> <span class="n">operator</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Evaluates the matrix element between two complex wavefunctions.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    gparams : GridParameters class</span>
+<span class="sd">        Contains grid and potential information.</span>
+<span class="sd">    wf1 : complex array</span>
+<span class="sd">        &#39;Bra&#39; wavefunction for the matrix element. If grid is 2D, then the </span>
+<span class="sd">        array should be in meshgrid format.</span>
+<span class="sd">    wf2 : complex array</span>
+<span class="sd">        &#39;Bra&#39; wavefunction for the matrix element. If grid is 2D, then the </span>
+<span class="sd">        array should be in meshgrid format.</span>
+<span class="sd">    operator : complex array</span>
+<span class="sd">        Matrix representation of the operator for the matrix element.</span>
+<span class="sd">        </span>
+<span class="sd">    Keyword Arguments</span>
+<span class="sd">    ----------------</span>
+<span class="sd">    None.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    mtx_elem : complex float</span>
+<span class="sd">        The matrix element between two complex wavefunctions.</span>
+
+<span class="sd">    &#39;&#39;&#39;</span>
+    
+    <span class="k">if</span> <span class="n">gparams</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s1">&#39;1D&#39;</span><span class="p">:</span>
+        <span class="n">mtx_elem</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">trapz</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">wf1</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">operator</span><span class="p">,</span> <span class="n">wf2</span><span class="p">)),</span> 
+                           <span class="n">x</span><span class="o">=</span><span class="n">gparams</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">gparams</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s1">&#39;2D&#39;</span><span class="p">:</span>
+        <span class="n">mtx_elem</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">trapz</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">trapz</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">wf1</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">operator</span><span class="p">,</span> <span class="n">wf2</span><span class="p">)),</span> 
+                           <span class="n">x</span><span class="o">=</span><span class="n">gparams</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">gparams</span><span class="o">.</span><span class="n">y</span><span class="p">)</span>
+            
+    <span class="k">return</span> <span class="n">mtx_elem</span>
+
+<div class="viewcode-block" id="project_up"><a class="viewcode-back" href="../../../qudipy.qutils.html#qudipy.qutils.math.project_up">[docs]</a><span class="k">def</span> <span class="nf">project_up</span><span class="p">(</span><span class="n">rho</span><span class="p">,</span> <span class="n">elem</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Projects the system density matrix onto the spin-up state of </span>
+<span class="sd">    the specified electron(s) (without renormalizing it)</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    rho : 2D complex array</span>
+<span class="sd">        Matrix of the dimensions 2**N x 2**N (density matrix in our case).</span>
+<span class="sd">    elem : int / iterable of ints</span>
+<span class="sd">        Number(s) of the electron(s) whose state(s) is to project the system </span>
+<span class="sd">        density matrix on.</span>
+<span class="sd">        </span>
+<span class="sd">    Keyword Arguments</span>
+<span class="sd">    ----------------</span>
+<span class="sd">    None.</span>
+<span class="sd">    </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    projected_rho : complex 2D array</span>
+<span class="sd">        new density matrix (non-renormalized) of the dimensions </span>
+<span class="sd">        2**m x 2**m, where m = N - dim(elem) </span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dim</span> <span class="o">=</span> <span class="n">rho</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>    <span class="c1">#dimension of the matrix</span>
+    <span class="n">N</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="n">rho</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>   
+            <span class="c1">#number of qubits encoded by density matrix</span>
+    
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">elem</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+        
+        <span class="n">projected_rho</span><span class="o">=</span><span class="p">[]</span>
+            <span class="c1">#the idea behind bitwise shifts is that every matrix in tensor product</span>
+            <span class="c1">#doubles the dimension of the resulting matrix, i. e. adds one binary </span>
+            <span class="c1">#digit to the number. It follows from the definition of Kronecker</span>
+            <span class="c1">#product that the most significant bit defines the element of the</span>
+            <span class="c1">#leftmost matrix in Kronecker product, and vice versa</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dim</span><span class="p">):</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">i</span> <span class="o">&gt;&gt;</span> <span class="p">(</span><span class="n">N</span> <span class="o">-</span> <span class="n">elem</span><span class="p">))</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">var</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dim</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="p">(</span><span class="n">j</span> <span class="o">&gt;&gt;</span> <span class="p">(</span><span class="n">N</span> <span class="o">-</span> <span class="n">elem</span><span class="p">))</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">var</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rho</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">])</span>
+                <span class="n">projected_rho</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">var</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">continue</span>
+    
+        <span class="k">return</span>  <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">projected_rho</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">elem</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">,</span> <span class="nb">set</span><span class="p">)</span> <span class="p">):</span>
+        <span class="n">projected_rho</span> <span class="o">=</span> <span class="n">rho</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">elems_sorted</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">elem</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="c1">#iterable sorted in the reversed order; necessary for the correct </span>
+            <span class="c1"># consecutive application of the project_up operations </span>
+        <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="n">elems_sorted</span><span class="p">:</span>
+            <span class="n">projected_rho</span> <span class="o">=</span> <span class="n">project_up</span><span class="p">(</span><span class="n">projected_rho</span><span class="p">,</span> <span class="n">el</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">projected_rho</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Qubits that are traced out should be defined by a  </span><span class="se">\</span>
+<span class="s2">                        single int number or an iterable of ints. Try again&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="project_down"><a class="viewcode-back" href="../../../qudipy.qutils.html#qudipy.qutils.math.project_down">[docs]</a><span class="k">def</span> <span class="nf">project_down</span><span class="p">(</span><span class="n">rho</span><span class="p">,</span> <span class="n">elem</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Projects the system density matrix onto the spin-down state </span>
+<span class="sd">    of the specified electron(s) (without renormalizing it).</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    rho : 2D array</span>
+<span class="sd">        Matrix of the dimensions 2**N x 2**N (density matrix in our case).</span>
+<span class="sd">    elem : int / iterable of ints</span>
+<span class="sd">        Number(s) of the electron(s) whose state(s) is to project the system </span>
+<span class="sd">        density matrix on.</span>
+<span class="sd">        </span>
+<span class="sd">    Keyword Arguments</span>
+<span class="sd">    ----------------</span>
+<span class="sd">    None.</span>
+<span class="sd">    </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    projected_rho : complex 2D array</span>
+<span class="sd">        new density matrix (non-renormalized) of the dimensions </span>
+<span class="sd">        2**m x 2**m, where m = N - dim(elem) </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">dim</span> <span class="o">=</span> <span class="n">rho</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>    <span class="c1">#dimension of the matrix</span>
+    <span class="n">N</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="n">rho</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>   
+            <span class="c1">#number of qubits encoded by density matrix</span>
+    
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">elem</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+        
+        <span class="n">projected_rho</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="c1">#the idea behind bitwise shifts is that every matrix in tensor product</span>
+            <span class="c1">#doubles the dimension of the resulting matrix, i. e. adds one binary </span>
+            <span class="c1">#digit to the number. It follows from the definition of Kronecker</span>
+            <span class="c1">#product that the most significant bit defines the element of the</span>
+            <span class="c1">#leftmost matrix in Kronecker product, and vice versa</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dim</span><span class="p">):</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">i</span> <span class="o">&gt;&gt;</span> <span class="p">(</span><span class="n">N</span> <span class="o">-</span> <span class="n">elem</span><span class="p">))</span><span class="o">%</span><span class="mi">2</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">var</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dim</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="p">(</span><span class="n">j</span> <span class="o">&gt;&gt;</span> <span class="p">(</span><span class="n">N</span> <span class="o">-</span> <span class="n">elem</span><span class="p">))</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                        <span class="n">var</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rho</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">])</span>
+                <span class="n">projected_rho</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">var</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">continue</span>
+    
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">projected_rho</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">elem</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span><span class="nb">list</span><span class="p">,</span><span class="nb">set</span><span class="p">)):</span>
+        <span class="n">projected_rho</span> <span class="o">=</span> <span class="n">rho</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">elems_sorted</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">elem</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="c1">#iterable sorted in the reversed order; necessary for the correct </span>
+            <span class="c1">#consecutive application of the project_down operations </span>
+        <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="n">elems_sorted</span><span class="p">:</span>
+            <span class="n">projected_rho</span> <span class="o">=</span> <span class="n">project_down</span><span class="p">(</span><span class="n">projected_rho</span><span class="p">,</span> <span class="n">el</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">projected_rho</span>
+
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Qubits that are traced out should be defined by a  </span><span class="se">\</span>
+<span class="s2">                        single int number or an iterable of ints. Try again&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="partial_trace"><a class="viewcode-back" href="../../../qudipy.qutils.html#qudipy.qutils.math.partial_trace">[docs]</a><span class="k">def</span> <span class="nf">partial_trace</span><span class="p">(</span><span class="n">rho</span><span class="p">,</span> <span class="n">elem</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Finds partial trace with respect to the specified qubit(s)</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    rho : 2D array</span>
+<span class="sd">        matrix of the dimensions 2**N x 2**N (density matrix in our case)</span>
+<span class="sd">    elem : int / iterable of ints</span>
+<span class="sd">        number(s) of the electron(s) whose state(s) is/are averaged out</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    traced_rho: complex 2D array</span>
+<span class="sd">        new density matrix of the dimensions 2**m x 2**m, m = N - dim(elem) </span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">elem</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">project_up</span><span class="p">(</span><span class="n">rho</span><span class="p">,</span> <span class="n">elem</span><span class="p">)</span> <span class="o">+</span> <span class="n">project_down</span><span class="p">(</span><span class="n">rho</span><span class="p">,</span> <span class="n">elem</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">elem</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">set</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
+        <span class="n">traced_rho</span> <span class="o">=</span> <span class="n">rho</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">elems_sorted</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">elem</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="c1">#iterable sorted in the reversed order; necessary for the correct </span>
+            <span class="c1"># consecutive application of the project_up operations </span>
+        <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="n">elems_sorted</span><span class="p">:</span>
+            <span class="n">traced_rho</span> <span class="o">=</span> <span class="n">partial_trace</span><span class="p">(</span><span class="n">traced_rho</span><span class="p">,</span> <span class="n">el</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">traced_rho</span>
+    
+    <span class="c1">#error with the input </span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Qubits that are traced out should be defined by a  </span><span class="se">\</span>
+<span class="s2">                        single int number or an iterable of ints. Try again&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="matrix_sqrt"><a class="viewcode-back" href="../../../qudipy.qutils.html#qudipy.qutils.math.matrix_sqrt">[docs]</a><span class="k">def</span> <span class="nf">matrix_sqrt</span><span class="p">(</span><span class="n">A</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculates a square root of the specified matrix.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    A : numpy array</span>
+<span class="sd">        matrix to calculate the square root of</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    sqrt_A: complex 2D array</span>
+<span class="sd">        square root of the matrix</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">w</span><span class="p">,</span><span class="n">v</span> <span class="o">=</span> <span class="n">la</span><span class="o">.</span><span class="n">eig</span><span class="p">(</span><span class="n">A</span><span class="p">)</span>
+    <span class="n">sqrt_A</span> <span class="o">=</span> <span class="n">v</span> <span class="o">@</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="mi">1</span> <span class="o">+</span> <span class="mi">0</span><span class="n">j</span><span class="p">)</span><span class="o">*</span><span class="n">w</span><span class="p">))</span> <span class="o">@</span> <span class="n">la</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">sqrt_A</span></div>
+
+
+
+<div class="viewcode-block" id="partial_trace_general"><a class="viewcode-back" href="../../../qudipy.qutils.html#qudipy.qutils.math.partial_trace_general">[docs]</a><span class="k">def</span> <span class="nf">partial_trace_general</span><span class="p">(</span><span class="n">rho</span><span class="p">,</span> <span class="n">dim</span><span class="p">,</span> <span class="n">traced_subsystem</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    This code takes the partial trace of a density matrix.  It is adapted from</span>
+<span class="sd">    the open-source TrX file written by Toby Cubitt for MATLAB.</span>
+<span class="sd">     </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    rho : complex 2D array</span>
+<span class="sd">        A 2D array describing a density matrix.</span>
+<span class="sd">    dim : 1D integer array</span>
+<span class="sd">        An array of the dimensions of each subsystem for the whole system for</span>
+<span class="sd">        psi. [2,4,2] corresponds to a system of size 2x4x2 with 3 subsystems.</span>
+<span class="sd">    traced_subsystem : 1D array</span>
+<span class="sd">        An array of the subsystems to trace out. For dim=[2,4,2], sys=[1,3] </span>
+<span class="sd">        would trace out the first and third subsystems leaving only a subspace</span>
+<span class="sd">        with size 4.</span>
+<span class="sd">        </span>
+<span class="sd">    Keyword Arguments</span>
+<span class="sd">    -----------------</span>
+<span class="sd">    None.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    traced_rho : complex 2D array</span>
+<span class="sd">        The resulting rho after taking the partial trace.</span>
+<span class="sd">        </span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="c1"># Convert inputs to numpy arrays if not already inputted as such.</span>
+    <span class="n">rho</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">rho</span><span class="p">)</span>
+    <span class="n">traced_subsystem</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">traced_subsystem</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>  <span class="c1">#-1 is added in order </span>
+        <span class="c1"># to accommodate conventional numbering rule</span>
+        <span class="c1"># (starting with 1) on the user&#39;s side</span>
+    <span class="n">dim</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">dim</span><span class="p">)</span>
+    
+    <span class="c1"># Check inputs</span>
+    <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">traced_subsystem</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">dim</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">any</span><span class="p">(</span><span class="n">traced_subsystem</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">traced_subsystem</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">dim</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="nb">any</span><span class="p">(</span><span class="n">traced_subsystem</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">))</span>
+        <span class="c1"># Error with sys variable</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid subsytem in traced_qubits.&quot;</span><span class="p">)</span>
+    
+    <span class="c1">#if ((len(dim) == 1 and np.mod(len(rho)/dim,1) != 0) </span>
+    <span class="c1">#    and len(rho) != np.prod(dim)):</span>
+        
+    <span class="k">if</span> <span class="p">(</span><span class="n">rho</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">dim</span><span class="p">)</span> <span class="ow">or</span> <span class="n">rho</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">dim</span><span class="p">)):</span>
+        <span class="c1"># Error with dim or psi variables</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Size of rho inconsistent with dim.&quot;</span><span class="p">)</span>
+    
+    <span class="c1"># Get rid of any singleton dimensions in dim</span>
+    <span class="n">traced_subsystem</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">setdiff1d</span><span class="p">(</span><span class="n">traced_subsystem</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">argwhere</span><span class="p">(</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="n">dim</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">dim</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">argwhere</span><span class="p">(</span><span class="n">dim</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">)])</span>
+    
+    <span class="c1"># Number of subsystems</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">dim</span><span class="p">)</span>
+    <span class="n">dim_reversed</span> <span class="o">=</span> <span class="n">dim</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">subsystems_keep</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">idx</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span> 
+                                <span class="k">if</span> <span class="n">idx</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">traced_subsystem</span><span class="p">])</span>
+    <span class="c1"># Dimension of psi to trace out</span>
+    <span class="n">dim_trace</span> <span class="o">=</span> <span class="n">dim</span><span class="p">[</span><span class="n">traced_subsystem</span><span class="p">]</span><span class="o">.</span><span class="n">prod</span><span class="p">()</span>
+    <span class="c1"># Dimension of psi leftover after partial trace</span>
+    <span class="n">dim_keep</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">rho</span><span class="p">)</span><span class="o">/</span><span class="n">dim_trace</span>
+    
+    <span class="c1"># Reshape density matrix into tensor with one row and one column index for</span>
+    <span class="c1"># each subsystem, permute traced subsytem indices to the end, reshape</span>
+    <span class="c1"># again so that first two indices are row and column multi-indices for</span>
+    <span class="c1"># kept subsystems and third index is a flatted index for traced subsytems,</span>
+    <span class="c1"># then sum third index over &quot;diagonal&quot; entries.</span>
+    <span class="n">perm</span> <span class="o">=</span> <span class="n">n</span><span class="o">-</span><span class="mi">1</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">subsystems_keep</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> 
+                                    <span class="n">subsystems_keep</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">n</span><span class="p">,</span>
+                                       <span class="n">traced_subsystem</span><span class="p">,</span> <span class="n">traced_subsystem</span> <span class="o">-</span> <span class="n">n</span><span class="p">])</span>
+    <span class="n">rho1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">rho</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">dim_reversed</span><span class="p">,</span> <span class="n">dim_reversed</span><span class="p">]),</span>
+                      <span class="n">order</span><span class="o">=</span><span class="s1">&#39;F&#39;</span><span class="p">)</span>
+    <span class="n">rho2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">rho1</span><span class="p">,</span> <span class="n">perm</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">))</span>
+    <span class="n">rho</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">rho2</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">dim_keep</span><span class="p">,</span> <span class="n">dim_keep</span><span class="p">,</span> <span class="n">dim_trace</span> <span class="o">**</span> <span class="mi">2</span><span class="p">],</span>
+                                    <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint</span><span class="p">),</span> <span class="n">order</span><span class="o">=</span><span class="s1">&#39;F&#39;</span><span class="p">)</span>
+    <span class="n">traced_rho</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">rho</span><span class="p">[:,:,</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dim_trace</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span><span class="n">dim_trace</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+            
+    <span class="k">return</span> <span class="n">traced_rho</span></div>
+
+
+
+<span class="k">def</span> <span class="nf">fidelity</span><span class="p">(</span><span class="n">rho</span><span class="p">,</span> <span class="n">rho_reference</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculates fidelity of the system density matrix with respect to </span>
+<span class="sd">    the reference one</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    rho : 2D complex array</span>
+<span class="sd">        The system density matrix</span>
+<span class="sd">    rho_reference : 2D complex array</span>
+<span class="sd">        The density matrix (initial, anticipated final, etc.) to compare </span>
+<span class="sd">        with the system density matrix</span>
+
+<span class="sd">    Keyword Arguments</span>
+<span class="sd">    ------------------</span>
+<span class="sd">    None.</span>
+<span class="sd">    </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    fid : float</span>
+<span class="sd">        Value of fidelity defined as in the write-up, see &quot;Spin simulator&quot;</span>
+<span class="sd">        chapter: https://www.overleaf.com/3252553442tbqcmxntqvtk.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>  
+    <span class="n">fid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">matrix_sqrt</span><span class="p">(</span>
+                             <span class="n">matrix_sqrt</span><span class="p">(</span><span class="n">rho_reference</span><span class="p">)</span> <span class="o">@</span> <span class="n">rho</span>
+                                 <span class="o">@</span> <span class="n">matrix_sqrt</span><span class="p">(</span><span class="n">rho_reference</span><span class="p">)))</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">fid</span>
+
+
+<span class="k">def</span> <span class="nf">purity</span><span class="p">(</span><span class="n">rho</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculates purity of the density matrix tr(rho^2).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    rho : 2D complex array</span>
+<span class="sd">        The system density matrix</span>
+<span class="sd">    </span>
+<span class="sd">    Keyword Arguments</span>
+<span class="sd">    ------------------</span>
+<span class="sd">    None.</span>
+<span class="sd">    </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pur : float</span>
+<span class="sd">        value of purity defined as tr(rho^2).</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">pur</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">rho</span> <span class="o">@</span> <span class="n">rho</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">pur</span>
+
+
+
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Zach D. Merino.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>qudipy.control package &mdash; QuDiPy Documentation 1.0.0 documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> QuDiPy Documentation
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">qudipy.control package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-qudipy.control.shapes">qudipy.control.shapes module</a></li>
+<li><a class="reference internal" href="#qudipy-control-voltage-pulses-module">qudipy.control.voltage_pulses module</a></li>
+<li><a class="reference internal" href="#module-qudipy.control">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">QuDiPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a></li>
+      <li class="breadcrumb-item active">qudipy.control package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/qudipy.control.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="qudipy-control-package">
+<h1>qudipy.control package<a class="headerlink" href="#qudipy-control-package" title="Permalink to this headline">¶</a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="module-qudipy.control.shapes">
+<span id="qudipy-control-shapes-module"></span><h2>qudipy.control.shapes module<a class="headerlink" href="#module-qudipy.control.shapes" title="Permalink to this headline">¶</a></h2>
+<p>Module with a library of functions that define pulse shapes. 
+Each of them returns a shape function that gives the pulse value(s)
+when applied on the desired value(s) of time.</p>
+<dl class="function">
+<dt id="qudipy.control.shapes.gauss_normalized">
+<code class="sig-prename descclassname">qudipy.control.shapes.</code><code class="sig-name descname">gauss_normalized</code><span class="sig-paren">(</span><em class="sig-param">t_start=0</em>, <em class="sig-param">t_end=1</em>, <em class="sig-param">sigma=0.1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qudipy/control/shapes.html#gauss_normalized"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qudipy.control.shapes.gauss_normalized" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a Gaussian pulse of relative width
+sigma that lasts from t_start until t_end. The pulse is shifted and 
+scaled vertically so that the pulse values at the beginning and 
+at the end are equal to zero. Pulse is normalized so that its average value
+is equal to 1.</p>
+<p>Convenient for defining pulses in terms of 
+normalized time tau = (t-t_start) / (t_end - t_start), as 0&lt;=tau&lt;=1, 
+which corresponds to the default values.</p>
+<dl class="simple">
+<dt>t_start: float</dt><dd><p>Time point at which the pulse begins. Default is 0.</p>
+</dd>
+<dt>t_send: float</dt><dd><p>Time point at which the pulse ends. Default is 1.</p>
+</dd>
+<dt>sigma: float</dt><dd><p>Half-width of the pulse (in units of time). Default is 0.1.</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>shifted_gauss_pulse: function</dt><dd><p>Function that defines a shifted Gaussian pulse when applied 
+to the desired time value(s)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="qudipy.control.shapes.shifted_gauss">
+<code class="sig-prename descclassname">qudipy.control.shapes.</code><code class="sig-name descname">shifted_gauss</code><span class="sig-paren">(</span><em class="sig-param">t_start=0</em>, <em class="sig-param">t_end=1</em>, <em class="sig-param">amp=1</em>, <em class="sig-param">offset=1</em>, <em class="sig-param">sigma=0.1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qudipy/control/shapes.html#shifted_gauss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qudipy.control.shapes.shifted_gauss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a Gaussian pulse of amplitude amp and relative width
+sigma that lasts from t_start until t_end. The pulse is shifted and 
+scaled vertically so that the pulse values at the beginning and 
+at the end are equal to offset.</p>
+<p>Convenient for defining pulses in terms of 
+normalized time tau = (t-t_start) / (t_end - t_start), as 0&lt;=tau&lt;=1, 
+which corresponds to the default values.</p>
+<dl class="simple">
+<dt>t_start: float</dt><dd><p>Time point at which the pulse begins. Default is 0.</p>
+</dd>
+<dt>t_send: float</dt><dd><p>Time point at which the pulse ends. Default is 1.</p>
+</dd>
+<dt>amp: float</dt><dd><p>Amplitude of the pulse. Default is 1.</p>
+</dd>
+<dt>offset: float</dt><dd><p>The shift of the Gaussian function vertically; corresponds to the
+value of the pulse at t_start and t_end. Assumed to be constant
+before and after the pulse. Default is 0.</p>
+</dd>
+<dt>sigma: float</dt><dd><p>Half-width of the pulse (in units of time). Default is 0.1.</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>shifted_gauss_pulse: function</dt><dd><p>Function that defines a shifted Gaussian pulse when applied 
+to the desired time value(s)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="qudipy.control.shapes.square">
+<code class="sig-prename descclassname">qudipy.control.shapes.</code><code class="sig-name descname">square</code><span class="sig-paren">(</span><em class="sig-param">t_start=0</em>, <em class="sig-param">t_end=1</em>, <em class="sig-param">amp=1</em>, <em class="sig-param">offset=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qudipy/control/shapes.html#square"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qudipy.control.shapes.square" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a square pulse of amplitude amp and that continues
+from t_start until t_end. The offset value before and after the pulse 
+can be also specified.
+Convenient for defining pulses in terms of 
+normalized time tau = (t-t_start) / (t_end - t_start), as 0&lt;=tau&lt;=1, 
+which corresponds to the default values.</p>
+<dl class="simple">
+<dt>t_start: float</dt><dd><p>Time point at which the pulse begins. Default is 0.</p>
+</dd>
+<dt>t_end: float</dt><dd><p>Time point at which the pulse ends. Default is 1.</p>
+</dd>
+<dt>amp: float</dt><dd><p>Amplitude of the pulse. Default is 1.</p>
+</dd>
+<dt>offset: float</dt><dd><p>Default value of a control variable before and after the pulse.
+Default is 0.</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>square_pulse: function</dt><dd><p>Function that defines a square pulse when applied to the desired
+time values</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="qudipy.control.shapes.triangle">
+<code class="sig-prename descclassname">qudipy.control.shapes.</code><code class="sig-name descname">triangle</code><span class="sig-paren">(</span><em class="sig-param">t_start=0</em>, <em class="sig-param">t_end=1</em>, <em class="sig-param">amp=1</em>, <em class="sig-param">offset=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qudipy/control/shapes.html#triangle"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qudipy.control.shapes.triangle" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a symmetric triangular pulse of amplitude amp and that continues
+from t_start until t_end. The pulse starts and ends at a constant value
+of offset.
+Convenient for defining pulses in terms of 
+normalized time tau = (t-t_start) / (t_end - t_start), as 0&lt;=tau&lt;=1, 
+which corresponds to the default values.</p>
+<dl class="simple">
+<dt>t_start: float</dt><dd><p>Time point at which the pulse begins. Default is 0.</p>
+</dd>
+<dt>t_end: float</dt><dd><p>Time point at which the pulse ends. Default is 1.</p>
+</dd>
+<dt>amp: float</dt><dd><p>Amplitude of the pulse. Default is 1.</p>
+</dd>
+<dt>offset: float</dt><dd><p>Default value of a control variable before and after the pulse.
+Default is 0.</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>square_pulse: function</dt><dd><p>Function that defines a triangular pulse when applied to the desired
+time values.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="qudipy-control-voltage-pulses-module">
+<h2>qudipy.control.voltage_pulses module<a class="headerlink" href="#qudipy-control-voltage-pulses-module" title="Permalink to this headline">¶</a></h2>
+<p>&#64;author: Madi Schuetze</p>
+<dl class="function">
+<dt id="qudipy.control.voltage_pulses.balance_zeeman">
+<code class="sig-prename descclassname">qudipy.control.voltage_pulses.</code><code class="sig-name descname">balance_zeeman</code><span class="sig-paren">(</span><em class="sig-param">delta_g_interp</em>, <em class="sig-param">v_offset</em>, <em class="sig-param">f_rf</em>, <em class="sig-param">material</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qudipy/control/voltage_pulses.html#balance_zeeman"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qudipy.control.voltage_pulses.balance_zeeman" title="Permalink to this definition">¶</a></dt>
+<dd><blockquote>
+<div><p>Find the value of Zeeman field that ensures no qubit rotations at idling.</p>
+<dl class="simple">
+<dt>delta_g_interp: function</dt><dd><p>(ideally, but only one interpolating function for now)
+Iterable of interpolating functions delta g_i(</p>
+</dd>
+</dl>
+</div></blockquote>
+<dl>
+<dt>ec{V}) for </dt><dd><blockquote>
+<div><p>all qubits, including inactive ones</p>
+</div></blockquote>
+<dl class="simple">
+<dt>v_offset: Float</dt><dd><p>Voltage offset when no pulse is applied.</p>
+</dd>
+<dt>f_rf: float</dt><dd><p>ESR frequency.</p>
+</dd>
+</dl>
+<ul class="simple">
+<li><p>delta_g_interp to take Anyof(Float Int) and return Anyof(Float Int)</p></li>
+<li><p>v_offset to take Anyof(Float Int) and return Anyof(Float Int)</p></li>
+</ul>
+<dl class="simple">
+<dt>B_0: float</dt><dd><p>The value of Zeeman field that ensures 
+no rotation occurs on any of the idling qubits</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="qudipy.control.voltage_pulses.create_ctlp_file">
+<code class="sig-prename descclassname">qudipy.control.voltage_pulses.</code><code class="sig-name descname">create_ctlp_file</code><span class="sig-paren">(</span><em class="sig-param">CntrlPulse</em>, <em class="sig-param">read=False</em>, <em class="sig-param">get_dir=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qudipy/control/voltage_pulses.html#create_ctlp_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qudipy.control.voltage_pulses.create_ctlp_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;author: Madi</p>
+<p>Creates a .ctrlp file containing the information about a rotation gate
+from a ControlPulse object</p>
+<dl class="simple">
+<dt>CntrlPulse: ControlPulse</dt><dd><p>Control Pulse Object</p>
+</dd>
+<dt>read: Bool</dt><dd><p>If read = True, the function will print out the .ctrlp file, 
+if read = False (Default) the funciton will print nothing</p>
+</dd>
+<dt>get_dir: Bool</dt><dd><p>If get_dir = True, the function will return the directory as a 
+string, if get_dir = False (Default), the function will return nothing</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>Str <em>conditional</em></dt><dd><p>Returns the directory of the file as a str if get_dir = True, otherwise,
+the function returns None</p>
+</dd>
+</dl>
+<p>None</p>
+<p>Creates a .ctrlp file containing all information to re-create the same ControlPulse 
+object</p>
+<p>Prints to screen <em>conditional</em> - prints the Control Pulse file to the screen if 
+read = True, otherwise, nothing is printed to the screen</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="qudipy.control.voltage_pulses.create_quantum_circuit">
+<code class="sig-prename descclassname">qudipy.control.voltage_pulses.</code><code class="sig-name descname">create_quantum_circuit</code><span class="sig-paren">(</span><em class="sig-param">list_ctrlp</em>, <em class="sig-param">circuit_name</em>, <em class="sig-param">write_qcirc=False</em>, <em class="sig-param">print_dir=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qudipy/control/voltage_pulses.html#create_quantum_circuit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qudipy.control.voltage_pulses.create_quantum_circuit" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;author: Madi</p>
+<p>Takes directory to a .qcirc file, creates the necessary 
+ControlPulses for rotations around an axis, creates a dictionary 
+of these specified ControlPulse objects and returns a QuantumCircuit Object</p>
+<dl class="simple">
+<dt>list_ctrlp: Listof(Str(.ctrlp))</dt><dd><p>A list that contains .ctrlp files where these files are specified by strings</p>
+</dd>
+<dt>circuit_name: str</dt><dd><p>The name that the user wishes to call the circuit</p>
+</dd>
+<dt>write_qcirc: Bool</dt><dd><p>If write_qcirc = True the function will write a qcirc file of the quantum circuit
+with the name “circuit_name”.qcirc, else the function does nothing</p>
+</dd>
+<dt>print_dir: Bool</dt><dd><p>If write_qcirc = True and print_dir = True the function will print the directory 
+of the newly made .qcirc file, else the function does nothing</p>
+</dd>
+</dl>
+<ul class="simple">
+<li><p>All ControlPulse objects act on the same number of qubits</p></li>
+<li><dl class="simple">
+<dt>All .ctrlp files in list_ctrlp will path to the correct directory</dt><dd><p>-&gt; user must ensure that all directory satisfactions are met</p>
+</dd>
+</dl>
+</li>
+</ul>
+<blockquote>
+<div><p>QuantumCircuit object</p>
+</div></blockquote>
+<dl class="simple">
+<dt>Writes File <em>conditional</em></dt><dd><p>writes a .qcirc file with the name “circuit_name”.qcirc is write_qcirc = True</p>
+</dd>
+<dt>Prints to Screen</dt><dd><p>prints the directory of the newly made .qcirc file if print_dir = True and 
+write_qcirc = True</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="qudipy.control.voltage_pulses.kswap">
+<code class="sig-prename descclassname">qudipy.control.voltage_pulses.</code><code class="sig-name descname">kswap</code><span class="sig-paren">(</span><em class="sig-param">qubits</em>, <em class="sig-param">N</em>, <em class="sig-param">k</em>, <em class="sig-param">J</em>, <em class="sig-param">J_interp</em>, <em class="sig-param">pulse_shape</em>, <em class="sig-param">v_offset</em>, <em class="sig-param">B_0=0</em>, <em class="sig-param">f_rf=None</em>, <em class="sig-param">num_val=300</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qudipy/control/voltage_pulses.html#kswap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qudipy.control.voltage_pulses.kswap" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="qudipy.control.voltage_pulses.kswapVt">
+<code class="sig-prename descclassname">qudipy.control.voltage_pulses.</code><code class="sig-name descname">kswapVt</code><span class="sig-paren">(</span><em class="sig-param">qubits</em>, <em class="sig-param">N</em>, <em class="sig-param">k</em>, <em class="sig-param">J</em>, <em class="sig-param">J_interp</em>, <em class="sig-param">pulse_shape</em>, <em class="sig-param">v_offset</em>, <em class="sig-param">B_0=0</em>, <em class="sig-param">f_rf=None</em>, <em class="sig-param">num_val=300</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qudipy/control/voltage_pulses.html#kswapVt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qudipy.control.voltage_pulses.kswapVt" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="qudipy.control.voltage_pulses.rot">
+<code class="sig-prename descclassname">qudipy.control.voltage_pulses.</code><code class="sig-name descname">rot</code><span class="sig-paren">(</span><em class="sig-param">rotation_axis</em>, <em class="sig-param">theta</em>, <em class="sig-param">n_qubits</em>, <em class="sig-param">active_qubits</em>, <em class="sig-param">delta_g_interp</em>, <em class="sig-param">v_unit_shape</em>, <em class="sig-param">material</em>, <em class="sig-param">B_0</em>, <em class="sig-param">num_val=100</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qudipy/control/voltage_pulses.html#rot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qudipy.control.voltage_pulses.rot" title="Permalink to this definition">¶</a></dt>
+<dd><blockquote>
+<div><p>Chooses the optimal duration for a ROT(     heta) pulse of the specified pulse 
+shape, where the argument ‘axis’ defines rotation. 
+<strong>*For now*</strong> the function assumes for the sake of simplicity that
+the delta g interpolators are the same for each qubit</p>
+<dl class="simple">
+<dt>rotation_axis: iterable of length 3 OR string (‘X’, ‘Y’, ‘Z’) </dt><dd><p>Axis of qubit rotation.</p>
+</dd>
+<dt>theta: float</dt><dd><p>Angle of qubit rotation in <strong>degrees</strong>.</p>
+</dd>
+<dt>n_qubits: int</dt><dd><p>Total number of qubits.</p>
+</dd>
+<dt>active_qubits: tuple/list/array of ints</dt><dd><dl class="simple">
+<dt>Positions of qubits (starting from 1, not 0!) on which the pulse</dt><dd><p>is supposed to act. The rest will be made inactive.</p>
+</dd>
+</dl>
+</dd>
+<dt>delta_g_interp: function</dt><dd><p>#TODO provide better explanation 
+(ideally, but only one interpolating function for now)
+Iterable of interpolating functions delta g_i(</p>
+</dd>
+</dl>
+</div></blockquote>
+<dl>
+<dt>ec{V}) for </dt><dd><blockquote>
+<div><p>all qubits, including inactive ones</p>
+</div></blockquote>
+<dl class="simple">
+<dt>v_unit_shape: function</dt><dd><p>Shape of a voltage pulse defined over a range of time [0,1], i. e. 
+over the normalized time.</p>
+</dd>
+<dt>B_0: float</dt><dd><p>Zeeman field</p>
+</dd>
+</dl>
+<ul class="simple">
+<li><dl class="simple">
+<dt>delta_g_interp to take Anyof(Float Int tuple array List) and return </dt><dd><p>Anyof(Float Int tuple array List) -&gt; will return a type of the same shape</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>v_unit_shape to take Anyof(Float Int tuple array List) and return </dt><dd><p>Anyof(Float Int tuple array List) -&gt; will return a type of the same shape</p>
+</dd>
+</dl>
+</li>
+</ul>
+<dl class="simple">
+<dt>num_val: int</dt><dd><p>Number of data points during the pulse.</p>
+</dd>
+</dl>
+<p>#TODO make it possible to specify this value 
+# t_start: float  
+#     Beginning of the system evolution observation. The actual pulse 
+#     (not constant offset) may start before or after this time point.</p>
+<dl class="simple">
+<dt>rot_pulse: Control pulse object</dt><dd><p>Pulse with both effective (delta_g_i) and actual variables
+(V_i, B_0, B_rf, phi)  values to be used in</p>
+</dd>
+</dl>
+<p>#TODO Data frame of pulses V_i(t), B_0, B_rf, phi, … within 
+# the ControlPulse.ctrl_pulses object</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="qudipy.control.voltage_pulses.rot_new">
+<code class="sig-prename descclassname">qudipy.control.voltage_pulses.</code><code class="sig-name descname">rot_new</code><span class="sig-paren">(</span><em class="sig-param">rot_axis</em>, <em class="sig-param">angle</em>, <em class="sig-param">qubits</em>, <em class="sig-param">active_q</em>, <em class="sig-param">dg_interp_list</em>, <em class="sig-param">pulse_shape</em>, <em class="sig-param">v_offset</em>, <em class="sig-param">mag_zeeman</em>, <em class="sig-param">num_val=100</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qudipy/control/voltage_pulses.html#rot_new"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qudipy.control.voltage_pulses.rot_new" title="Permalink to this definition">¶</a></dt>
+<dd><p>pseudo code:</p>
+<ol class="arabic simple">
+<li><p>define location of qubits and which qubits to apply pulse too</p></li>
+<li><p>calculate dg-offset from v_offset for each quantum dot</p></li>
+<li><p>Calculate pulse</p></li>
+</ol>
+</dd></dl>
+
+<dl class="function">
+<dt id="qudipy.control.voltage_pulses.swap">
+<code class="sig-prename descclassname">qudipy.control.voltage_pulses.</code><code class="sig-name descname">swap</code><span class="sig-paren">(</span><em class="sig-param">qubits</em>, <em class="sig-param">N</em>, <em class="sig-param">J</em>, <em class="sig-param">B_0=0</em>, <em class="sig-param">f_rf=None</em>, <em class="sig-param">num_val=300</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qudipy/control/voltage_pulses.html#swap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qudipy.control.voltage_pulses.swap" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-qudipy.control">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-qudipy.control" title="Permalink to this headline">¶</a></h2>
+<p>Optimal control modules for both definite pulses and GRAPE</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Zach D. Merino.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

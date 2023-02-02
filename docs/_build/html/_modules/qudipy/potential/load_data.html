@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>qudipy.potential.load_data &mdash; QuDiPy Documentation 1.0.0 documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/language_data.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> QuDiPy Documentation
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">QuDiPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">qudipy.potential.load_data</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for qudipy.potential.load_data</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Functions for loading data, either from files or analytically defining</span>
+<span class="sd">them.</span>
+
+<span class="sd">@author: simba</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">namedtuple</span>
+<span class="kn">from</span> <span class="nn">scipy.interpolate</span> <span class="kn">import</span> <span class="n">interp2d</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">product</span>
+
+<span class="kn">import</span> <span class="nn">qudipy</span> <span class="k">as</span> <span class="nn">qd</span>
+<span class="kn">from</span> <span class="nn">qudipy.potential</span> <span class="kn">import</span> <span class="n">GridParameters</span>
+<span class="kn">from</span> <span class="nn">qudipy.potential.potential_interpolator</span> <span class="kn">import</span> <span class="n">PotentialInterpolator</span>
+        
+<div class="viewcode-block" id="build_interpolator"><a class="viewcode-back" href="../../../qudipy.potential.html#qudipy.potential.load_data.build_interpolator">[docs]</a><span class="k">def</span> <span class="nf">build_interpolator</span><span class="p">(</span><span class="n">load_data_dict</span><span class="p">,</span> <span class="n">constants</span><span class="o">=</span><span class="n">qd</span><span class="o">.</span><span class="n">Constants</span><span class="p">(),</span> 
+                       <span class="n">y_slice</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    This function constructs an interpolator object for either a group</span>
+<span class="sd">    of potential or electric field files.</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    load_data_dict: dict</span>
+<span class="sd">        Dictionary containing the x and y coordinates for the loaded </span>
+<span class="sd">        files, the potential data for each loaded file, and the </span>
+<span class="sd">        corresponding votlage vector for each file.</span>
+<span class="sd">        Fields = [&#39;coords&#39;, &#39;potentials&#39;, &#39;ctrl_vals&#39;]</span>
+<span class="sd">        </span>
+<span class="sd">    Keyword Arguments</span>
+<span class="sd">    ----------</span>
+<span class="sd">    constants : Constants object, optional</span>
+<span class="sd">        Constants object containing material parameter details. The</span>
+<span class="sd">        default is a Constants object assuming air as the material </span>
+<span class="sd">        system.</span>
+<span class="sd">    y_slice : float, optional</span>
+<span class="sd">        Used to create a interpolator of only 1D poetentials. Specify a</span>
+<span class="sd">        slice along the y-axis at which to take the 1D potential when</span>
+<span class="sd">        constructing the interpolator. Units should be specified in [m]. </span>
+<span class="sd">        The default is None.</span>
+<span class="sd">    </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    interp_obj : Mod_RegularGridInterpolator class</span>
+<span class="sd">        Interpolant object for the data inputted into the function.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="c1"># now it can load both potentials and electric fields</span>
+    <span class="k">if</span> <span class="s1">&#39;potentials&#39;</span> <span class="ow">in</span> <span class="n">load_data_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="n">f_type</span> <span class="o">=</span> <span class="s1">&#39;potentials&#39;</span>
+    <span class="k">if</span> <span class="s1">&#39;electric&#39;</span> <span class="ow">in</span> <span class="n">load_data_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="n">f_type</span> <span class="o">=</span> <span class="s1">&#39;electric&#39;</span>
+
+
+    <span class="c1"># Get first set of x and y coordinates</span>
+    <span class="n">x_coords</span> <span class="o">=</span> <span class="n">load_data_dict</span><span class="p">[</span><span class="s1">&#39;coords&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">y_coords</span> <span class="o">=</span> <span class="n">load_data_dict</span><span class="p">[</span><span class="s1">&#39;coords&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+    
+    <span class="c1"># Extract all the control values</span>
+    <span class="n">all_ctrls</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">load_data_dict</span><span class="p">[</span><span class="s1">&#39;ctrl_vals&#39;</span><span class="p">])</span>
+    
+    <span class="c1"># Get total number of ctrls (including singleton dims)</span>
+    <span class="n">n_ctrls</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">load_data_dict</span><span class="p">[</span><span class="s1">&#39;ctrl_vals&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+        
+    <span class="c1"># Find which gate voltages have singleton dimension. We need to keep track</span>
+    <span class="c1"># because the interpolator cannot handle singleton dimensions</span>
+    <span class="n">single_dims</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">n_dims</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">ctrl_values</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_ctrls</span><span class="p">):</span>
+        <span class="n">n_unique</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">all_ctrls</span><span class="p">[:,</span><span class="n">idx</span><span class="p">]))</span>
+        <span class="k">if</span> <span class="n">n_unique</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">single_dims</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">n_dims</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">n_unique</span><span class="p">)</span>
+            <span class="n">ctrl_values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">all_ctrls</span><span class="p">[:,</span><span class="n">idx</span><span class="p">]))))</span>
+        
+    <span class="c1"># Now assemble the data to be interpolated</span>
+    <span class="n">temp_n_dims</span> <span class="o">=</span> <span class="p">[</span><span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">n_dims</span><span class="p">]</span>
+    
+    <span class="c1"># Add the y and x coordinate lengths so we know the expected dimensions of </span>
+    <span class="c1"># the total nd array of data to interpolate</span>
+    <span class="k">if</span> <span class="n">y_slice</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">all_data_stacked</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">n_dims</span><span class="p">),</span><span class="nb">len</span><span class="p">(</span><span class="n">y_coords</span><span class="p">),</span><span class="nb">len</span><span class="p">(</span><span class="n">x_coords</span><span class="p">)))</span>
+        <span class="n">n_dims</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">y_coords</span><span class="p">),</span><span class="nb">len</span><span class="p">(</span><span class="n">x_coords</span><span class="p">)])</span>  
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">all_data_stacked</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">n_dims</span><span class="p">),</span><span class="nb">len</span><span class="p">(</span><span class="n">x_coords</span><span class="p">)))</span>
+        <span class="n">n_dims</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">x_coords</span><span class="p">)])</span>  
+
+    <span class="c1"># Go and stack the potential data together and then reshape it into</span>
+    <span class="c1"># correct format</span>
+    <span class="k">if</span> <span class="n">y_slice</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">y_idx</span> <span class="o">=</span> <span class="n">qd</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">find_nearest</span><span class="p">(</span><span class="n">y_coords</span><span class="p">,</span> <span class="n">y_slice</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">curr_gate_idx</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">product</span><span class="p">(</span><span class="o">*</span><span class="n">temp_n_dims</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="n">y_slice</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">all_data_stacked</span><span class="p">[</span><span class="n">idx</span><span class="p">,:,:]</span> <span class="o">=</span> <span class="n">load_data_dict</span><span class="p">[</span><span class="n">f_type</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">all_data_stacked</span><span class="p">[</span><span class="n">idx</span><span class="p">,:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span>
+                <span class="n">load_data_dict</span><span class="p">[</span><span class="n">f_type</span><span class="p">][</span><span class="n">idx</span><span class="p">][</span><span class="n">y_idx</span><span class="p">,:])</span>
+    
+    <span class="n">all_data_stacked</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">all_data_stacked</span><span class="p">,(</span><span class="n">n_dims</span><span class="p">))</span>
+    
+    <span class="c1"># Construct the interpolator</span>
+    <span class="k">if</span> <span class="n">y_slice</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ctrl_values</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">y_coords</span><span class="p">,</span><span class="n">x_coords</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">ctrl_values</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">x_coords</span><span class="p">])</span>
+    <span class="n">interp_obj</span> <span class="o">=</span> <span class="n">PotentialInterpolator</span><span class="p">(</span><span class="n">ctrl_values</span><span class="p">,</span> <span class="n">load_data_dict</span><span class="p">[</span><span class="s1">&#39;ctrl_names&#39;</span><span class="p">],</span>
+                                        <span class="n">all_data_stacked</span><span class="p">,</span> <span class="n">single_dims</span><span class="p">,</span> <span class="n">constants</span><span class="p">,</span>
+                                        <span class="n">y_slice</span><span class="p">)</span>
+    
+    <span class="k">return</span> <span class="n">interp_obj</span></div>
+
+<div class="viewcode-block" id="load_potentials"><a class="viewcode-back" href="../../../qudipy.potential.html#qudipy.potential.load_data.load_potentials">[docs]</a><span class="k">def</span> <span class="nf">load_potentials</span><span class="p">(</span><span class="n">ctrl_vals</span><span class="p">,</span> <span class="n">ctrl_names</span><span class="p">,</span> <span class="n">f_type</span><span class="o">=</span><span class="s1">&#39;pot&#39;</span><span class="p">,</span> <span class="n">f_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
+                    <span class="n">f_pot_units</span><span class="o">=</span><span class="s1">&#39;J&#39;</span><span class="p">,</span> <span class="n">f_dis_units</span><span class="o">=</span><span class="s1">&#39;m&#39;</span><span class="p">,</span> <span class="n">trim_x</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">trim_y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    This function loads many potential files specified by all </span>
+<span class="sd">    combinations of  the control values given in ctrl_vals and the</span>
+<span class="sd">    control names given in ctrl_names. The potential files MUST be 2D</span>
+<span class="sd">    potential slices (if you have 3D nextnano simulations, you must </span>
+<span class="sd">    preprocess them first). Potential files are assumed to follow the</span>
+<span class="sd">    syntax:</span>
+<span class="sd">    &#39;TYPE_C1NAME_C1VAL_C2NAME_C2VAL_..._CNNAME_CNVAL.txt&#39;</span>
+<span class="sd">    where TYPE = &#39;Uxy&#39; or &#39;Ez&#39;. </span>
+<span class="sd">    Refer to tutorial for a more explicit example.</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ctrl_vals : list of list of floats</span>
+<span class="sd">        List of relevant control values for the files to load.  The </span>
+<span class="sd">        first list index corresponds to the ith control variable and the</span>
+<span class="sd">        second list index correspond to the ith value for that control </span>
+<span class="sd">        variable.</span>
+<span class="sd">    ctrl_names : list of strings</span>
+<span class="sd">        List of each ctrl variable name. Must be the same length as </span>
+<span class="sd">        ctrl_vals first dimension.</span>
+<span class="sd">        </span>
+<span class="sd">    Keyword Arguments</span>
+<span class="sd">    -----------------</span>
+<span class="sd">    f_type : string, optional</span>
+<span class="sd">        Type of file to load (either potential or electric field). Acceptable </span>
+<span class="sd">        case insensitive arguments include the strings </span>
+<span class="sd">        [&#39;pot&#39;,&#39;potential&#39;,&#39;uxy&#39;,&#39;electric&#39;,&#39;field&#39;,&#39;ez&#39;].The default</span>
+<span class="sd">        is &#39;pot&#39; (potential).&#39;</span>
+<span class="sd">    f_dir : string, optional</span>
+<span class="sd">        Path to find files specified by ctrl_vals and ctrl_names. The </span>
+<span class="sd">        default is the current working directory.</span>
+<span class="sd">    f_pot_units : string, optional</span>
+<span class="sd">        Units of the potential in the files to load. Units from file </span>
+<span class="sd">        will be converted to J. Supported inputs are &#39;J&#39; and &#39;eV&#39;.</span>
+<span class="sd">    f_dis_units : string, optional</span>
+<span class="sd">        Units of the x and y coordinates in the files to load. Units</span>
+<span class="sd">        from file will be converted to m. </span>
+<span class="sd">        Supported inputs are &#39;m&#39; and &#39;nm&#39;. </span>
+<span class="sd">    trim_x : list of floats, optional</span>
+<span class="sd">        Specify min and max bounds of x-axis in [m] to save when </span>
+<span class="sd">        loading the files. Data points outside this window will be </span>
+<span class="sd">        trimmed and not saved in the loaded files. The default is </span>
+<span class="sd">        None.</span>
+<span class="sd">    trim_y : list of floats, optional</span>
+<span class="sd">        Specify min and max bounds of y-axis in [m] to save when</span>
+<span class="sd">        loading the files. Data points outside this window will be</span>
+<span class="sd">        trimmed and not saved in the loaded files. The default is None.</span>
+<span class="sd">    </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    all_files : dict</span>
+<span class="sd">        Dictionary containing the x and y coordinates for the loaded </span>
+<span class="sd">        files, the potential data for each loaded file, and the </span>
+<span class="sd">        corresponding votlage vector for each file.</span>
+<span class="sd">        Fields = [&#39;coords&#39;, &#39;potentials&#39;, &#39;ctrl_vals&#39;]</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="c1"># Check inputs</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ctrl_vals</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ctrl_names</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Incorrect number of control names given, must be equal to first&#39;</span> 
+                        <span class="o">+</span> <span class="s1">&#39; dimension of ctrl_vals &#39;</span> <span class="o">+</span> <span class="sa">f</span><span class="s1">&#39; </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">ctrl_vals</span><span class="p">)</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
+    
+    <span class="c1"># Check if dir was given</span>
+    <span class="k">if</span> <span class="n">f_dir</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">f_dir</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+
+    <span class="n">all_files</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">cval_array</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">pots_array</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="c1"># Loop through all combinations of gate voltages to load the files</span>
+    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">curr_cvals</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">product</span><span class="p">(</span><span class="o">*</span><span class="n">ctrl_vals</span><span class="p">)):</span>
+        <span class="c1"># Now build up the current file name</span>
+        <span class="c1"># First figure out type of file to load (electric or potential)</span>
+        <span class="k">if</span> <span class="n">f_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;pot&#39;</span><span class="p">,</span> <span class="s1">&#39;potential&#39;</span><span class="p">,</span> <span class="s1">&#39;uxy&#39;</span><span class="p">]:</span>
+            <span class="n">f_name</span> <span class="o">=</span> <span class="s1">&#39;Uxy&#39;</span>
+            <span class="n">f_type_name</span> <span class="o">=</span> <span class="s1">&#39;potentials&#39;</span>
+        <span class="k">elif</span> <span class="n">f_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;field&#39;</span><span class="p">,</span> <span class="s1">&#39;electric&#39;</span><span class="p">,</span> <span class="s1">&#39;ez&#39;</span><span class="p">]:</span>
+            <span class="n">f_name</span> <span class="o">=</span> <span class="s1">&#39;Ez&#39;</span>
+            <span class="n">f_type_name</span> <span class="o">=</span> <span class="s1">&#39;electric&#39;</span>
+            
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">ctrl_names</span><span class="p">,</span> <span class="n">curr_cvals</span><span class="p">):</span>
+
+            <span class="n">f_name</span> <span class="o">=</span> <span class="n">f_name</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="si">{:.3f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+        
+        <span class="n">f_name</span> <span class="o">+=</span> <span class="s1">&#39;.txt&#39;</span>
+    
+        <span class="c1"># After file name is constructed, load the data from file into a larger</span>
+        <span class="c1"># list containing information about all the loaded files.</span>
+
+        <span class="c1"># Load file</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">f_dir</span><span class="p">,</span><span class="n">f_name</span><span class="p">),</span> <span class="n">header</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span>
+        
+        <span class="c1"># Extract items</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">pot</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span><span class="mi">1</span><span class="p">:]</span>       
+        
+        <span class="n">constants</span> <span class="o">=</span> <span class="n">qd</span><span class="o">.</span><span class="n">Constants</span><span class="p">(</span><span class="s1">&#39;vacuum&#39;</span><span class="p">)</span> 
+
+        <span class="c1"># Convert units if needed</span>
+        <span class="k">if</span> <span class="n">f_pot_units</span> <span class="o">==</span> <span class="s1">&#39;eV&#39;</span><span class="p">:</span>
+            <span class="c1"># Just need to get electron charge</span>
+            <span class="n">pot</span> <span class="o">*=</span> <span class="n">constants</span><span class="o">.</span><span class="n">e</span>
+
+        <span class="k">if</span> <span class="n">f_pot_units</span> <span class="o">==</span> <span class="s1">&#39;V&#39;</span><span class="p">:</span>
+            <span class="c1"># Just need to get electron charge</span>
+            <span class="n">pot</span> <span class="o">*=</span> <span class="o">-</span> <span class="n">constants</span><span class="o">.</span><span class="n">e</span>
+
+        <span class="k">if</span> <span class="n">f_pot_units</span> <span class="o">==</span> <span class="s1">&#39;kV/cm&#39;</span><span class="p">:</span>
+            <span class="n">pot</span> <span class="o">*=</span> <span class="mf">1e5</span>
+
+        <span class="k">if</span> <span class="n">f_pot_units</span> <span class="o">==</span> <span class="s1">&#39;V/nm&#39;</span><span class="p">:</span>
+            <span class="n">pot</span> <span class="o">*=</span> <span class="mf">1e9</span>
+
+        <span class="k">if</span> <span class="n">f_dis_units</span> <span class="o">==</span> <span class="s1">&#39;nm&#39;</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">*=</span> <span class="mf">1E-9</span>
+            <span class="n">y</span> <span class="o">*=</span> <span class="mf">1E-9</span>
+        
+        <span class="k">if</span> <span class="n">idx</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># If trim wasn&#39;t specified then we want to store the whole x axis</span>
+            <span class="k">if</span> <span class="n">trim_x</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">trim_x</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">x</span><span class="p">)]</span>
+            <span class="c1"># If trim wasn&#39;t specified then we want to store the whole y axis</span>
+            <span class="k">if</span> <span class="n">trim_y</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">trim_y</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">y</span><span class="p">)]</span>
+                
+            <span class="c1"># Get bool mask and trim coordinates</span>
+            <span class="n">x_idx_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">x</span> <span class="o">&gt;=</span> <span class="n">trim_x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">x</span> <span class="o">&lt;=</span> <span class="n">trim_x</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">y_idx_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">y</span> <span class="o">&gt;=</span> <span class="n">trim_y</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">y</span> <span class="o">&lt;=</span> <span class="n">trim_y</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            
+            <span class="n">new_x</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">x_idx_mask</span><span class="p">]</span>
+            <span class="n">new_y</span> <span class="o">=</span> <span class="n">y</span><span class="p">[</span><span class="n">y_idx_mask</span><span class="p">]</span>
+            
+            <span class="c1"># Get new coordinate points by rounding number of coordinates </span>
+            <span class="c1"># points to a power of 2 for both x and y (for faster ffts).</span>
+            <span class="n">new_x_len</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">new_x</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">2</span><span class="o">**</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">new_x</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">bit_length</span><span class="p">()</span>
+            <span class="n">new_y_len</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">new_y</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">2</span><span class="o">**</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">new_y</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">bit_length</span><span class="p">()</span>
+
+            <span class="n">new_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">new_x</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">new_x</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="n">new_x_len</span><span class="p">)</span>
+            <span class="n">new_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">new_y</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">new_y</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="n">new_y_len</span><span class="p">)</span>
+            
+            <span class="c1"># Have coordinates be a namedtuple</span>
+            <span class="n">Coordinates</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;Coordinates&#39;</span><span class="p">,[</span><span class="s1">&#39;x&#39;</span><span class="p">,</span><span class="s1">&#39;y&#39;</span><span class="p">])</span>
+            <span class="n">all_files</span><span class="p">[</span><span class="s1">&#39;coords&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Coordinates</span><span class="p">(</span><span class="n">new_x</span><span class="p">,</span><span class="n">new_y</span><span class="p">)</span>
+            
+        <span class="n">cval_array</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">curr_cvals</span><span class="p">))</span>
+
+        <span class="c1"># Do a spline interpolation to find potential at the &#39;trimmed&#39; and </span>
+        <span class="c1"># power of 2 coordiante points.</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="n">interp2d</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">pot</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s1">&#39;cubic&#39;</span><span class="p">)</span>
+        <span class="n">new_pot</span> <span class="o">=</span> <span class="n">f</span><span class="p">(</span><span class="n">new_x</span><span class="p">,</span> <span class="n">new_y</span><span class="p">)</span>
+        <span class="n">pots_array</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_pot</span><span class="p">)</span>
+        
+    <span class="n">all_files</span><span class="p">[</span><span class="s1">&#39;ctrl_vals&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cval_array</span>
+    <span class="n">all_files</span><span class="p">[</span><span class="s1">&#39;ctrl_names&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ctrl_names</span>
+    <span class="n">all_files</span><span class="p">[</span><span class="n">f_type_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">pots_array</span>
+    
+    
+    <span class="k">return</span> <span class="n">all_files</span></div>
+
+<div class="viewcode-block" id="analytical_potential"><a class="viewcode-back" href="../../../qudipy.potential.html#qudipy.potential.load_data.analytical_potential">[docs]</a><span class="k">def</span> <span class="nf">analytical_potential</span><span class="p">(</span><span class="n">ctrl_vals</span><span class="p">,</span> <span class="n">ctrl_names</span><span class="p">,</span> <span class="n">function</span><span class="p">,</span> <span class="n">x_range</span><span class="p">,</span> <span class="n">y_range</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Allows one to create an analytical potential in the xy-plane from a</span>
+<span class="sd">    function</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ctrl_vals : list of list of floats</span>
+<span class="sd">        List of relevant control values used to define the potential.</span>
+<span class="sd">        The first list index corresponds to the ith control variable </span>
+<span class="sd">        and the second list index correspond to the ith value for that </span>
+<span class="sd">        control variable.</span>
+<span class="sd">    ctrl_names : list of strings</span>
+<span class="sd">        List of each ctrl variable name. Must be the same length as</span>
+<span class="sd">        ctrl_vals first dimension.</span>
+<span class="sd">    function : callable</span>
+<span class="sd">        Function which defines the 2D potential you wish to map out. </span>
+<span class="sd">        Function must take the list ctrl_vals as the first argument</span>
+<span class="sd">        and a GridParameters object as the second argument. Refer to</span>
+<span class="sd">        tutorial for an explicit example</span>
+<span class="sd">    x_range : 1D List or Numpy array</span>
+<span class="sd">        grid points along x where you want to potential to be calculated</span>
+<span class="sd">    y_range : 1D List or Numpy array</span>
+<span class="sd">        grid points along y where you want to potential to be calculated</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    analytical_potential : dictionary</span>
+<span class="sd">        Dictionary containing the x and y coordinates, the potential at</span>
+<span class="sd">        each coordinate point, and the control variable vector and control</span>
+<span class="sd">        variable name.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="c1"># From the x and y ranges provided, create the GridParameters</span>
+    <span class="n">gparams</span> <span class="o">=</span> <span class="n">GridParameters</span><span class="p">(</span><span class="n">x_range</span><span class="p">,</span> <span class="n">y_range</span><span class="p">)</span>
+
+    <span class="c1"># Go over all products of control values and calculate potential</span>
+    <span class="n">cval_array</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">pots_array</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">curr_cvals</span> <span class="ow">in</span> <span class="n">product</span><span class="p">(</span><span class="o">*</span><span class="n">ctrl_vals</span><span class="p">):</span>
+        <span class="n">pots_array</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">function</span><span class="p">(</span><span class="n">curr_cvals</span><span class="p">,</span> <span class="n">gparams</span><span class="p">))</span>
+        <span class="n">cval_array</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">curr_cvals</span><span class="p">))</span>
+
+    <span class="c1"># Create named tuple for coordinates</span>
+    <span class="n">Coordinates</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;Coordinates&#39;</span><span class="p">,[</span><span class="s1">&#39;x&#39;</span><span class="p">,</span><span class="s1">&#39;y&#39;</span><span class="p">])</span>
+
+    <span class="c1"># Load everything into a dictionary that is returned</span>
+    <span class="n">analytic_potential</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">analytic_potential</span><span class="p">[</span><span class="s1">&#39;coords&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Coordinates</span><span class="p">(</span><span class="n">x_range</span><span class="p">,</span> <span class="n">y_range</span><span class="p">)</span>
+    <span class="n">analytic_potential</span><span class="p">[</span><span class="s1">&#39;ctrl_vals&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cval_array</span>
+    <span class="n">analytic_potential</span><span class="p">[</span><span class="s1">&#39;ctrl_names&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ctrl_names</span>
+    <span class="n">analytic_potential</span><span class="p">[</span><span class="s1">&#39;potentials&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pots_array</span>
+
+    <span class="k">return</span> <span class="n">analytic_potential</span></div>
+    
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Zach D. Merino.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

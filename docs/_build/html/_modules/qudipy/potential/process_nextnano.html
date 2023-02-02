@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>qudipy.potential.process_nextnano &mdash; QuDiPy Documentation 1.0.0 documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/language_data.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> QuDiPy Documentation
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">QuDiPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">qudipy.potential.process_nextnano</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for qudipy.potential.process_nextnano</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Functions for converting 3D nextnano data to 2D data along a user-defined</span>
+<span class="sd">z-coordinate.</span>
+
+<span class="sd">@author : Kewei, Zach</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">sys</span>
+<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="vm">__file__</span> <span class="p">,</span><span class="s2">&quot;../../..&quot;</span><span class="p">)))</span>
+
+<span class="kn">import</span> <span class="nn">qudipy.utils.helpers</span> <span class="k">as</span> <span class="nn">hp</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">constants</span>
+<span class="kn">import</span> <span class="nn">tqdm</span>
+
+<div class="viewcode-block" id="get_files"><a class="viewcode-back" href="../../../qudipy.potential.html#qudipy.potential.process_nextnano.get_files">[docs]</a><span class="k">def</span> <span class="nf">get_files</span><span class="p">(</span><span class="nb">dir</span><span class="p">,</span> <span class="n">file_type</span><span class="p">):</span>
+
+    <span class="c1"># Collect the names of every subdirectory in the dir path</span>
+    <span class="n">list_subfolders_with_paths</span> <span class="o">=</span> <span class="p">[</span><span class="n">f</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">scandir</span><span class="p">(</span><span class="nb">dir</span><span class="p">)</span> <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">is_dir</span><span class="p">()]</span>
+
+    <span class="c1"># Append text document suffix on each string in the list</span>
+    <span class="n">list_of_files</span> <span class="o">=</span> <span class="p">[</span><span class="n">string</span> <span class="o">+</span> <span class="n">file_type</span> <span class="k">for</span> <span class="n">string</span> <span class="ow">in</span> <span class="n">list_subfolders_with_paths</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">list_of_files</span></div>
+
+<div class="viewcode-block" id="load_file"><a class="viewcode-back" href="../../../qudipy.potential.html#qudipy.potential.process_nextnano.load_file">[docs]</a><span class="k">def</span> <span class="nf">load_file</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    This function loads data files from a user defined nextnano simulation</span>
+<span class="sd">    directory.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    filename  : String</span>
+<span class="sd">        full path for the files of interest</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    x, y, z  : Tuple of Lists</span>
+<span class="sd">        a single array ordered by the coordinates for potential.dat files or</span>
+<span class="sd">        a tuple of 3 element, x, y, z for potential.coord files</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">def</span> <span class="nf">mesh</span><span class="p">(</span><span class="n">index</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        This function parses integers in a string which only contains one</span>
+<span class="sd">        integer surrounded by white space and/or new line charaters</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        index  : Integer</span>
+<span class="sd">            Index value of a string to evaluate from a list of strings</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">d</span><span class="p">[</span><span class="n">index</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">()</span> <span class="k">if</span> <span class="n">i</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()][</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># Import .dat data</span>
+    <span class="k">if</span> <span class="n">filename</span><span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="p">:]</span> <span class="o">==</span> <span class="s1">&#39;.dat&#39;</span><span class="p">:</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">data</span>
+
+    <span class="c1"># Import .coord data</span>
+    <span class="k">if</span> <span class="n">filename</span><span class="p">[</span><span class="o">-</span><span class="mi">6</span><span class="p">:]</span> <span class="o">==</span> <span class="s1">&#39;.coord&#39;</span><span class="p">:</span>
+
+         <span class="c1"># Read in xyz dimensions from .fld file for extracting .coord data</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;.coord&#39;</span><span class="p">,</span><span class="s1">&#39;.fld&#39;</span><span class="p">),</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+
+            <span class="c1"># Get the dim value for each coordinate axis which corresponds to</span>
+            <span class="c1"># number of mesh points along each axis</span>
+            <span class="n">xmesh</span> <span class="o">=</span> <span class="n">mesh</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+            <span class="n">ymesh</span> <span class="o">=</span> <span class="n">mesh</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+            <span class="n">zmesh</span> <span class="o">=</span> <span class="n">mesh</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+
+        <span class="c1"># Extract xyz coordinate data</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+
+            <span class="c1"># Convert list of strings to list of floats</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span> <span class="p">:</span> <span class="n">x</span> <span class="o">!=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">d</span><span class="p">)):</span>
+                <span class="n">data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">strip</span><span class="p">()))</span>
+
+            <span class="n">x</span> <span class="o">=</span> <span class="n">data</span><span class="p">[:</span><span class="n">xmesh</span><span class="p">]</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">xmesh</span><span class="p">:</span><span class="n">xmesh</span><span class="o">+</span><span class="n">ymesh</span><span class="p">]</span>
+            <span class="n">z</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">xmesh</span><span class="o">+</span><span class="n">ymesh</span><span class="p">:</span><span class="n">xmesh</span><span class="o">+</span><span class="n">ymesh</span><span class="o">+</span><span class="n">zmesh</span><span class="p">]</span>
+
+            <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span></div>
+
+<div class="viewcode-block" id="get_ctrl"><a class="viewcode-back" href="../../../qudipy.potential.html#qudipy.potential.process_nextnano.get_ctrl">[docs]</a><span class="k">def</span> <span class="nf">get_ctrl</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">ctrl_type</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    This function collects all of the control items using the log text file</span>
+<span class="sd">    generated by nextnano upon the start of a simulation run. The variable names</span>
+<span class="sd">    and values are written the the line after which</span>
+<span class="sd">    &quot;STARTING CALCULATION FOR BIAS POINT&quot; is written.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    filename : String</span>
+<span class="sd">        Full path to the filename where the simulation run file is stored.</span>
+<span class="sd">    ctrl_type : String</span>
+<span class="sd">        Specifies what control item needs to be returned. Acceptable</span>
+<span class="sd">        arguments include [&#39;value&#39;,&#39;values&#39;,&#39;name&#39;,&#39;names&#39;] where case is</span>
+<span class="sd">        not relevant.</span>
+
+<span class="sd">    Note that the structure of the variable information in the log file is</span>
+<span class="sd">    similiar to what follows:</span>
+
+<span class="sd">    00:00:03 ========= STARTING CALCULATION FOR BIAS POINT =====================</span>
+<span class="sd">    00:00:03 V1 0.1 V   V2 0.2 V   V3 0.2 V   V4 0.2 V    V5 0.1 V</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    ctrls : List</span>
+<span class="sd">        List of control items of the specific control type</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="c1"># List of control items</span>
+    <span class="n">ctrl_item</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="c1"># Phrase to search for</span>
+    <span class="n">phrase</span> <span class="o">=</span> <span class="s1">&#39;STARTING CALCULATION FOR BIAS POINT&#39;</span>
+    <span class="c1"># Trigger used to indication  phrase was found</span>
+    <span class="n">trig</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="c1"># Open the simulation log file</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+
+        <span class="c1"># Read individual lines in the file</span>
+        <span class="k">for</span> <span class="n">read_line</span> <span class="ow">in</span> <span class="n">d</span><span class="p">:</span>
+
+            <span class="c1"># If phrase is found trigger trig by setting the value to 1</span>
+            <span class="k">if</span> <span class="n">phrase</span> <span class="ow">in</span> <span class="n">read_line</span><span class="p">:</span>
+                <span class="n">trig</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="c1"># If the phrase was found the next line in the file will be</span>
+            <span class="c1"># evaluated</span>
+            <span class="k">elif</span> <span class="n">trig</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="c1"># Split the given line in the file up into individual strings</span>
+                <span class="n">split_line</span> <span class="o">=</span> <span class="n">read_line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                <span class="c1"># Reset trig so that no more lines are evaluated</span>
+                <span class="n">trig</span> <span class="o">=</span> <span class="mi">0</span>
+
+                <span class="c1"># Loop through strings in list</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">split_line</span><span class="p">)):</span>
+
+                    <span class="c1"># Only append if the index is not a multple of 3 and not</span>
+                    <span class="c1"># first/last element</span>
+                    <span class="k">if</span> <span class="n">i</span> <span class="o">%</span> <span class="mi">3</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">i</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="c1"># Get control values</span>
+                        <span class="k">if</span> <span class="n">ctrl_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">,</span> <span class="s1">&#39;values&#39;</span><span class="p">]:</span>
+                                <span class="c1"># i-1 is the postion of the control value</span>
+                                <span class="c1"># relative to i modulo 3 = 0</span>
+                                <span class="n">ctrl_item</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">split_line</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+                        <span class="c1"># Get control names</span>
+                        <span class="k">elif</span> <span class="n">ctrl_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;names&#39;</span><span class="p">]:</span>
+                                <span class="c1"># i-2 is the postion of the control value</span>
+                                <span class="c1"># relative to i modulo 3 = 0</span>
+                                <span class="n">ctrl_item</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">split_line</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="mi">2</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">ctrl_item</span></div>
+
+<div class="viewcode-block" id="import_dir"><a class="viewcode-back" href="../../../qudipy.potential.html#qudipy.potential.process_nextnano.import_dir">[docs]</a><span class="k">def</span> <span class="nf">import_dir</span><span class="p">(</span><span class="nb">dir</span><span class="p">,</span> <span class="n">show_files</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    dir : String</span>
+<span class="sd">        Name of the dir where nextnano files are stored</span>
+
+
+<span class="sd">    Keyword Arguments</span>
+<span class="sd">    -----------------</span>
+<span class="sd">    show_files : Bool</span>
+<span class="sd">        Display command line output of the files being imported.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    data : Dictionary</span>
+<span class="sd">        Where each key/value pair is a key label for the type of data stored in</span>
+<span class="sd">        value i.e  ctrl_names for a list of voltage labels, ctrl_values for a</span>
+<span class="sd">        list of potentials, and coord for a dictionary containing coordinate</span>
+<span class="sd">        data.</span>
+
+<span class="sd">    nextnano file structure:</span>
+
+<span class="sd">    /simulation_runs</span>
+<span class="sd">        /simulation_run_#_with_gate_voltages</span>
+<span class="sd">            /output directory</span>
+<span class="sd">                /data files</span>
+
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="c1"># Collect simulation meta data files</span>
+    <span class="n">list_of_files</span> <span class="o">=</span> <span class="n">get_files</span><span class="p">(</span><span class="nb">dir</span><span class="p">,</span> <span class="s1">&#39;.log&#39;</span><span class="p">)</span>
+    <span class="c1"># list_of_files = get_files(dir, &#39;.txt&#39;)</span>
+
+    <span class="c1"># Dictionary which holds all of the simulation run data grouped by run</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="c1"># Loop over all sub_directories, base directories (ignored), files in</span>
+    <span class="c1"># dir</span>
+    <span class="k">for</span> <span class="n">sub_dir</span><span class="p">,</span> <span class="n">base_dir</span><span class="p">,</span> <span class="n">files</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="nb">dir</span><span class="p">):</span>
+
+        <span class="c1"># Dictionary containing run data i.e. voltages, potential, 3-tuple of</span>
+        <span class="c1"># coordinates</span>
+        <span class="n">data_per_run</span> <span class="o">=</span> <span class="p">{</span>
+                            <span class="s1">&#39;ctrl_names&#39;</span> <span class="p">:</span> <span class="p">{},</span>
+                            <span class="s1">&#39;ctrl_values&#39;</span> <span class="p">:</span> <span class="p">{},</span>
+                            <span class="s1">&#39;coord&#39;</span><span class="p">:</span> <span class="p">{</span>
+                                        <span class="s1">&#39;x&#39;</span> <span class="p">:</span> <span class="p">{},</span>
+                                        <span class="s1">&#39;y&#39;</span> <span class="p">:</span> <span class="p">{},</span>
+                                        <span class="s1">&#39;z&#39;</span> <span class="p">:</span> <span class="p">{}</span>
+                                    <span class="p">}</span>
+                        <span class="p">}</span>
+
+        <span class="c1"># First move into a subdirectory</span>
+        <span class="k">if</span> <span class="n">sub_dir</span> <span class="o">!=</span> <span class="nb">dir</span> <span class="ow">and</span> <span class="n">base_dir</span> <span class="o">==</span> <span class="p">[</span><span class="s1">&#39;output&#39;</span><span class="p">]:</span>
+
+            <span class="c1"># Check if files one level down in the subdirectory exists</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">files</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;WARNING: no individual files in directory </span><span class="si">{</span><span class="n">sub_dir</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+            <span class="c1"># Search for simulation run meta data file</span>
+            <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+                <span class="c1"># If the file name is the same as one of the directories then get</span>
+                <span class="c1"># the ctrl_item information</span>
+                <span class="k">if</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">list_of_files</span><span class="p">:</span>
+
+                    <span class="c1"># Generate absolute path to file that is names the same as the</span>
+                    <span class="c1"># directory</span>
+                    <span class="n">filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">sub_dir</span><span class="p">,</span> <span class="n">file</span><span class="p">)</span>
+
+                    <span class="c1"># Get voltages</span>
+                    <span class="n">voltages</span> <span class="o">=</span> <span class="n">get_ctrl</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">ctrl_type</span><span class="o">=</span><span class="s1">&#39;value&#39;</span><span class="p">)</span>
+
+
+            <span class="c1">#TODO: handle when above loop can&#39;t find any files matching any file in list_of_files</span>
+            <span class="c1"># Check if control data in the subdirectory exists</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">voltages</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;WARNING: no simulation run file with control data found in directory </span><span class="si">{</span><span class="n">sub_dir</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+            <span class="c1"># Assign control values for the given simulation run</span>
+            <span class="n">data_per_run</span><span class="p">[</span><span class="s1">&#39;ctrl_names&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">voltages</span>
+
+            <span class="c1"># Loop through the all files under the /output directory</span>
+            <span class="k">for</span> <span class="n">data_sub</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">data_files</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">sub_dir</span><span class="p">,</span><span class="n">base_dir</span><span class="p">[</span><span class="mi">0</span><span class="p">])):</span>
+
+                <span class="c1"># Assign potential and coordinate data</span>
+                <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">data_files</span><span class="p">:</span>
+
+                    <span class="c1"># Generate absolute path to file</span>
+                    <span class="n">filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">data_sub</span><span class="p">,</span> <span class="n">file</span><span class="p">)</span>
+
+                    <span class="k">if</span> <span class="n">filename</span><span class="p">[</span><span class="o">-</span><span class="mi">13</span><span class="p">:]</span> <span class="o">==</span> <span class="s1">&#39;potential.dat&#39;</span><span class="p">:</span>
+
+                        <span class="c1"># Elect to display the files being imported from nextnano</span>
+                        <span class="k">if</span> <span class="n">show_files</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+                            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Importing .coord data files from </span><span class="si">{}</span><span class="s1">:&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                                <span class="n">sub_dir</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="nb">dir</span><span class="p">),</span><span class="s1">&#39;&#39;</span><span class="p">)))</span>
+
+                        <span class="n">data_per_run</span><span class="p">[</span><span class="s1">&#39;ctrl_values&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">load_file</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+
+                    <span class="k">if</span> <span class="n">filename</span><span class="p">[</span><span class="o">-</span><span class="mi">15</span><span class="p">:]</span> <span class="o">==</span> <span class="s1">&#39;potential.coord&#39;</span><span class="p">:</span>
+
+                        <span class="c1"># Elect to display the files being imported from nextnano</span>
+                        <span class="k">if</span> <span class="n">show_files</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+                            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Importing .dat data files from </span><span class="si">{}</span><span class="s1">:&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                                <span class="n">sub_dir</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="nb">dir</span><span class="p">),</span><span class="s1">&#39;&#39;</span><span class="p">)))</span>
+
+                        <span class="n">coord</span> <span class="o">=</span> <span class="n">load_file</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+                        <span class="n">data_per_run</span><span class="p">[</span><span class="s1">&#39;coord&#39;</span><span class="p">][</span><span class="s1">&#39;x&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">coord</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                        <span class="n">data_per_run</span><span class="p">[</span><span class="s1">&#39;coord&#39;</span><span class="p">][</span><span class="s1">&#39;y&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">coord</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                        <span class="n">data_per_run</span><span class="p">[</span><span class="s1">&#39;coord&#39;</span><span class="p">][</span><span class="s1">&#39;z&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">coord</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+
+            <span class="c1"># Assign every data set per simulation run to a single list of</span>
+            <span class="c1"># dictionaries</span>
+            <span class="n">data</span><span class="p">[</span><span class="n">count</span><span class="p">]</span> <span class="o">=</span> <span class="n">data_per_run</span>
+            <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">return</span> <span class="n">data</span></div>
+
+<div class="viewcode-block" id="get_ctrl_vals"><a class="viewcode-back" href="../../../qudipy.potential.html#qudipy.potential.process_nextnano.get_ctrl_vals">[docs]</a><span class="k">def</span> <span class="nf">get_ctrl_vals</span><span class="p">(</span><span class="n">nextnano_data</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    This function takes the dictionary containing all data related to the nextnano</span>
+<span class="sd">    simulation runs which are to be used to create an interpolation object and</span>
+<span class="sd">    retuns a list containing list of every unique control value for the given</span>
+<span class="sd">    control name.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    nextnano_data : List</span>
+<span class="sd">        A list containing lists of voltages, potentials, and coordinates for</span>
+<span class="sd">        all simulation runs.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    voltages : List</span>
+<span class="sd">        List of all unique control values per control name for all simulation</span>
+<span class="sd">        runs in the data directory.</span>
+
+<span class="sd">    Example :</span>
+
+<span class="sd">        simulation runs:</span>
+<span class="sd">        [0.1, 0.2, 0.2, 0.20, 0.1]</span>
+<span class="sd">        [0.1, 0.2, 0.2, 0.22, 0.1]</span>
+<span class="sd">        [0.1, 0.2, 0.2, 0.24, 0.1]</span>
+<span class="sd">        [0.1, 0.2, 0.2, 0.25, 0.1]</span>
+<span class="sd">        [0.1, 0.2, 0.2, 0.26, 0.1]</span>
+
+<span class="sd">        unique voltages per gate:</span>
+<span class="sd">        V1 = [0.1]</span>
+<span class="sd">        V2 = [0.2]</span>
+<span class="sd">        V3 = [0.2]</span>
+<span class="sd">        V4 = [0.2, 0.22, 0.24, 0.25, 0.26]</span>
+<span class="sd">        V5 = [0.1]</span>
+
+<span class="sd">        output:</span>
+<span class="sd">        [V1, V2, V3, V4, V5]</span>
+
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="c1"># Collect control values for all runs</span>
+    <span class="n">gate</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">nextnano_data</span><span class="o">.</span><span class="n">keys</span><span class="p">())):</span>
+        <span class="n">gate</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nextnano_data</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;ctrl_names&#39;</span><span class="p">])</span>
+
+    <span class="c1"># Convert list of lists to array</span>
+    <span class="n">gate</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">gate</span><span class="p">)</span>
+
+    <span class="n">ctrl_vals</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">gate</span><span class="p">)[</span><span class="mi">1</span><span class="p">]):</span>
+        <span class="c1"># Append all unique control values per control variable. This is done</span>
+        <span class="c1"># by: converting array of voltages per gate to set, sort the set items,</span>
+        <span class="c1"># convert the set to a list, and append the list to ctrl_vals.</span>
+        <span class="n">ctrl_vals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">gate</span><span class="p">[:,</span><span class="n">i</span><span class="p">]))))</span>
+
+    <span class="k">return</span> <span class="n">ctrl_vals</span></div>
+
+<div class="viewcode-block" id="reshape_field"><a class="viewcode-back" href="../../../qudipy.potential.html#qudipy.potential.process_nextnano.reshape_field">[docs]</a><span class="k">def</span> <span class="nf">reshape_field</span><span class="p">(</span><span class="n">potential</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">f_type</span><span class="p">,</span> <span class="nb">slice</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">show_z</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    This function reshapes the 1d array of potential data according to the</span>
+<span class="sd">    number of data points for the x,y, and z coordinates then retuns the field</span>
+<span class="sd">    along the XY-plane at the z-coordinate specified by slice.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    potential : Array</span>
+<span class="sd">        An array conaining all of the electrostatic potential data for the</span>
+<span class="sd">        x, y, and z coordinates using the units V/m.</span>
+
+<span class="sd">    x, y, z : List</span>
+<span class="sd">        Coordinates for the potential data contained in the 1d potential array.</span>
+
+<span class="sd">    f_type : List</span>
+<span class="sd">        Field type identifier either [&#39;field&#39;, &#39;electric&#39;, &#39;Ez&#39;]  or</span>
+<span class="sd">        [&#39;pot&#39;, &#39;potential&#39;, &#39;Uxy&#39;] where case is not relevant.</span>
+
+<span class="sd">    Keyword Arguments</span>
+<span class="sd">    -----------------</span>
+<span class="sd">    slice : Float</span>
+<span class="sd">        z coordinate value to generate a 2D potential interpolation object</span>
+<span class="sd">        from all simulation runs or 3D array if slice is unspecified.</span>
+
+<span class="sd">    show_z : Bool</span>
+<span class="sd">        A flag to display what the actually z coordinate which the 3D data was</span>
+<span class="sd">        sliced along.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    field2DArray : Array</span>
+<span class="sd">        2d array of the potentials in the XY-plane along slice z-coordinate.</span>
+
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="c1"># Find the index for the closest coordinate which corresponds to the desired</span>
+    <span class="c1"># z-coordinate</span>
+    <span class="n">index_tuple</span><span class="p">,</span><span class="n">nearest_z</span> <span class="o">=</span> <span class="n">hp</span><span class="o">.</span><span class="n">find_nearest</span><span class="p">(</span><span class="n">z</span><span class="p">,</span><span class="nb">slice</span><span class="p">)</span>
+    <span class="n">index</span> <span class="o">=</span> <span class="n">index_tuple</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">show_z</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;The nearest z coordinate to slice=</span><span class="si">{</span><span class="nb">slice</span><span class="si">}</span><span class="s1">, is z=</span><span class="si">{</span><span class="n">nearest_z</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Number of data points per axis provided from simulations</span>
+    <span class="n">xsize</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">ysize</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+    <span class="n">zsize</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>
+
+    <span class="n">pot3DArray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">potential</span><span class="p">,(</span><span class="n">xsize</span><span class="p">,</span><span class="n">ysize</span><span class="p">,</span><span class="n">zsize</span><span class="p">),</span> <span class="n">order</span><span class="o">=</span><span class="s1">&#39;F&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">f_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;field&#39;</span><span class="p">,</span> <span class="s1">&#39;electric&#39;</span><span class="p">,</span> <span class="s1">&#39;ez&#39;</span><span class="p">]:</span>
+
+        <span class="c1"># Calculate the gradient of the electrostatic potential for the 3D data</span>
+        <span class="n">gradient</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">pot3DArray</span><span class="p">,</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">z</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="c1"># Compute the electric field from the electrostatic potential gradient</span>
+        <span class="c1"># for the given z-slice along the given array index.</span>
+        <span class="n">field2DArray</span> <span class="o">=</span> <span class="o">-</span> <span class="n">gradient</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">index</span><span class="p">]</span>
+
+    <span class="k">elif</span> <span class="n">f_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;pot&#39;</span><span class="p">,</span> <span class="s1">&#39;potential&#39;</span><span class="p">,</span> <span class="s1">&#39;uxy&#39;</span><span class="p">]:</span>
+        <span class="n">field2DArray</span> <span class="o">=</span> <span class="n">pot3DArray</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">index</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">field2DArray</span></div>
+
+<div class="viewcode-block" id="xy_pot"><a class="viewcode-back" href="../../../qudipy.potential.html#qudipy.potential.process_nextnano.xy_pot">[docs]</a><span class="k">def</span> <span class="nf">xy_pot</span><span class="p">(</span><span class="n">potential</span><span class="p">,</span> <span class="n">gates</span><span class="p">,</span> <span class="nb">slice</span><span class="p">,</span> <span class="n">f_type</span><span class="p">,</span> <span class="n">output_dir_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    This function takes the potential data and control value information and</span>
+<span class="sd">    saves a 2D potential cross section along slice to a text file in the user</span>
+<span class="sd">    specified directory for a given field type.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    potential : Dictionary</span>
+<span class="sd">        Where each key/value pair is a key label for the type of data stored in</span>
+<span class="sd">        value i.e  ctrl_names for a list of voltage labels, ctrl_values for a</span>
+<span class="sd">        list of potentials, and coord for a dictionary containing coordinate</span>
+<span class="sd">        data.</span>
+
+<span class="sd">    gates : List</span>
+<span class="sd">        List of lists for the unique control values for each control name.</span>
+
+<span class="sd">    slice : Float</span>
+<span class="sd">        Z-coordinate to take a cross section on.</span>
+
+<span class="sd">    Keyword Arguments</span>
+<span class="sd">    ----------</span>
+<span class="sd">    f_type : List</span>
+<span class="sd">        Field type identifier</span>
+<span class="sd">        [&#39;field&#39;, &#39;electric&#39;, &#39;Ez&#39;, &#39;pot&#39;, &#39;potential&#39;, &#39;Uxy&#39;] where case is not</span>
+<span class="sd">         relevant.</span>
+
+<span class="sd">    output_dir_path : String</span>
+<span class="sd">        Directory path for the processed nextnano field data.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    file_trig : Bool</span>
+<span class="sd">        Returns True if potential or electric field XY-plane data is saved as a</span>
+<span class="sd">        text file for the z-coordinate along slice. Otherwise, False is</span>
+<span class="sd">        returned.</span>
+
+<span class="sd">    coord_and_pot : Array</span>
+<span class="sd">        Returns the 2D pontenial data slice with the x/y coordinates appended to</span>
+<span class="sd">        the first row and column.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="n">potential_copy</span> <span class="o">=</span> <span class="n">potential</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="c1"># Loop through each combination of gate voltages</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">potential_copy</span><span class="p">:</span>
+
+        <span class="k">if</span> <span class="n">f_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;pot&#39;</span><span class="p">,</span> <span class="s1">&#39;potential&#39;</span><span class="p">,</span> <span class="s1">&#39;uxy&#39;</span><span class="p">]:</span>
+            <span class="c1"># Capital U used here for writing nextnano data to text file</span>
+            <span class="n">f_name</span> <span class="o">=</span> <span class="s1">&#39;Uxy&#39;</span>
+            <span class="c1"># Slice an x-y plane of the potentials</span>
+            <span class="n">potential2D</span> <span class="o">=</span> <span class="n">reshape_field</span><span class="p">(</span><span class="n">potential_copy</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;ctrl_values&#39;</span><span class="p">],</span>
+                                            <span class="n">potential_copy</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;coord&#39;</span><span class="p">][</span><span class="s1">&#39;x&#39;</span><span class="p">],</span>
+                                            <span class="n">potential_copy</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;coord&#39;</span><span class="p">][</span><span class="s1">&#39;y&#39;</span><span class="p">],</span>
+                                            <span class="n">potential_copy</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;coord&#39;</span><span class="p">][</span><span class="s1">&#39;z&#39;</span><span class="p">],</span>
+                                            <span class="n">f_name</span><span class="p">,</span> <span class="nb">slice</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">f_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;field&#39;</span><span class="p">,</span> <span class="s1">&#39;electric&#39;</span><span class="p">,</span> <span class="s1">&#39;ez&#39;</span><span class="p">]:</span>
+            <span class="c1"># Capital E used here for writing nextnano data to text file</span>
+            <span class="n">f_name</span> <span class="o">=</span> <span class="s1">&#39;Ez&#39;</span>
+            <span class="n">potential2D</span> <span class="o">=</span> <span class="n">reshape_field</span><span class="p">(</span><span class="n">potential_copy</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;ctrl_values&#39;</span><span class="p">],</span>
+                                            <span class="n">potential_copy</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;coord&#39;</span><span class="p">][</span><span class="s1">&#39;x&#39;</span><span class="p">],</span>
+                                            <span class="n">potential_copy</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;coord&#39;</span><span class="p">][</span><span class="s1">&#39;y&#39;</span><span class="p">],</span>
+                                            <span class="n">potential_copy</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;coord&#39;</span><span class="p">][</span><span class="s1">&#39;z&#39;</span><span class="p">],</span>
+                                            <span class="n">f_name</span><span class="p">,</span> <span class="nb">slice</span><span class="p">)</span>
+
+        <span class="c1"># Create an array of zeros with the dimension of the potential 2D slice</span>
+        <span class="c1"># and x/y coordinate axis</span>
+        <span class="n">coords_and_pot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">potential2D</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">potential2D</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">),</span><span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+
+        <span class="c1"># Insert x,y, and potential 2D slice into array</span>
+        <span class="n">coords_and_pot</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">potential_copy</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;coord&#39;</span><span class="p">][</span><span class="s1">&#39;x&#39;</span><span class="p">]</span>
+        <span class="n">coords_and_pot</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">potential_copy</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;coord&#39;</span><span class="p">][</span><span class="s1">&#39;y&#39;</span><span class="p">]</span>
+        <span class="n">coords_and_pot</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span><span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">potential2D</span>
+
+        <span class="c1"># Transpose array to make the y-axis data run row wise and x-axis data</span>
+        <span class="c1"># run column wise.</span>
+        <span class="n">coords_and_pot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">coords_and_pot</span><span class="p">)</span>
+
+        <span class="n">j</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">while</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">potential_copy</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;ctrl_names&#39;</span><span class="p">]):</span>
+            <span class="n">f_name</span> <span class="o">=</span> <span class="p">(</span><span class="n">f_name</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">gates</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span>
+                <span class="s2">&quot;</span><span class="si">{:.3f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">potential_copy</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;ctrl_names&#39;</span><span class="p">][</span><span class="n">j</span><span class="p">]))</span>
+            <span class="n">j</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="n">f_name</span> <span class="o">+=</span><span class="s1">&#39;.txt&#39;</span>
+
+        <span class="c1"># Create directory for preprocessed data</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">output_dir_path</span><span class="p">):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">output_dir_path</span><span class="p">)</span>
+
+        <span class="c1"># Join file name to directory path</span>
+        <span class="n">f_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_dir_path</span><span class="p">,</span><span class="n">f_name</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">save</span><span class="p">:</span>
+        <span class="c1"># Try to save the data to a text file</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="c1"># Save potential data for xy slice</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="n">f_path</span><span class="p">,</span> <span class="n">coords_and_pot</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+                <span class="n">file_trig</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="n">file_trig</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Return none if no save value was provided</span>
+            <span class="n">file_trig</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">return</span> <span class="n">file_trig</span><span class="p">,</span> <span class="n">coords_and_pot</span></div>
+
+<div class="viewcode-block" id="write_data"><a class="viewcode-back" href="../../../qudipy.potential.html#qudipy.potential.process_nextnano.write_data">[docs]</a><span class="k">def</span> <span class="nf">write_data</span><span class="p">(</span><span class="n">input_dir_path</span><span class="p">,</span> <span class="n">output_dir_path</span><span class="p">,</span> <span class="nb">slice</span><span class="p">,</span> <span class="n">f_type</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    This function takes the data directory containing the 3D nextnano simulation</span>
+<span class="sd">    run files and calls helper functions which process the 3D data into 2D field</span>
+<span class="sd">    data along a specific slice cross section. Then 2D field information is</span>
+<span class="sd">    saved in an output directory for every user defined field type.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    input_dir_path : String</span>
+<span class="sd">        Directory path for the pre-processed nextnano field data files.</span>
+
+<span class="sd">    output_dir_path : String</span>
+<span class="sd">        Directory path to write the processed nextnano field data files.</span>
+
+<span class="sd">    slice : Float</span>
+<span class="sd">        Z coordinate value to generate a 2D potential interpolation object</span>
+<span class="sd">        for from all simulation runs.</span>
+
+<span class="sd">    Keyword Arguments</span>
+<span class="sd">    ----------</span>
+<span class="sd">    f_type : List</span>
+<span class="sd">        Field type identifier either [&#39;field&#39;, &#39;electric&#39;, &#39;Ez&#39;]  or</span>
+<span class="sd">        [&#39;pot&#39;, &#39;potential&#39;, &#39;Uxy&#39; ] where case is not relevant.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    file_trig : Bool</span>
+<span class="sd">        Returns True if potential or electric field XY-plane data is saved as a</span>
+<span class="sd">        text file for the z-coordinate along slice. Otherwise, False is</span>
+<span class="sd">        returned.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">potential</span> <span class="o">=</span> <span class="n">import_dir</span><span class="p">(</span><span class="n">input_dir_path</span><span class="p">)</span>
+
+    <span class="c1"># Collect simulation meta data files</span>
+    <span class="n">list_of_files</span> <span class="o">=</span> <span class="n">get_files</span><span class="p">(</span><span class="n">input_dir_path</span><span class="p">,</span> <span class="s1">&#39;.log&#39;</span><span class="p">)</span>
+    <span class="c1"># list_of_files = get_files(input_dir_path, &#39;.txt&#39;)</span>
+
+    <span class="c1"># Find nearest slice from user specified slice</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">nearest_slice</span> <span class="o">=</span> <span class="n">hp</span><span class="o">.</span><span class="n">find_nearest</span><span class="p">(</span><span class="n">potential</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;coord&#39;</span><span class="p">][</span><span class="s1">&#39;z&#39;</span><span class="p">],</span> <span class="nb">slice</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">sub_dir</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">files</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">input_dir_path</span><span class="p">):</span>
+
+        <span class="c1"># Parse voltage information from simulation run meta data file</span>
+        <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">sub_dir</span> <span class="o">!=</span> <span class="n">input_dir_path</span> <span class="ow">and</span> <span class="n">sub_dir</span><span class="p">[</span><span class="o">-</span><span class="mi">6</span><span class="p">:]</span> <span class="o">!=</span> <span class="s1">&#39;output&#39;</span> <span class="ow">and</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">list_of_files</span><span class="p">:</span>
+
+                <span class="n">filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">sub_dir</span><span class="p">,</span><span class="n">file</span><span class="p">)</span>
+                <span class="n">gates</span> <span class="o">=</span> <span class="n">get_ctrl</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">ctrl_type</span><span class="o">=</span><span class="s1">&#39;name&#39;</span><span class="p">)</span>
+                <span class="k">break</span>
+
+    <span class="n">output_dir_path</span> <span class="o">=</span> <span class="n">output_dir_path</span> <span class="o">+</span> <span class="s1">&#39;_for_nearest_slice</span><span class="si">{:.3e}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">nearest_slice</span><span class="p">)</span>
+
+    <span class="c1"># Write xy potential files</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">f_type</span><span class="p">:</span>
+
+        <span class="c1"># Try to write xy potential text files</span>
+        <span class="n">file_trig</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">xy_pot</span><span class="p">(</span><span class="n">potential</span><span class="p">,</span><span class="n">gates</span><span class="p">,</span><span class="n">nearest_slice</span><span class="p">,</span><span class="n">i</span>
+            <span class="p">,</span><span class="n">output_dir_path</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># Indicate to user that the file failed/succeeded writting the data</span>
+        <span class="c1"># to a text file</span>
+        <span class="k">if</span> <span class="n">file_trig</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;SAVE SUCCESS: Converting 3D nextnano simulation data to 2D &#39;</span>
+            <span class="s1">&#39;XY-plane </span><span class="si">{}</span><span class="s1"> along slice for z = </span><span class="si">{}</span><span class="s1">.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">nearest_slice</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="n">file_trig</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;FAILED SAVE: Failed to convert 3D nextnano simulation data &#39;</span>
+                <span class="s1">&#39;too 2D XY-plane </span><span class="si">{}</span><span class="s1"> data along slice for &#39;</span>
+                <span class="o">+</span> <span class="s1">&#39;z = </span><span class="si">{}</span><span class="s1">.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">nearest_slice</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;NO DATA SAVED: Save flag in xy_pot is set to None or False&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">file_trig</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Zach D. Merino.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

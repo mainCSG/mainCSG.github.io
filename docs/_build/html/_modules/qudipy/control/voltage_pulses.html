@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>qudipy.control.voltage_pulses &mdash; QuDiPy Documentation 1.0.0 documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/language_data.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> QuDiPy Documentation
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">QuDiPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">qudipy.control.voltage_pulses</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for qudipy.control.voltage_pulses</h1><div class="highlight"><pre>
+<span></span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Module that contains methods that design &quot;simple&quot; one- and two-qubit gates.</span>
+<span class="sd">    Will return control pulse objects eventually, but now it is used only to </span>
+<span class="sd">    find pulse duration or amplitude</span>
+
+<span class="sd">@author: Madi Schuetze</span>
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="c1">##*************************************************</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+
+<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()))</span>
+<span class="c1">## ************************************************</span>
+
+<span class="c1">#TODO:</span>
+<span class="c1"># search function for delta g = g_0 for all qubits</span>
+<span class="c1"># </span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="c1"># TODO UNCOMMENT from qudipy.control import shapes</span>
+<span class="kn">from</span> <span class="nn">qudipy.circuit.control_pulse</span> <span class="kn">import</span> <span class="n">ControlPulse</span>
+<span class="kn">from</span> <span class="nn">qudipy.circuit.quantum_circuit</span> <span class="kn">import</span> <span class="n">QuantumCircuit</span>
+<span class="kn">from</span> <span class="nn">qudipy.circuit.file_parsers</span> <span class="kn">import</span> <span class="n">load_pulses</span>
+
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">from</span> <span class="nn">scipy.constants</span> <span class="kn">import</span> <span class="n">e</span><span class="p">,</span> <span class="n">m_e</span>
+<span class="kn">from</span> <span class="nn">qudipy.utils.constants</span> <span class="kn">import</span> <span class="n">Constants</span>
+
+
+<span class="c1">#material system is chosen to be vacuum by default because such parameters as </span>
+<span class="c1">#effective mass or dielectric constant do not matter for spin simulations;</span>
+<span class="n">consts</span> <span class="o">=</span> <span class="n">Constants</span><span class="p">(</span><span class="s2">&quot;vacuum&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="balance_zeeman"><a class="viewcode-back" href="../../../qudipy.control.html#qudipy.control.voltage_pulses.balance_zeeman">[docs]</a><span class="k">def</span> <span class="nf">balance_zeeman</span><span class="p">(</span><span class="n">delta_g_interp</span><span class="p">,</span> <span class="n">v_offset</span><span class="p">,</span> <span class="n">f_rf</span><span class="p">,</span> <span class="n">material</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Find the value of Zeeman field that ensures no qubit rotations at idling.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    -----------------</span>
+<span class="sd">    delta_g_interp: function</span>
+<span class="sd">        (ideally, but only one interpolating function for now)</span>
+<span class="sd">        Iterable of interpolating functions \delta g_i(\vec{V}) for </span>
+<span class="sd">        all qubits, including inactive ones</span>
+<span class="sd">    v_offset: Float</span>
+<span class="sd">        Voltage offset when no pulse is applied.</span>
+<span class="sd">    f_rf: float</span>
+<span class="sd">        ESR frequency.</span>
+
+<span class="sd">    Requires</span>
+<span class="sd">    ------------</span>
+<span class="sd">    * delta_g_interp to take Anyof(Float Int) and return Anyof(Float Int)</span>
+<span class="sd">    * v_offset to take Anyof(Float Int) and return Anyof(Float Int)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    B_0: float</span>
+<span class="sd">        The value of Zeeman field that ensures </span>
+<span class="sd">        no rotation occurs on any of the idling qubits</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">consts</span> <span class="o">=</span> <span class="n">Constants</span><span class="p">(</span><span class="n">material</span><span class="p">)</span>
+
+    <span class="n">delta_g_0</span> <span class="o">=</span> <span class="n">delta_g_interp</span><span class="p">(</span><span class="n">v_offset</span><span class="p">)</span>
+
+    
+    <span class="n">omega</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">f_rf</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">delta_g_0</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">B_0</span> <span class="o">=</span> <span class="n">consts</span><span class="o">.</span><span class="n">me</span> <span class="o">/</span> <span class="n">e</span> <span class="o">*</span> <span class="n">omega</span>
+
+    <span class="k">return</span> <span class="n">B_0</span></div>
+
+
+<div class="viewcode-block" id="rot"><a class="viewcode-back" href="../../../qudipy.control.html#qudipy.control.voltage_pulses.rot">[docs]</a><span class="k">def</span> <span class="nf">rot</span><span class="p">(</span><span class="n">rotation_axis</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">n_qubits</span><span class="p">,</span> <span class="n">active_qubits</span><span class="p">,</span> 
+                <span class="n">delta_g_interp</span><span class="p">,</span> <span class="n">v_unit_shape</span><span class="p">,</span> <span class="n">material</span><span class="p">,</span> <span class="n">B_0</span><span class="p">,</span> <span class="n">num_val</span><span class="o">=</span><span class="mi">100</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+
+<span class="sd">    Chooses the optimal duration for a ROT(\theta) pulse of the specified pulse </span>
+<span class="sd">    shape, where the argument &#39;axis&#39; defines rotation. </span>
+<span class="sd">    ***For now*** the function assumes for the sake of simplicity that</span>
+<span class="sd">    the delta g interpolators are the same for each qubit</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    -----------------</span>
+<span class="sd">    rotation_axis: iterable of length 3 OR string (&#39;X&#39;, &#39;Y&#39;, &#39;Z&#39;) </span>
+<span class="sd">        Axis of qubit rotation.</span>
+<span class="sd">    theta: float</span>
+<span class="sd">        Angle of qubit rotation in **degrees**.</span>
+<span class="sd">    n_qubits: int</span>
+<span class="sd">        Total number of qubits.</span>
+<span class="sd">    active_qubits: tuple/list/array of ints</span>
+<span class="sd">        Positions of qubits (starting from 1, not 0!) on which the pulse</span>
+<span class="sd">         is supposed to act. The rest will be made inactive.</span>
+<span class="sd">    delta_g_interp: function</span>
+<span class="sd">        #TODO provide better explanation </span>
+<span class="sd">        (ideally, but only one interpolating function for now)</span>
+<span class="sd">        Iterable of interpolating functions \delta g_i(\vec{V}) for </span>
+<span class="sd">        all qubits, including inactive ones</span>
+<span class="sd">    v_unit_shape: function</span>
+<span class="sd">        Shape of a voltage pulse defined over a range of time [0,1], i. e. </span>
+<span class="sd">        over the normalized time.</span>
+<span class="sd">    B_0: float</span>
+<span class="sd">        Zeeman field</span>
+
+<span class="sd">    Requires</span>
+<span class="sd">    ------------</span>
+<span class="sd">    * delta_g_interp to take Anyof(Float Int tuple array List) and return </span>
+<span class="sd">            Anyof(Float Int tuple array List) -&gt; will return a type of the same shape</span>
+<span class="sd">    * v_unit_shape to take Anyof(Float Int tuple array List) and return </span>
+<span class="sd">            Anyof(Float Int tuple array List) -&gt; will return a type of the same shape</span>
+
+<span class="sd">    Keyword Arguments</span>
+<span class="sd">    -----------------</span>
+<span class="sd">    num_val: int</span>
+<span class="sd">        Number of data points during the pulse.  </span>
+
+<span class="sd">    #TODO make it possible to specify this value </span>
+<span class="sd">    # t_start: float  </span>
+<span class="sd">    #     Beginning of the system evolution observation. The actual pulse </span>
+<span class="sd">    #     (not constant offset) may start before or after this time point.</span>
+
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    rot_pulse: Control pulse object</span>
+<span class="sd">        Pulse with both effective (delta_g_i) and actual variables</span>
+<span class="sd">        (V_i, B_0, B_rf, phi)  values to be used in</span>
+
+<span class="sd">    #TODO Data frame of pulses V_i(t), B_0, B_rf, phi, ... within </span>
+<span class="sd">    # the ControlPulse.ctrl_pulses object</span>
+
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="c1"># make sure that the rotation_axis has 3 components or is an appropriate axis</span>
+    <span class="n">consts</span> <span class="o">=</span> <span class="n">Constants</span><span class="p">(</span><span class="n">material</span><span class="p">)</span>
+    <span class="n">m_e</span> <span class="o">=</span> <span class="n">consts</span><span class="o">.</span><span class="n">me</span>
+    <span class="k">if</span> <span class="n">rotation_axis</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;X&#39;</span><span class="p">,</span> <span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;Y&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="s1">&#39;Z&#39;</span><span class="p">,</span> <span class="s1">&#39;z&#39;</span><span class="p">]:</span>
+        <span class="n">axis</span> <span class="o">=</span> <span class="n">rotation_axis</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">rotation_axis</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Please enter an iterable with 3 Float components or enter one of &#39;X&#39;, &#39;Y&#39;, &#39;Z&#39;&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">axis</span> <span class="o">=</span> <span class="n">rotation_axis</span>
+    
+    <span class="c1"># build a tuple of positions of inactive qubits</span>
+    <span class="n">all_qubits</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_qubits</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">idle_qubits</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">all_qubits</span><span class="p">)</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">active_qubits</span><span class="p">))</span>
+    
+    <span class="c1"># determining the constant voltage offset in case the actual voltage </span>
+    <span class="c1"># pulse is shifted anywhere in time</span>
+    <span class="n">v_offset</span> <span class="o">=</span> <span class="n">v_unit_shape</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">)</span> <span class="c1"># surely equal to offset at infinity</span>
+    <span class="n">delta_g_0</span> <span class="o">=</span> <span class="n">delta_g_interp</span><span class="p">(</span><span class="n">v_offset</span><span class="p">)</span>
+    
+    
+    <span class="c1">## * Creating a ControlPulse Object *</span>
+    
+    <span class="c1"># Create a string of active qubits.</span>
+    <span class="n">actv_str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">active_qubits</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">or</span> <span class="n">q</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;active qubit parameter must be a tuple&quot;</span> <span class="o">+</span>
+                            <span class="s2">&quot;list, or array of positive integers&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">actv_str</span> <span class="o">=</span> <span class="n">actv_str</span> <span class="o">+</span> <span class="s2">&quot;_&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">q</span><span class="p">)</span> 
+    
+    <span class="c1"># Format theta correctly</span>
+    <span class="k">if</span> <span class="n">theta</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span> <span class="n">sign</span> <span class="o">=</span> <span class="s2">&quot;-&quot;</span>
+    <span class="k">else</span><span class="p">:</span> <span class="n">sign</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">theta_str</span> <span class="o">=</span> <span class="p">(</span><span class="n">sign</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">theta</span><span class="p">)))</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">rot_pulse</span> <span class="o">=</span> <span class="n">ControlPulse</span><span class="p">(</span><span class="n">pulse_name</span><span class="o">=</span><span class="s1">&#39;ROT</span><span class="si">{}{}{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">theta_str</span><span class="p">,</span> <span class="n">actv_str</span><span class="p">),</span> 
+                                <span class="n">pulse_type</span><span class="o">=</span><span class="s1">&#39;effective&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">n_x</span><span class="p">,</span> <span class="n">n_y</span><span class="p">,</span> <span class="n">n_z</span> <span class="o">=</span> <span class="n">rotation_axis</span>
+        <span class="n">rot_pulse</span> <span class="o">=</span> <span class="n">ControlPulse</span><span class="p">(</span><span class="n">pulse_name</span><span class="o">=</span><span class="s1">&#39;ROT(</span><span class="si">{}</span><span class="s1">,</span><span class="si">{}</span><span class="s1">,</span><span class="si">{}</span><span class="s1">)</span><span class="si">{}{}</span><span class="s1">&#39;</span>\
+                    <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n_x</span><span class="p">,</span> <span class="n">n_y</span><span class="p">,</span> <span class="n">n_z</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">actv_str</span><span class="p">),</span> <span class="n">pulse_type</span><span class="o">=</span><span class="s1">&#39;effective&#39;</span><span class="p">)</span>
+    
+    <span class="c1"># setting all delta_g values to offset values for all qubits</span>
+    <span class="c1"># setting all Voltage values of plunger gates</span>
+    <span class="c1"># this will be updated for some qubits later on</span>
+    
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">all_qubits</span><span class="p">:</span>
+        <span class="n">rot_pulse</span><span class="o">.</span><span class="n">add_control_variable</span><span class="p">(</span><span class="n">var_name</span><span class="o">=</span> <span class="s1">&#39;delta_g_</span><span class="si">{ind}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ind</span> <span class="o">=</span> <span class="n">i</span><span class="p">),</span> 
+                                    <span class="n">var_pulse</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_val</span><span class="p">,</span> <span class="n">delta_g_0</span><span class="p">))</span>
+        <span class="n">rot_pulse</span><span class="o">.</span><span class="n">add_control_variable</span><span class="p">(</span><span class="n">var_name</span><span class="o">=</span> <span class="s1">&#39;V_</span><span class="si">{ind}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ind</span> <span class="o">=</span> <span class="n">i</span><span class="p">),</span> 
+                                    <span class="n">var_pulse</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_val</span><span class="p">,</span> <span class="n">v_offset</span><span class="p">))</span>
+
+    <span class="c1"># values of normalized time and pulse</span>
+    <span class="n">tau</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">num_val</span><span class="p">)</span>
+    <span class="n">v_pulse</span> <span class="o">=</span> <span class="n">v_unit_shape</span><span class="p">(</span><span class="n">tau</span><span class="p">)</span>
+    <span class="c1"># Larmor frequency</span>
+    <span class="n">omega</span> <span class="o">=</span> <span class="n">e</span> <span class="o">/</span> <span class="n">m_e</span> <span class="o">*</span> <span class="n">B_0</span>
+    <span class="c1"># Converting theta to radians and shifting it to the range (-pi, pi]</span>
+    <span class="n">theta_rad</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span> <span class="o">%</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">theta_rad</span> <span class="o">&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">:</span>
+        <span class="n">theta_rad</span> <span class="o">-=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span>
+    <span class="c1"># define alpha = theta / 2pi</span>
+    <span class="n">alpha</span> <span class="o">=</span> <span class="n">theta_rad</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+    
+    <span class="c1"># evaluating the integral of delta g pulse</span>
+    <span class="n">delta_g_pulse</span> <span class="o">=</span> <span class="n">delta_g_interp</span><span class="p">(</span><span class="n">v_unit_shape</span><span class="p">(</span><span class="n">tau</span><span class="p">))</span>
+    <span class="n">delta_g_int</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">trapz</span><span class="p">(</span><span class="n">delta_g_pulse</span><span class="p">,</span> <span class="n">tau</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_val</span><span class="p">,</span> <span class="n">delta_g_0</span><span class="p">)</span>
+    
+    <span class="c1"># finding the pulse length and setting the correct time values for pulses</span>
+    <span class="n">T</span> <span class="o">=</span> <span class="mf">1.</span>
+    
+    <span class="k">if</span> <span class="n">axis</span> <span class="o">==</span> <span class="s1">&#39;Z&#39;</span><span class="p">:</span>
+        <span class="c1"># in this case, only the voltage on active qubits changes</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">active_qubits</span><span class="p">:</span>
+            <span class="n">rot_pulse</span><span class="o">.</span><span class="n">ctrl_pulses</span><span class="p">[</span><span class="s1">&#39;delta_g_</span><span class="si">{ind}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ind</span> <span class="o">=</span> <span class="n">i</span><span class="p">)]</span> <span class="o">=</span> <span class="n">delta_g_pulse</span>
+            <span class="n">rot_pulse</span><span class="o">.</span><span class="n">ctrl_pulses</span><span class="p">[</span><span class="s1">&#39;V_</span><span class="si">{ind}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ind</span> <span class="o">=</span> <span class="n">i</span><span class="p">)]</span> <span class="o">=</span> <span class="n">v_pulse</span>
+            
+        <span class="c1"># pulse duration</span>
+        <span class="n">T</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">theta_rad</span> <span class="o">/</span> <span class="p">(</span><span class="n">omega</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">delta_g_int</span><span class="p">))</span>
+        
+    <span class="k">elif</span> <span class="n">axis</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;X&#39;</span><span class="p">,</span> <span class="s1">&#39;Y&#39;</span><span class="p">]:</span>
+        <span class="c1"># determine the phase values during the pulse first</span>
+        <span class="n">phis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_val</span><span class="p">,</span> <span class="mf">0.</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">axis</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;Y&#39;</span><span class="p">:</span>
+            <span class="n">phis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_val</span><span class="p">,</span> <span class="mi">90</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">theta</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">phis</span> <span class="o">=</span> <span class="n">phis</span> <span class="o">+</span> <span class="mi">180</span>
+            
+        <span class="n">rot_pulse</span><span class="o">.</span><span class="n">add_control_variable</span><span class="p">(</span><span class="s2">&quot;phi&quot;</span><span class="p">,</span> <span class="n">phis</span><span class="p">)</span>
+        <span class="c1"># Making the ESR pulse of the same shape as the g-factor pulse</span>
+        <span class="c1"># shifted by delta_g_0</span>
+        <span class="c1"># finding the coefficient first</span>
+        
+        <span class="n">A</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="n">theta_rad</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        
+        <span class="c1"># values of ESR field</span>
+        <span class="n">omega_capital</span> <span class="o">=</span> <span class="n">A</span> <span class="o">*</span> <span class="n">omega</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">delta_g_pulse</span> <span class="o">-</span> <span class="n">delta_g_0</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="n">b_rf</span> <span class="o">=</span> <span class="n">m_e</span> <span class="o">/</span> <span class="n">e</span> <span class="o">*</span> <span class="n">omega_capital</span> 
+        
+        <span class="n">rot_pulse</span><span class="o">.</span><span class="n">add_control_variable</span><span class="p">(</span><span class="s2">&quot;B_rf&quot;</span><span class="p">,</span> <span class="n">b_rf</span><span class="p">)</span>
+        
+        <span class="c1"># unlike the case of ROTZ, the voltage here changes only on the </span>
+        <span class="c1"># idling qubits so that they return to their initial state</span>
+        <span class="c1"># after the pulse</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">idle_qubits</span><span class="p">:</span>
+            <span class="n">rot_pulse</span><span class="o">.</span><span class="n">ctrl_pulses</span><span class="p">[</span><span class="s1">&#39;delta_g_</span><span class="si">{ind}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ind</span> <span class="o">=</span> <span class="n">i</span><span class="p">)]</span> <span class="o">=</span> <span class="n">delta_g_pulse</span>
+            <span class="n">rot_pulse</span><span class="o">.</span><span class="n">ctrl_pulses</span><span class="p">[</span><span class="s1">&#39;V_</span><span class="si">{ind}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ind</span> <span class="o">=</span> <span class="n">i</span><span class="p">)]</span> <span class="o">=</span> <span class="n">v_pulse</span>
+            
+        <span class="c1"># pulse duration</span>
+        <span class="n">alpha</span> <span class="o">=</span> <span class="n">theta_rad</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+        <span class="n">T</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="p">(</span><span class="n">omega</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">delta_g_int</span><span class="p">))</span> <span class="o">*</span>  <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+    
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># *** ARBITRARY ROTATION ***</span>
+        <span class="c1">#create variables for Vector Components to speed up run-time</span>
+        <span class="n">n_x</span><span class="p">,</span> <span class="n">n_y</span><span class="p">,</span> <span class="n">n_z</span> <span class="o">=</span> <span class="n">rotation_axis</span>
+        
+        <span class="c1"># make sure that the rotation_axis is a Bloch Vector, if not, make it unitary</span>
+        <span class="n">norm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">n_x</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">n_y</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">n_z</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">norm</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">n_x</span> <span class="o">=</span> <span class="n">n_x</span><span class="o">/</span><span class="n">norm</span>
+            <span class="n">n_y</span> <span class="o">=</span> <span class="n">n_y</span><span class="o">/</span><span class="n">norm</span>
+            <span class="n">n_z</span> <span class="o">=</span> <span class="n">n_z</span><span class="o">/</span><span class="n">norm</span>
+        
+        <span class="k">def</span> <span class="nf">find_shape</span><span class="p">(</span><span class="n">active</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+            <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">            @author: Madi</span>
+<span class="sd">            Calculates the shape function given that the qubit is</span>
+<span class="sd">            resonant (active) or non-resonant (inactive) for T = 1</span>
+
+<span class="sd">            Parameters</span>
+<span class="sd">            ----------------</span>
+<span class="sd">            active: boolean</span>
+<span class="sd">                is True when the qubit is active, False when the qubit is inactive</span>
+
+<span class="sd">            Returns</span>
+<span class="sd">            ---------------</span>
+<span class="sd">            Array: 1-Dimension</span>
+<span class="sd">                Contains all of the values of the shape</span>
+<span class="sd">            &#39;&#39;&#39;</span>
+            <span class="n">delta_g_diff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">delta_g_pulse</span> <span class="o">-</span> <span class="n">delta_g_0</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">active</span><span class="p">:</span>
+                <span class="n">param</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">n_z</span> <span class="o">*</span> <span class="n">theta_rad</span><span class="p">)</span><span class="o">/</span><span class="n">omega</span>
+                <span class="k">return</span> <span class="n">delta_g_diff</span> <span class="o">/</span> <span class="n">param</span>
+            
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">param</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span><span class="o">/</span><span class="n">omega</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">4</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="n">theta_rad</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> 
+                                                            <span class="p">(</span><span class="n">n_x</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">n_y</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+                <span class="k">return</span> <span class="n">delta_g_diff</span> <span class="o">/</span> <span class="n">param</span>
+    
+        <span class="c1"># Find Shape</span>
+        <span class="n">S</span> <span class="o">=</span> <span class="n">find_shape</span><span class="p">(</span><span class="n">active</span> <span class="o">=</span> <span class="p">(</span><span class="n">n_z</span><span class="o">==</span><span class="mi">1</span><span class="p">))</span>
+        
+        <span class="c1"># sign of pulse shape</span>
+        <span class="n">shape_sign</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">S</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">s</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">shape_sign</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">shape_sign</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        
+        <span class="c1">#determine the phase values during the pulse -&gt; list of phi&#39;s</span>
+        <span class="n">phis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">num_val</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">shape_sign</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">s</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">phi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="n">n_y</span><span class="p">,</span> <span class="n">n_x</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">180</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">phi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="n">n_y</span> <span class="o">*</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_x</span> <span class="o">*</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">180</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+            <span class="n">phis</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">phi</span>
+        <span class="n">rot_pulse</span><span class="o">.</span><span class="n">add_control_variable</span><span class="p">(</span><span class="s2">&quot;phi&quot;</span><span class="p">,</span> <span class="n">phis</span><span class="p">)</span><span class="c1"># add phi&#39;s to the control variable</span>
+        
+        
+        <span class="c1">#Calculate time of pulse for the rotation</span>
+        <span class="n">factor</span> <span class="o">=</span> <span class="p">((</span><span class="mi">4</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span><span class="o">/</span><span class="n">omega</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">n_z</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">T</span> <span class="o">=</span> <span class="n">factor</span> <span class="o">*</span> <span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="p">(</span><span class="n">alpha</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">n_x</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">n_y</span><span class="o">**</span><span class="mi">2</span><span class="p">))))</span> <span class="o">/</span>
+                                                            <span class="nb">abs</span><span class="p">(</span><span class="n">delta_g_int</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">T</span> <span class="o">=</span> <span class="n">factor</span> <span class="o">*</span> <span class="p">((</span><span class="n">alpha</span> <span class="o">*</span> <span class="nb">abs</span><span class="p">(</span><span class="n">n_z</span><span class="p">))</span> <span class="o">/</span> <span class="nb">abs</span><span class="p">(</span><span class="n">delta_g_int</span><span class="p">))</span>
+        
+        
+        <span class="c1">#Add ESR frequency into the Control Pulse</span>
+        <span class="n">omega_capital</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">parameter</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">theta_rad</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">n_x</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">n_y</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">m_e</span> <span class="o">/</span> <span class="n">e</span> <span class="c1">#saves calculation time</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">S</span><span class="p">):</span>
+            <span class="n">omega_capital</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">s</span> <span class="o">*</span> <span class="n">parameter</span> <span class="o">*</span> <span class="n">shape_sign</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="n">rot_pulse</span><span class="o">.</span><span class="n">add_control_variable</span><span class="p">(</span><span class="s2">&quot;B_rf&quot;</span><span class="p">,</span> <span class="n">omega_capital</span><span class="p">)</span><span class="c1"># add ESR frequency to the control variable</span>
+        
+        
+        
+        <span class="c1"># * Update the Control Pulse Object *</span>
+        <span class="c1"># find dg+ - dg0 </span>
+        <span class="n">d_g_active</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">parameter</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">n_z</span> <span class="o">*</span> <span class="n">theta_rad</span><span class="p">)</span><span class="o">/</span><span class="n">omega</span>
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">S</span><span class="p">:</span>
+            <span class="n">d_g_active</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">s</span> <span class="o">*</span> <span class="n">parameter</span><span class="p">)</span>
+        
+        <span class="c1">#find dg- - dg0</span>
+        <span class="n">d_g_inactive</span><span class="o">=</span> <span class="p">[]</span>
+        <span class="n">parameter</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span><span class="o">/</span><span class="n">omega</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">4</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="n">theta_rad</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> 
+                                                    <span class="p">(</span><span class="n">n_x</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">n_y</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">S</span><span class="p">:</span>
+            <span class="n">d_g_inactive</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">s</span> <span class="o">*</span> <span class="n">parameter</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">active_qubits</span><span class="p">:</span> 
+            <span class="n">rot_pulse</span><span class="o">.</span><span class="n">ctrl_pulses</span><span class="p">[</span><span class="s1">&#39;delta_g_</span><span class="si">{ind}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ind</span> <span class="o">=</span> <span class="n">i</span><span class="p">)]</span> <span class="o">=</span> <span class="n">d_g_active</span>
+            <span class="k">if</span> <span class="n">n_z</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">rot_pulse</span><span class="o">.</span><span class="n">ctrl_pulses</span><span class="p">[</span><span class="s1">&#39;V_</span><span class="si">{ind}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ind</span> <span class="o">=</span> <span class="n">i</span><span class="p">)]</span> <span class="o">=</span> <span class="n">v_pulse</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">idle_qubits</span><span class="p">:</span>
+            <span class="n">rot_pulse</span><span class="o">.</span><span class="n">ctrl_pulses</span><span class="p">[</span><span class="s1">&#39;delta_g_</span><span class="si">{ind}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ind</span> <span class="o">=</span> <span class="n">i</span><span class="p">)]</span> <span class="o">=</span> <span class="n">d_g_inactive</span>
+            <span class="k">if</span> <span class="n">n_z</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">rot_pulse</span><span class="o">.</span><span class="n">ctrl_pulses</span><span class="p">[</span><span class="s1">&#39;V_</span><span class="si">{ind}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ind</span> <span class="o">=</span> <span class="n">i</span><span class="p">)]</span> <span class="o">=</span> <span class="n">v_pulse</span>
+
+    
+    <span class="c1"># finally, specify the correct time values for the pulse and returning it</span>
+    <span class="n">rot_pulse</span><span class="o">.</span><span class="n">add_control_variable</span><span class="p">(</span><span class="s1">&#39;time&#39;</span><span class="p">,</span> <span class="n">tau</span> <span class="o">*</span> <span class="n">T</span><span class="p">)</span>
+    
+    <span class="k">return</span> <span class="n">rot_pulse</span></div>
+
+<div class="viewcode-block" id="rot_new"><a class="viewcode-back" href="../../../qudipy.control.html#qudipy.control.voltage_pulses.rot_new">[docs]</a><span class="k">def</span> <span class="nf">rot_new</span><span class="p">(</span><span class="n">rot_axis</span><span class="p">,</span> <span class="n">angle</span><span class="p">,</span> <span class="n">qubits</span><span class="p">,</span> <span class="n">active_q</span><span class="p">,</span> <span class="n">dg_interp_list</span><span class="p">,</span> <span class="n">pulse_shape</span><span class="p">,</span>
+         <span class="n">v_offset</span><span class="p">,</span> <span class="n">mag_zeeman</span><span class="p">,</span> <span class="n">num_val</span><span class="o">=</span><span class="mi">100</span><span class="p">):</span>
+    
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    pseudo code:</span>
+
+<span class="sd">    1) define location of qubits and which qubits to apply pulse too</span>
+<span class="sd">    2) calculate dg-offset from v_offset for each quantum dot</span>
+<span class="sd">    3) Calculate pulse</span>
+
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="c1"># Check axis label input</span>
+    <span class="k">if</span> <span class="n">rot_axis</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;X&#39;</span><span class="p">,</span> <span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;Y&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="s1">&#39;Z&#39;</span><span class="p">,</span> <span class="s1">&#39;z&#39;</span><span class="p">]:</span>
+        <span class="n">axis</span> <span class="o">=</span> <span class="n">rot_axis</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Enter correct axis type i.e. x, y, or z&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Create a control pulse object </span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">rot_pulse</span> <span class="o">=</span> <span class="n">ControlPulse</span><span class="p">(</span><span class="n">pulse_name</span><span class="o">=</span><span class="s1">&#39;ROT</span><span class="si">{}</span><span class="s1">_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">angle</span><span class="p">),</span> 
+                                <span class="n">pulse_type</span><span class="o">=</span><span class="s1">&#39;effective&#39;</span><span class="p">)</span>
+    
+    <span class="c1"># Find idle qubit locations</span>
+    <span class="n">idle_qubits</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">qubits</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="n">qubits</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">active_q</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">idle_qubits</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">idle_qubits</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># setting all delta_g values to offset values for all qubits</span>
+    <span class="c1"># setting all Voltage values of plunger gates</span>
+    <span class="c1"># this will be updated for some qubits later on</span>
+    <span class="n">n_qubits</span><span class="o">=</span><span class="mi">0</span>
+    <span class="n">q_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">active_q_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">idle_q_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">qubits</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="n">val</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># update number of qubits across total gate geometry</span>
+            <span class="n">n_qubits</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="c1"># ordered list of qubits (left to right) in the linear dot system</span>
+            <span class="n">q_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">n_qubits</span><span class="p">)</span>
+
+            <span class="c1"># create a list of active qubits based on position in linear array</span>
+            <span class="k">if</span> <span class="n">qubits</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">==</span> <span class="n">active_q</span><span class="p">[</span><span class="n">idx</span><span class="p">]:</span>
+                <span class="n">active_q_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">n_qubits</span><span class="p">)</span>
+            <span class="k">elif</span>  <span class="n">qubits</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">qubits</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">!=</span> <span class="n">active_q</span><span class="p">[</span><span class="n">idx</span><span class="p">]:</span>
+                <span class="n">idle_q_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">n_qubits</span><span class="p">)</span>
+
+            <span class="n">delta_g_0</span> <span class="o">=</span> <span class="n">dg_interp_list</span><span class="p">[</span><span class="n">idx</span><span class="p">](</span><span class="n">v_offset</span><span class="p">)</span>
+            
+            <span class="n">rot_pulse</span><span class="o">.</span><span class="n">add_control_variable</span><span class="p">(</span><span class="n">var_name</span><span class="o">=</span> <span class="s1">&#39;delta_g_</span><span class="si">{ind}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ind</span> <span class="o">=</span> <span class="n">n_qubits</span><span class="p">),</span> 
+                                        <span class="n">var_pulse</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_val</span><span class="p">,</span> <span class="n">delta_g_0</span><span class="p">))</span>
+            <span class="n">rot_pulse</span><span class="o">.</span><span class="n">add_control_variable</span><span class="p">(</span><span class="n">var_name</span><span class="o">=</span> <span class="s1">&#39;V_</span><span class="si">{ind}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ind</span> <span class="o">=</span> <span class="n">n_qubits</span><span class="p">),</span> 
+                                        <span class="n">var_pulse</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_val</span><span class="p">,</span> <span class="n">v_offset</span><span class="p">[</span><span class="n">idx</span><span class="p">]))</span>
+    
+    <span class="c1"># adding in active qubits variable</span>
+    <span class="nb">setattr</span><span class="p">(</span><span class="n">rot_pulse</span><span class="p">,</span> <span class="s1">&#39;active&#39;</span><span class="p">,</span> <span class="n">active_q</span><span class="p">)</span> 
+
+    <span class="c1"># DEFINE PULSE FOR GATES ---------------------------------------------------</span>
+    <span class="c1"># values of normalized time and pulse</span>
+    <span class="n">tau</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">num_val</span><span class="p">)</span>
+    <span class="n">v_pulse</span> <span class="o">=</span> <span class="n">pulse_shape</span><span class="p">(</span><span class="n">tau</span><span class="p">)</span>
+    <span class="c1"># Larmor frequency</span>
+    <span class="n">omega</span> <span class="o">=</span> <span class="n">e</span> <span class="o">/</span> <span class="n">m_e</span> <span class="o">*</span> <span class="n">mag_zeeman</span>
+    <span class="c1"># Converting theta to radians and shifting it to the range (-pi, pi]</span>
+    <span class="n">t1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">angle</span><span class="p">)</span>
+    <span class="n">theta_rad</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">angle</span><span class="p">)</span> <span class="o">%</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">theta_rad</span> <span class="o">&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">:</span>
+        <span class="n">theta_rad</span> <span class="o">-=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span>
+        
+    <span class="c1"># theta_rad_old = np.deg2rad(angle) % (2 * np.pi)</span>
+    <span class="c1"># theta_rad = angle * (2 * np.pi) / 360</span>
+    <span class="c1"># if theta_rad &gt; np.pi:</span>
+    <span class="c1">#     theta_rad -= 2 * np.pi</span>
+
+    <span class="c1"># define alpha = theta / 2pi</span>
+    <span class="n">alpha</span> <span class="o">=</span> <span class="n">theta_rad</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+
+    <span class="c1"># Define pulses for specific gates</span>
+    <span class="n">pulses</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">active_q</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">val</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">pulses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">v_pulse</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">val</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">pulses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">v_offset</span><span class="p">[</span><span class="n">idx</span><span class="p">])</span>
+
+    <span class="c1"># Finding the pulse length and setting the correct time values for pulses</span>
+        <span class="n">T</span> <span class="o">=</span> <span class="mf">1.</span>
+
+    <span class="k">if</span> <span class="n">axis</span> <span class="o">==</span> <span class="s1">&#39;Z&#39;</span><span class="p">:</span>
+        <span class="n">q_idx</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">active_q</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">val</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+
+                <span class="c1"># TEMPORARY FIX FOR MULTIPLE SIMULTANEOUS PULSES ON DOTS</span>
+                <span class="n">updated_pls</span> <span class="o">=</span> <span class="n">pulses</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">pidx</span><span class="p">,</span> <span class="n">pulse</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pulses</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">pulse</span><span class="p">)</span> <span class="o">==</span> <span class="nb">list</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">pulse</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">pidx</span> <span class="o">!=</span> <span class="n">idx</span><span class="p">:</span>
+                            <span class="n">updated_pls</span><span class="p">[</span><span class="n">pidx</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">pulses</span><span class="p">[</span><span class="n">pidx</span><span class="p">])</span>
+
+
+                <span class="c1"># TODO: handle simultaneous pulse it multiple dots</span>
+                <span class="n">temp</span> <span class="o">=</span> <span class="n">dg_interp_list</span><span class="p">[</span><span class="n">idx</span><span class="p">](</span><span class="o">*</span><span class="n">updated_pls</span><span class="p">)</span>
+
+                <span class="n">delta_g_pulse</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">temp</span><span class="p">)</span>
+                <span class="c1"># Ignore NaNs from effective parameter calcualtions</span>
+                <span class="n">delta_g_pulse</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_array</span><span class="p">(</span><span class="n">delta_g_pulse</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">delta_g_pulse</span><span class="p">))</span>
+
+                <span class="n">delta_g_int</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">trapz</span><span class="p">(</span><span class="n">delta_g_pulse</span><span class="p">,</span> <span class="n">tau</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_val</span><span class="p">,</span> <span class="n">delta_g_0</span><span class="p">)</span>
+
+                <span class="c1"># convert active gates to active qubits i.e. [1,0,1] -&gt; [1,2]</span>
+                <span class="n">q_label</span> <span class="o">=</span> <span class="n">active_q_list</span><span class="p">[</span><span class="n">q_idx</span><span class="p">]</span>
+
+                <span class="n">rot_pulse</span><span class="o">.</span><span class="n">ctrl_pulses</span><span class="p">[</span><span class="s1">&#39;delta_g_</span><span class="si">{ind}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ind</span> <span class="o">=</span> <span class="n">q_label</span><span class="p">)]</span> <span class="o">=</span> <span class="n">delta_g_pulse</span>
+                <span class="n">rot_pulse</span><span class="o">.</span><span class="n">ctrl_pulses</span><span class="p">[</span><span class="s1">&#39;V_</span><span class="si">{ind}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ind</span> <span class="o">=</span> <span class="n">q_label</span><span class="p">)]</span> <span class="o">=</span> <span class="n">v_pulse</span>
+
+                <span class="n">T</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="nb">abs</span><span class="p">(</span><span class="n">theta_rad</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">omega</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">delta_g_int</span><span class="p">))</span>
+                <span class="n">rot_pulse</span><span class="o">.</span><span class="n">add_control_variable</span><span class="p">(</span><span class="s1">&#39;time&#39;</span><span class="p">,</span> <span class="n">tau</span> <span class="o">*</span> <span class="n">T</span><span class="p">)</span>
+
+                <span class="n">q_idx</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">elif</span> <span class="n">axis</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;X&#39;</span><span class="p">,</span> <span class="s1">&#39;Y&#39;</span><span class="p">]:</span>
+
+        <span class="c1"># Determine the phase values during the pulse first</span>
+        <span class="n">phis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_val</span><span class="p">,</span> <span class="mf">0.</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">axis</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;Y&#39;</span><span class="p">:</span>
+            <span class="n">phis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_val</span><span class="p">,</span> <span class="mi">90</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">angle</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">phis</span> <span class="o">=</span> <span class="n">phis</span> <span class="o">+</span> <span class="mi">180</span>
+            
+        <span class="n">rot_pulse</span><span class="o">.</span><span class="n">add_control_variable</span><span class="p">(</span><span class="s2">&quot;phi&quot;</span><span class="p">,</span> <span class="n">phis</span><span class="p">)</span>
+        <span class="c1"># Making the ESR pulse of the same shape as the g-factor pulse</span>
+        <span class="c1"># shifted by delta_g_0</span>
+        <span class="c1"># finding the coefficient first</span>
+        
+        <span class="n">A</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="n">theta_rad</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># Calculate Brf per dot</span>
+        <span class="n">q_idx</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">active_q</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">val</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+
+                <span class="c1"># TEMPORARY FIX FOR MULTIPLE SIMULTANEOUS PULSES ON DOTS</span>
+                <span class="n">updated_pls</span> <span class="o">=</span> <span class="n">pulses</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">pidx</span><span class="p">,</span> <span class="n">pulse</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pulses</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">pulse</span><span class="p">)</span> <span class="o">==</span> <span class="nb">list</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">pulse</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">pidx</span> <span class="o">!=</span> <span class="n">idx</span><span class="p">:</span>
+                            <span class="n">updated_pls</span><span class="p">[</span><span class="n">pidx</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">pulses</span><span class="p">[</span><span class="n">pidx</span><span class="p">])</span>
+
+
+                <span class="c1"># TODO: handle simultaneous pulse it multiple dots</span>
+                <span class="n">temp</span> <span class="o">=</span> <span class="n">dg_interp_list</span><span class="p">[</span><span class="n">idx</span><span class="p">](</span><span class="o">*</span><span class="n">updated_pls</span><span class="p">)</span>
+
+                <span class="n">delta_g_pulse</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">temp</span><span class="p">)</span>
+
+                <span class="c1"># Ignore NaNs from effective parameter calcualtions</span>
+                <span class="n">delta_g_pulse</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_array</span><span class="p">(</span><span class="n">delta_g_pulse</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">delta_g_pulse</span><span class="p">))</span>
+
+                <span class="n">delta_g_int</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">trapz</span><span class="p">(</span><span class="n">delta_g_pulse</span><span class="p">,</span> <span class="n">tau</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_val</span><span class="p">,</span> <span class="n">delta_g_0</span><span class="p">)</span>
+
+                <span class="c1"># convert active gates to active qubits i.e. [1,0,1] -&gt; [1,2]</span>
+                <span class="n">q_label</span> <span class="o">=</span> <span class="n">active_q_list</span><span class="p">[</span><span class="n">q_idx</span><span class="p">]</span>
+
+                <span class="c1"># values of ESR field</span>
+                <span class="n">omega_capital</span> <span class="o">=</span> <span class="n">A</span> <span class="o">*</span> <span class="n">omega</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">delta_g_pulse</span> <span class="o">-</span> <span class="n">delta_g_0</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+                <span class="n">b_rf</span> <span class="o">=</span> <span class="n">m_e</span> <span class="o">/</span> <span class="n">e</span> <span class="o">*</span> <span class="n">omega_capital</span> 
+                
+                <span class="n">q_idx</span> <span class="o">+=</span> <span class="mi">1</span>
+                
+        <span class="c1"># rot_pulse.add_control_variable(f&quot;B_rf_{q_label}&quot;, b_rf)</span>
+        <span class="n">rot_pulse</span><span class="o">.</span><span class="n">add_control_variable</span><span class="p">(</span><span class="s2">&quot;B_rf&quot;</span><span class="p">,</span> <span class="n">b_rf</span><span class="p">)</span>
+
+        <span class="n">q_idx</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">idle_qubits</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">val</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+
+                <span class="c1"># convert active gates to active qubits i.e. [1,0,1] -&gt; [1,2]</span>
+                <span class="n">q_label</span> <span class="o">=</span> <span class="n">idle_q_list</span><span class="p">[</span><span class="n">q_idx</span><span class="p">]</span>
+
+                <span class="n">rot_pulse</span><span class="o">.</span><span class="n">ctrl_pulses</span><span class="p">[</span><span class="s1">&#39;delta_g_</span><span class="si">{ind}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ind</span> <span class="o">=</span> <span class="n">q_label</span><span class="p">)]</span> <span class="o">=</span> <span class="n">delta_g_pulse</span>
+                <span class="n">rot_pulse</span><span class="o">.</span><span class="n">ctrl_pulses</span><span class="p">[</span><span class="s1">&#39;V_</span><span class="si">{ind}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ind</span> <span class="o">=</span> <span class="n">q_label</span><span class="p">)]</span> <span class="o">=</span> <span class="n">v_pulse</span>
+
+
+                <span class="n">q_idx</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="c1"># pulse duration</span>
+        <span class="n">alpha</span> <span class="o">=</span> <span class="n">theta_rad</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+        <span class="n">T</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="p">(</span><span class="n">omega</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">delta_g_int</span><span class="p">))</span> <span class="o">*</span>  <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> 
+
+        <span class="n">rot_pulse</span><span class="o">.</span><span class="n">add_control_variable</span><span class="p">(</span><span class="s1">&#39;time&#39;</span><span class="p">,</span> <span class="n">tau</span> <span class="o">*</span> <span class="n">T</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># *** ARBITRARY ROTATION ***</span>
+        <span class="c1">#create variables for Vector Components to speed up run-time</span>
+        <span class="n">n_x</span> <span class="o">=</span> <span class="n">rot_axis</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">n_y</span> <span class="o">=</span> <span class="n">rot_axis</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">n_z</span> <span class="o">=</span> <span class="n">rot_axis</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        
+        <span class="c1"># make sure that the rotation_axis is a Bloch Vector, if not, make it unitary</span>
+        <span class="n">norm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">n_x</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">n_y</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">n_z</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">norm</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">n_x</span> <span class="o">=</span> <span class="n">n_x</span><span class="o">/</span><span class="n">norm</span>
+            <span class="n">n_y</span> <span class="o">=</span> <span class="n">n_y</span><span class="o">/</span><span class="n">norm</span>
+            <span class="n">n_z</span> <span class="o">=</span> <span class="n">n_z</span><span class="o">/</span><span class="n">norm</span>
+        
+        <span class="k">def</span> <span class="nf">find_shape</span><span class="p">(</span><span class="n">active</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+            <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">            @author: Madi</span>
+<span class="sd">            Calculates the shape function given that the qubit is</span>
+<span class="sd">            resonant (active) or non-resonant (inactive) for T = 1</span>
+
+<span class="sd">            Parameters</span>
+<span class="sd">            ----------------</span>
+<span class="sd">            active: boolean</span>
+<span class="sd">                is True when the qubit is active, False when the qubit is inactive</span>
+
+<span class="sd">            Returns</span>
+<span class="sd">            ---------------</span>
+<span class="sd">            List </span>
+<span class="sd">                contains all of the values of the shape</span>
+<span class="sd">            &#39;&#39;&#39;</span>
+            <span class="n">delta_g_diff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">delta_g_pulse</span> <span class="o">-</span> <span class="n">delta_g_0</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">active</span><span class="p">:</span>
+                <span class="n">param</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">n_z</span> <span class="o">*</span> <span class="n">theta_rad</span><span class="p">)</span><span class="o">/</span><span class="n">omega</span>
+                <span class="k">return</span> <span class="n">delta_g_diff</span> <span class="o">/</span> <span class="n">param</span>
+            
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">param</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span><span class="o">/</span><span class="n">omega</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">4</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="n">theta_rad</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> 
+                                                            <span class="p">(</span><span class="n">n_x</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">n_y</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+                <span class="k">return</span> <span class="n">delta_g_diff</span> <span class="o">/</span> <span class="n">param</span>
+    
+        <span class="c1"># Find Shape</span>
+        <span class="k">if</span> <span class="n">n_z</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">S</span> <span class="o">=</span> <span class="n">find_shape</span><span class="p">(</span><span class="n">active</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="c1">#get shape</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">S</span> <span class="o">=</span> <span class="n">find_shape</span><span class="p">(</span><span class="n">active</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="c1">#get shape</span>
+        
+        <span class="c1"># sign of pulse shape</span>
+        <span class="n">shape_sign</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">S</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">s</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">shape_sign</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">shape_sign</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        
+        <span class="c1">#determine the phase values during the pulse -&gt; list of phi&#39;s</span>
+        <span class="n">phis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">num_val</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">shape_sign</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">s</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">phi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="n">n_y</span><span class="p">,</span> <span class="n">n_x</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">180</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">phi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="n">n_y</span> <span class="o">*</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_x</span> <span class="o">*</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">180</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+            <span class="n">phis</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">phi</span>
+        <span class="n">rot_pulse</span><span class="o">.</span><span class="n">add_control_variable</span><span class="p">(</span><span class="s2">&quot;phi&quot;</span><span class="p">,</span> <span class="n">phis</span><span class="p">)</span><span class="c1"># add phi&#39;s to the control variable</span>
+        
+        
+        <span class="c1">#Calculate time of pulse for the rotation</span>
+        <span class="n">factor</span> <span class="o">=</span> <span class="p">((</span><span class="mi">4</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span><span class="o">/</span><span class="n">omega</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">n_z</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">T</span> <span class="o">=</span> <span class="n">factor</span> <span class="o">*</span> <span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="p">(</span><span class="n">alpha</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">n_x</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">n_y</span><span class="o">**</span><span class="mi">2</span><span class="p">))))</span> <span class="o">/</span>
+                                                            <span class="nb">abs</span><span class="p">(</span><span class="n">delta_g_int</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">T</span> <span class="o">=</span> <span class="n">factor</span> <span class="o">*</span> <span class="p">((</span><span class="n">alpha</span> <span class="o">*</span> <span class="nb">abs</span><span class="p">(</span><span class="n">n_z</span><span class="p">))</span> <span class="o">/</span> <span class="nb">abs</span><span class="p">(</span><span class="n">delta_g_int</span><span class="p">))</span>
+        
+        
+        <span class="c1">#Add ESR frequency into the Control Pulse</span>
+        <span class="n">omega_capital</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">parameter</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">theta_rad</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">n_x</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">n_y</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">m_e</span> <span class="o">/</span> <span class="n">e</span> <span class="c1">#saves calculation time</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">S</span><span class="p">):</span>
+            <span class="n">omega_capital</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">s</span> <span class="o">*</span> <span class="n">parameter</span> <span class="o">*</span> <span class="n">shape_sign</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="n">rot_pulse</span><span class="o">.</span><span class="n">add_control_variable</span><span class="p">(</span><span class="s2">&quot;B_rf&quot;</span><span class="p">,</span> <span class="n">omega_capital</span><span class="p">)</span><span class="c1"># add ESR frequency to the control variable</span>
+        
+        
+        
+        <span class="c1"># * Update the Control Pulse Object *</span>
+        <span class="c1"># find dg+ - dg0 </span>
+        <span class="n">d_g_active</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">parameter</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">n_z</span> <span class="o">*</span> <span class="n">theta_rad</span><span class="p">)</span><span class="o">/</span><span class="n">omega</span>
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">S</span><span class="p">:</span>
+            <span class="n">d_g_active</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">s</span> <span class="o">*</span> <span class="n">parameter</span><span class="p">)</span>
+        
+        <span class="c1">#find dg- - dg0</span>
+        <span class="n">d_g_inactive</span><span class="o">=</span> <span class="p">[]</span>
+        <span class="n">parameter</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span><span class="o">/</span><span class="n">omega</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">4</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="n">theta_rad</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> 
+                                                    <span class="p">(</span><span class="n">n_x</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">n_y</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">S</span><span class="p">:</span>
+            <span class="n">d_g_inactive</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">s</span> <span class="o">*</span> <span class="n">parameter</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">active_q</span><span class="p">:</span> 
+            <span class="n">rot_pulse</span><span class="o">.</span><span class="n">ctrl_pulses</span><span class="p">[</span><span class="s1">&#39;delta_g_</span><span class="si">{ind}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ind</span> <span class="o">=</span> <span class="n">i</span><span class="p">)]</span> <span class="o">=</span> <span class="n">d_g_active</span>
+            <span class="k">if</span> <span class="n">n_z</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">rot_pulse</span><span class="o">.</span><span class="n">ctrl_pulses</span><span class="p">[</span><span class="s1">&#39;V_</span><span class="si">{ind}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ind</span> <span class="o">=</span> <span class="n">i</span><span class="p">)]</span> <span class="o">=</span> <span class="n">v_pulse</span>
+
+        <span class="c1"># # for i in idle_qubits:</span>
+        <span class="c1"># for idx, val in enumerate(active_qubits):</span>
+        <span class="c1">#     if val == 1:</span>
+        <span class="c1">#         rot_pulse.ctrl_pulses[&#39;delta_g_{ind}&#39;.format(ind = idx+1)] = d_g_inactive</span>
+        <span class="c1">#         if n_z != 1:</span>
+        <span class="c1">#             rot_pulse.ctrl_pulses[&#39;V_{ind}&#39;.format(ind = idx+1)] = v_pulse</span>
+
+
+        <span class="c1"># for i in idle_qubits:</span>
+        <span class="c1"># for idx, val in enumerate(active_qubits):</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">qubits</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">val</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">active_q</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">rot_pulse</span><span class="o">.</span><span class="n">ctrl_pulses</span><span class="p">[</span><span class="s1">&#39;delta_g_</span><span class="si">{ind}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ind</span> <span class="o">=</span> <span class="n">idx</span><span class="o">+</span><span class="mi">1</span><span class="p">)]</span> <span class="o">=</span> <span class="n">d_g_inactive</span>
+                <span class="k">if</span> <span class="n">n_z</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">rot_pulse</span><span class="o">.</span><span class="n">ctrl_pulses</span><span class="p">[</span><span class="s1">&#39;V_</span><span class="si">{ind}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ind</span> <span class="o">=</span> <span class="n">idx</span><span class="o">+</span><span class="mi">1</span><span class="p">)]</span> <span class="o">=</span> <span class="n">v_pulse</span>
+
+    <span class="k">return</span> <span class="n">rot_pulse</span></div>
+ 
+<div class="viewcode-block" id="kswap"><a class="viewcode-back" href="../../../qudipy.control.html#qudipy.control.voltage_pulses.kswap">[docs]</a><span class="k">def</span> <span class="nf">kswap</span><span class="p">(</span><span class="n">qubits</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">J</span><span class="p">,</span> <span class="n">J_interp</span><span class="p">,</span> <span class="n">pulse_shape</span><span class="p">,</span> <span class="n">v_offset</span><span class="p">,</span> <span class="n">B_0</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">f_rf</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">num_val</span><span class="o">=</span><span class="mi">300</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The indices of the interacting qubits are specified &quot;</span> 
+                         <span class="s2">&quot;incorrectly. There should be a list/tuple with two &quot;</span>
+                         <span class="s2">&quot;integers&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Temporarily, only the exchange between neighboring&quot;</span>
+                         <span class="s2">&quot;qubits is supported&quot;</span><span class="p">)</span>
+    <span class="n">qubit</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>    
+    
+    <span class="n">Js</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_val</span><span class="p">,</span> <span class="n">J</span><span class="p">)</span>
+    <span class="n">delta_J</span> <span class="o">=</span> <span class="n">J_interp</span><span class="p">(</span><span class="o">*</span><span class="n">v_offset</span><span class="p">)</span>
+
+    <span class="n">swappulse</span> <span class="o">=</span> <span class="n">ControlPulse</span><span class="p">(</span><span class="s2">&quot;SWAP_</span><span class="si">{}</span><span class="s2">_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">qubit</span><span class="p">,</span> <span class="n">qubit</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> 
+                                <span class="s2">&quot;effective&quot;</span><span class="p">,</span> <span class="n">pulse_length</span> <span class="o">=</span> <span class="n">consts</span><span class="o">.</span><span class="n">h</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">J</span><span class="p">))</span> 
+
+    <span class="n">swappulse</span><span class="o">.</span><span class="n">add_control_variable</span><span class="p">(</span><span class="s2">&quot;J_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">qubit</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_val</span><span class="p">,</span> <span class="n">J</span><span class="p">))</span>
+    <span class="c1"># TODO: UPDATE INDEX and should me voltage for desired J not delta_J</span>
+    <span class="c1"># swappulse.add_control_variable(&#39;V_{}&#39;.format(qubit), </span>
+    <span class="c1">#                                     var_pulse=np.full(num_val, v_offset[1]))</span>
+    <span class="c1"># swappulse.add_control_variable(&#39;V_{}&#39;.format(qubit), </span>
+    <span class="c1">#                                     var_pulse=np.full(num_val, 0.15))</span>
+    
+    <span class="c1">#tuning all qubits on resonance</span>
+    <span class="k">if</span> <span class="n">B_0</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">omega</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">consts</span><span class="o">.</span><span class="n">muB</span> <span class="o">*</span> <span class="n">B_0</span> <span class="o">/</span> <span class="n">consts</span><span class="o">.</span><span class="n">hbar</span>
+        <span class="n">dg0</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">f_rf</span> <span class="o">/</span> <span class="n">omega</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">qub</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">N</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">swappulse</span><span class="o">.</span><span class="n">add_control_variable</span><span class="p">(</span><span class="s2">&quot;delta_g_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">qub</span><span class="p">),</span> 
+                                         <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_val</span><span class="p">,</span> <span class="n">dg0</span><span class="p">))</span>
+    
+    <span class="c1"># DEFINE PULSE FOR GATES ---------------------------------------------------</span>
+    <span class="c1"># values of normalized time and pulse</span>
+    <span class="n">tau</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">num_val</span><span class="p">)</span>
+    <span class="c1"># v_pulse = pulse_shape(tau)</span>
+    <span class="n">j_pulse</span> <span class="o">=</span> <span class="n">pulse_shape</span><span class="p">(</span><span class="n">tau</span><span class="p">)</span>
+    
+    <span class="c1"># # Define pulses for specific gates</span>
+    <span class="c1"># pulses = []</span>
+    <span class="c1"># for idx, val in enumerate([1,0,1]):</span>
+    <span class="c1">#     if val == 0:</span>
+    <span class="c1">#         pulses.append(list(v_pulse))</span>
+    <span class="c1">#     elif val == 1:</span>
+    <span class="c1">#         pulses.append(v_offset[idx])</span>
+
+    <span class="c1"># Finding the pulse length and setting the correct time values for pulses</span>
+    <span class="n">T</span> <span class="o">=</span> <span class="mf">1.</span>
+
+
+    <span class="c1"># j_pulse = np.squeeze(J_interp(*pulses))</span>
+
+    <span class="n">j_int</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">trapz</span><span class="p">(</span><span class="n">j_pulse</span><span class="p">,</span> <span class="n">tau</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_val</span><span class="p">,</span> <span class="n">delta_J</span><span class="o">*</span><span class="mi">10</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="mi">3</span><span class="p">))</span>
+
+    <span class="n">T</span> <span class="o">=</span> <span class="p">(</span><span class="n">k</span><span class="o">*</span><span class="n">math</span><span class="o">.</span><span class="n">pi</span><span class="o">*</span><span class="n">consts</span><span class="o">.</span><span class="n">hbar</span><span class="p">)</span> <span class="o">/</span> <span class="nb">abs</span><span class="p">(</span><span class="n">j_int</span><span class="p">)</span>
+    <span class="c1"># NOTE: When time was fixed but exchange varied, then swap happened</span>
+    <span class="c1"># T = 8.630253904174016e-10</span>
+
+    <span class="n">swappulse</span><span class="o">.</span><span class="n">add_control_variable</span><span class="p">(</span><span class="s1">&#39;time&#39;</span><span class="p">,</span> <span class="n">tau</span> <span class="o">*</span> <span class="n">T</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">swappulse</span></div>
+
+
+<div class="viewcode-block" id="kswapVt"><a class="viewcode-back" href="../../../qudipy.control.html#qudipy.control.voltage_pulses.kswapVt">[docs]</a><span class="k">def</span> <span class="nf">kswapVt</span><span class="p">(</span><span class="n">qubits</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">J</span><span class="p">,</span> <span class="n">J_interp</span><span class="p">,</span> <span class="n">pulse_shape</span><span class="p">,</span> <span class="n">v_offset</span><span class="p">,</span> <span class="n">B_0</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">f_rf</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">num_val</span><span class="o">=</span><span class="mi">300</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The indices of the interacting qubits are specified &quot;</span> 
+                         <span class="s2">&quot;incorrectly. There should be a list/tuple with two &quot;</span>
+                         <span class="s2">&quot;integers&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Temporarily, only the exchange between neighboring&quot;</span>
+                         <span class="s2">&quot;qubits is supported&quot;</span><span class="p">)</span>
+    <span class="n">qubit</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>    
+    
+    <span class="n">Js</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_val</span><span class="p">,</span> <span class="n">J</span><span class="p">)</span>
+    <span class="c1"># delta_J = J_interp(*v_offset)</span>
+    <span class="n">delta_J</span> <span class="o">=</span> <span class="n">J_interp</span><span class="p">(</span><span class="n">v_offset</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+
+    <span class="c1"># DEFINE PULSE FOR GATES ---------------------------------------------------</span>
+    <span class="c1"># values of normalized time and pulse</span>
+    <span class="n">tau</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">num_val</span><span class="p">)</span>
+    <span class="n">vt_pulse</span> <span class="o">=</span> <span class="n">pulse_shape</span><span class="p">(</span><span class="n">tau</span><span class="p">)</span>
+    <span class="n">j_pulse</span> <span class="o">=</span> <span class="n">pulse_shape</span><span class="p">(</span><span class="n">tau</span><span class="p">)</span>
+    
+    <span class="c1"># # Define pulses for specific gates</span>
+    <span class="c1"># pulses = []</span>
+    <span class="c1"># for idx, val in enumerate([1,0,1]):</span>
+    <span class="c1">#     if val == 0:</span>
+    <span class="c1">#         pulses.append(list(v_pulse))</span>
+    <span class="c1">#     elif val == 1:</span>
+    <span class="c1">#         pulses.append(v_offset[idx])</span>
+
+    <span class="c1"># Finding the pulse length and setting the correct time values for pulses</span>
+    <span class="n">T</span> <span class="o">=</span> <span class="mf">1.</span>
+
+    <span class="n">j_pulse</span> <span class="o">=</span> <span class="n">J_interp</span><span class="p">(</span><span class="n">vt_pulse</span><span class="p">)</span>
+
+    <span class="c1"># shouldn&#39;t be one value?????</span>
+    <span class="n">j_int</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">trapz</span><span class="p">(</span><span class="n">j_pulse</span><span class="p">,</span> <span class="n">tau</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_val</span><span class="p">,</span> <span class="n">delta_J</span><span class="o">*</span><span class="mi">10</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="mi">3</span><span class="p">))</span>
+
+    <span class="n">T</span> <span class="o">=</span> <span class="p">(</span><span class="n">k</span><span class="o">*</span><span class="n">math</span><span class="o">.</span><span class="n">pi</span><span class="o">*</span><span class="n">consts</span><span class="o">.</span><span class="n">hbar</span><span class="p">)</span> <span class="o">/</span> <span class="nb">abs</span><span class="p">(</span><span class="n">j_int</span><span class="p">)</span>
+    <span class="c1"># NOTE: When time was fixed but exchange varied, then swap happened</span>
+    <span class="c1"># T = 8.630253904174016e-10</span>
+
+    <span class="c1"># swappulse = ControlPulse(&quot;SWAP_{}_{}&quot;.format(qubit, qubit + 1), </span>
+    <span class="c1">#                             &quot;effective&quot;, pulse_length = consts.h / (2 * J)) </span>
+    <span class="n">swappulse</span> <span class="o">=</span> <span class="n">ControlPulse</span><span class="p">(</span><span class="s2">&quot;SWAP_</span><span class="si">{}</span><span class="s2">_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">qubit</span><span class="p">,</span> <span class="n">qubit</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> 
+                                <span class="s2">&quot;effective&quot;</span><span class="p">,</span> <span class="n">pulse_length</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">T</span><span class="p">))</span> 
+
+    <span class="c1"># swappulse.add_control_variable(&quot;Jtest_{}&quot;.format(qubit), j_pulse)</span>
+    <span class="n">swappulse</span><span class="o">.</span><span class="n">add_control_variable</span><span class="p">(</span><span class="s2">&quot;J_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">qubit</span><span class="p">),</span> <span class="n">j_pulse</span><span class="p">)</span>
+    <span class="n">swappulse</span><span class="o">.</span><span class="n">add_control_variable</span><span class="p">(</span><span class="s2">&quot;V_t&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">qubit</span><span class="p">),</span> <span class="n">vt_pulse</span><span class="p">)</span>
+
+
+
+    <span class="c1"># swappulse.add_control_variable(&quot;J_{}&quot;.format(qubit), np.full(num_val, J))</span>
+    <span class="c1"># TODO: UPDATE INDEX and should me voltage for desired J not delta_J</span>
+    <span class="c1"># swappulse.add_control_variable(&#39;V_{}&#39;.format(qubit), </span>
+    <span class="c1">#                                     var_pulse=np.full(num_val, v_offset[1]))</span>
+    <span class="c1"># swappulse.add_control_variable(&#39;V_{}&#39;.format(qubit), </span>
+    <span class="c1">#                                     var_pulse=np.full(num_val, 0.15))</span>
+    
+    <span class="c1">#tuning all qubits on resonance</span>
+    <span class="k">if</span> <span class="n">B_0</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">omega</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">consts</span><span class="o">.</span><span class="n">muB</span> <span class="o">*</span> <span class="n">B_0</span> <span class="o">/</span> <span class="n">consts</span><span class="o">.</span><span class="n">hbar</span>
+        <span class="n">dg0</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">f_rf</span> <span class="o">/</span> <span class="n">omega</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">qub</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">N</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">swappulse</span><span class="o">.</span><span class="n">add_control_variable</span><span class="p">(</span><span class="s2">&quot;delta_g_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">qub</span><span class="p">),</span> 
+                                         <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_val</span><span class="p">,</span> <span class="n">dg0</span><span class="p">))</span>
+    
+
+    <span class="n">swappulse</span><span class="o">.</span><span class="n">add_control_variable</span><span class="p">(</span><span class="s1">&#39;time&#39;</span><span class="p">,</span> <span class="n">tau</span> <span class="o">*</span> <span class="n">T</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">swappulse</span></div>
+
+
+<div class="viewcode-block" id="swap"><a class="viewcode-back" href="../../../qudipy.control.html#qudipy.control.voltage_pulses.swap">[docs]</a><span class="k">def</span> <span class="nf">swap</span><span class="p">(</span><span class="n">qubits</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">J</span><span class="p">,</span> <span class="n">B_0</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">f_rf</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">num_val</span><span class="o">=</span><span class="mi">300</span><span class="p">):</span>
+   
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The indices of the interacting qubits are specified &quot;</span> 
+                         <span class="s2">&quot;incorrectly. There should be a list/tuple with two &quot;</span>
+                         <span class="s2">&quot;integers&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Temporarily, only the exchange between neighboring&quot;</span>
+                         <span class="s2">&quot;qubits is supported&quot;</span><span class="p">)</span>
+    <span class="n">qubit</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>    
+    <span class="n">Js</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_val</span><span class="p">,</span> <span class="n">J</span><span class="p">)</span>
+    <span class="n">swappulse</span> <span class="o">=</span> <span class="n">ControlPulse</span><span class="p">(</span><span class="s2">&quot;SWAP_</span><span class="si">{}</span><span class="s2">_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">qubit</span><span class="p">,</span> <span class="n">qubit</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> 
+                                <span class="s2">&quot;effective&quot;</span><span class="p">,</span> <span class="n">pulse_length</span> <span class="o">=</span> <span class="n">consts</span><span class="o">.</span><span class="n">h</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">J</span><span class="p">))</span> 
+    <span class="n">swappulse</span><span class="o">.</span><span class="n">add_control_variable</span><span class="p">(</span><span class="s2">&quot;J_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">qubit</span><span class="p">),</span> <span class="n">Js</span><span class="p">)</span>
+    
+    <span class="c1">#tuning all qubits on resonance</span>
+    <span class="k">if</span> <span class="n">B_0</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">omega</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">consts</span><span class="o">.</span><span class="n">muB</span> <span class="o">*</span> <span class="n">B_0</span> <span class="o">/</span> <span class="n">consts</span><span class="o">.</span><span class="n">hbar</span>
+        <span class="n">dg0</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">f_rf</span> <span class="o">/</span> <span class="n">omega</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">qub</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">N</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">swappulse</span><span class="o">.</span><span class="n">add_control_variable</span><span class="p">(</span><span class="s2">&quot;delta_g_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">qub</span><span class="p">),</span> 
+                                         <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_val</span><span class="p">,</span> <span class="n">dg0</span><span class="p">))</span>
+    
+    <span class="k">return</span> <span class="n">swappulse</span></div>
+
+    
+<div class="viewcode-block" id="create_ctlp_file"><a class="viewcode-back" href="../../../qudipy.control.html#qudipy.control.voltage_pulses.create_ctlp_file">[docs]</a><span class="k">def</span> <span class="nf">create_ctlp_file</span><span class="p">(</span><span class="n">CntrlPulse</span><span class="p">,</span> <span class="n">read</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">get_dir</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    @author: Madi</span>
+
+<span class="sd">    Creates a .ctrlp file containing the information about a rotation gate</span>
+<span class="sd">    from a ControlPulse object</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    -------------</span>
+<span class="sd">    CntrlPulse: ControlPulse</span>
+<span class="sd">        Control Pulse Object </span>
+<span class="sd">    read: Bool</span>
+<span class="sd">        If read = True, the function will print out the .ctrlp file, </span>
+<span class="sd">        if read = False (Default) the funciton will print nothing</span>
+<span class="sd">    get_dir: Bool</span>
+<span class="sd">        If get_dir = True, the function will return the directory as a </span>
+<span class="sd">        string, if get_dir = False (Default), the function will return nothing</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------------</span>
+<span class="sd">    Str *conditional*</span>
+<span class="sd">        Returns the directory of the file as a str if get_dir = True, otherwise,</span>
+<span class="sd">        the function returns None</span>
+
+<span class="sd">    None</span>
+
+<span class="sd">    Effects</span>
+<span class="sd">    -------------</span>
+<span class="sd">    Creates a .ctrlp file containing all information to re-create the same ControlPulse </span>
+<span class="sd">    object</span>
+
+<span class="sd">    Prints to screen *conditional* - prints the Control Pulse file to the screen if </span>
+<span class="sd">    read = True, otherwise, nothing is printed to the screen</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="c1"># retrieve all pieces of information</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">CntrlPulse</span><span class="o">.</span><span class="n">name</span> 
+    <span class="n">ideal_gate</span> <span class="o">=</span> <span class="n">CntrlPulse</span><span class="o">.</span><span class="n">ideal_gate</span>
+    <span class="n">p_type</span> <span class="o">=</span> <span class="n">CntrlPulse</span><span class="o">.</span><span class="n">pulse_type</span>
+    <span class="n">p_length</span> <span class="o">=</span> <span class="n">CntrlPulse</span><span class="o">.</span><span class="n">length</span>
+    <span class="n">pulse_key</span> <span class="o">=</span> <span class="n">CntrlPulse</span><span class="o">.</span><span class="n">ctrl_names</span>
+    <span class="n">pulse_vals</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">CntrlPulse</span><span class="o">.</span><span class="n">ctrl_pulses</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+    <span class="n">active_qubits</span> <span class="o">=</span> <span class="n">CntrlPulse</span><span class="o">.</span><span class="n">active</span>
+    
+    <span class="c1"># format Control Pulse data into writable strings</span>
+    <span class="n">key_str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">vals_str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pulse_key</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">pulse_key</span><span class="p">)</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">key_str</span> <span class="o">=</span> <span class="n">key_str</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">key</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">key_str</span> <span class="o">=</span> <span class="n">key_str</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">key</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="o">+</span> <span class="s2">&quot;,&quot;</span> 
+    
+    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">pulse_vals</span><span class="p">[</span><span class="mi">0</span><span class="p">])):</span>
+        <span class="n">vals_str_line</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">pulse_key</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">pulse_key</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="n">vals_str_line</span> <span class="o">=</span> <span class="n">vals_str_line</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">pulse_vals</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">vals_str_line</span> <span class="o">=</span> <span class="n">vals_str_line</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">pulse_vals</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">])</span> <span class="o">+</span> <span class="s2">&quot;, &quot;</span>
+        <span class="k">if</span> <span class="n">j</span> <span class="o">==</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">pulse_vals</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">vals_str</span> <span class="o">=</span> <span class="n">vals_str</span> <span class="o">+</span> <span class="n">vals_str_line</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">vals_str</span> <span class="o">=</span> <span class="n">vals_str</span> <span class="o">+</span> <span class="n">vals_str_line</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+    
+    <span class="n">actv_str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">active_qubits</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">q</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">active_qubits</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">active_qubits</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="n">actv_str</span> <span class="o">=</span> <span class="n">actv_str</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">actv_str</span> <span class="o">=</span> <span class="n">actv_str</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">q</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;, &quot;</span>
+    
+    <span class="c1"># Write the .ctrlp file</span>
+    <span class="n">ctrlp_file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;.ctrlp&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
+    <span class="n">ctrlp_file</span><span class="o">.</span><span class="n">writelines</span><span class="p">([</span><span class="s2">&quot;# </span><span class="si">{n}</span><span class="s2">.ctrlp</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n</span> <span class="o">=</span> <span class="n">name</span><span class="p">),</span>
+                           <span class="s2">&quot;Ideal gate: </span><span class="si">{ig}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ig</span> <span class="o">=</span> <span class="n">ideal_gate</span><span class="p">),</span>
+                           <span class="s2">&quot;Pulse type: </span><span class="si">{pt}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pt</span> <span class="o">=</span> <span class="n">p_type</span><span class="p">),</span>
+                           <span class="s2">&quot;Pulse length: </span><span class="si">{pl}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pl</span> <span class="o">=</span> <span class="n">p_length</span><span class="p">),</span>
+                           <span class="s2">&quot;Active qubits: </span><span class="si">{aq}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">aq</span> <span class="o">=</span> <span class="n">actv_str</span><span class="p">),</span>
+                           <span class="s2">&quot;Control pulses:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+                            <span class="n">key_str</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+                            <span class="n">vals_str</span><span class="p">])</span>
+    
+    <span class="c1"># close file to stop making any changes</span>
+    <span class="n">ctrlp_file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    
+    <span class="c1"># read the file if necessary</span>
+    <span class="k">if</span> <span class="n">read</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">directory</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;.ctrlp&quot;</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+    
+    <span class="c1"># return the directory if necessary</span>
+    <span class="k">if</span> <span class="n">get_dir</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">directory</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;.ctrlp&quot;</span>
+        <span class="k">return</span><span class="p">(</span><span class="n">directory</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="create_quantum_circuit"><a class="viewcode-back" href="../../../qudipy.control.html#qudipy.control.voltage_pulses.create_quantum_circuit">[docs]</a><span class="k">def</span> <span class="nf">create_quantum_circuit</span><span class="p">(</span><span class="n">list_ctrlp</span><span class="p">,</span> <span class="n">circuit_name</span><span class="p">,</span> <span class="n">write_qcirc</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">print_dir</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    @author: Madi</span>
+
+<span class="sd">    Takes directory to a .qcirc file, creates the necessary </span>
+<span class="sd">    ControlPulses for rotations around an axis, creates a dictionary </span>
+<span class="sd">    of these specified ControlPulse objects and returns a QuantumCircuit Object</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    --------------</span>
+<span class="sd">    list_ctrlp: Listof(Str(.ctrlp))</span>
+<span class="sd">        A list that contains .ctrlp files where these files are specified by strings</span>
+<span class="sd">    circuit_name: str</span>
+<span class="sd">        The name that the user wishes to call the circuit</span>
+<span class="sd">    write_qcirc: Bool</span>
+<span class="sd">        If write_qcirc = True the function will write a qcirc file of the quantum circuit</span>
+<span class="sd">        with the name &quot;circuit_name&quot;.qcirc, else the function does nothing</span>
+<span class="sd">    print_dir: Bool</span>
+<span class="sd">        If write_qcirc = True and print_dir = True the function will print the directory </span>
+<span class="sd">        of the newly made .qcirc file, else the function does nothing</span>
+
+<span class="sd">    Requires</span>
+<span class="sd">    ----------</span>
+<span class="sd">    * All ControlPulse objects act on the same number of qubits </span>
+
+<span class="sd">    * All .ctrlp files in list_ctrlp will path to the correct directory</span>
+<span class="sd">        -&gt; user must ensure that all directory satisfactions are met </span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    ---------</span>
+<span class="sd">        QuantumCircuit object</span>
+
+<span class="sd">    Effects</span>
+<span class="sd">    ---------</span>
+<span class="sd">    Writes File *conditional*</span>
+<span class="sd">        writes a .qcirc file with the name &quot;circuit_name&quot;.qcirc is write_qcirc = True</span>
+<span class="sd">    Prints to Screen</span>
+<span class="sd">        prints the directory of the newly made .qcirc file if print_dir = True and </span>
+<span class="sd">        write_qcirc = True</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">pulse_dict</span> <span class="o">=</span> <span class="n">load_pulses</span><span class="p">(</span><span class="n">list_ctrlp</span><span class="p">)</span> 
+    
+    <span class="n">file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">list_ctrlp</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
+    <span class="n">L</span> <span class="o">=</span> <span class="n">file</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">L</span><span class="p">):</span>
+        <span class="k">if</span> <span class="s2">&quot;control&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+            <span class="n">ind</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="k">break</span>
+    <span class="n">cnt_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;V&#39;</span><span class="p">:</span><span class="mi">0</span><span class="p">}</span>
+    <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">L</span><span class="p">[</span><span class="n">ind</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="n">s</span> <span class="o">==</span> <span class="s1">&#39;V&#39;</span><span class="p">:</span>
+            <span class="n">cnt_dict</span><span class="p">[</span><span class="s1">&#39;V&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cnt_dict</span><span class="p">[</span><span class="s1">&#39;V&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="n">n_qubits</span> <span class="o">=</span> <span class="n">cnt_dict</span><span class="p">[</span><span class="s1">&#39;V&#39;</span><span class="p">]</span>
+    
+    <span class="n">file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    
+    <span class="c1">## ** Write .qcirc file if necessary **</span>
+    <span class="k">if</span> <span class="n">write_qcirc</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">Gate_Str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        
+        <span class="c1"># Create List of active qubits and List of qubit names, </span>
+        <span class="c1"># then make it into a writeable String</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">list_ctrlp</span><span class="p">)):</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">list_ctrlp</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
+            <span class="n">L</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+            <span class="n">actv_qubit_str</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">name_str</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">L</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">actv_qubit_str</span> <span class="o">!=</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">name_str</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">break</span>
+                <span class="k">elif</span> <span class="s2">&quot;#&quot;</span> <span class="ow">in</span> <span class="n">param</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span> <span class="c1">#elif statement to format name correctly</span>
+                    <span class="n">name_str</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;#&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="s2">&quot;ROT&quot;</span> <span class="ow">in</span> <span class="n">name_str</span><span class="p">:</span>
+                        <span class="n">name_str</span> <span class="o">=</span> <span class="n">name_str</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;OT&quot;</span><span class="p">,</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+                    <span class="n">num_count</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="n">negative</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+                    <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">name_str</span><span class="p">[</span><span class="n">name_str</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:]:</span>
+                        <span class="k">if</span> <span class="n">s</span> <span class="o">==</span> <span class="s2">&quot;-&quot;</span><span class="p">:</span>
+                            <span class="n">negative</span> <span class="o">=</span> <span class="s2">&quot;-&quot;</span>
+                        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">s</span><span class="p">),</span> <span class="nb">int</span><span class="p">):</span>
+                            <span class="n">num_count</span> <span class="o">=</span> <span class="n">num_count</span> <span class="o">+</span> <span class="mi">1</span>
+                    <span class="k">if</span> <span class="n">num_count</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                        <span class="n">name_str</span> <span class="o">=</span> <span class="n">name_str</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">,</span><span class="s2">&quot;</span><span class="si">{neg}</span><span class="s2">00&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">neg</span> <span class="o">=</span> <span class="n">negative</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">num_count</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                        <span class="n">name_str</span> <span class="o">=</span> <span class="n">name_str</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">,</span><span class="s2">&quot;</span><span class="si">{neg}</span><span class="s2">0&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">neg</span> <span class="o">=</span> <span class="n">negative</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">name_str</span> <span class="o">=</span> <span class="n">name_str</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">,</span><span class="s2">&quot;</span><span class="si">{neg}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">neg</span> <span class="o">=</span> <span class="n">negative</span><span class="p">)</span>
+                    
+                <span class="k">elif</span> <span class="s2">&quot;active&quot;</span> <span class="ow">in</span> <span class="n">param</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+                    <span class="n">actv_qubit_str</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;: &quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">,</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">list_ctrlp</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="n">Gate_Str</span> <span class="o">=</span> <span class="n">Gate_Str</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="si">{name}</span><span class="s2"> </span><span class="si">{active}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span> <span class="o">=</span> <span class="n">name_str</span><span class="p">,</span> <span class="n">active</span> <span class="o">=</span> <span class="n">actv_qubit_str</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">Gate_Str</span> <span class="o">=</span> <span class="n">Gate_Str</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="si">{name}</span><span class="s2"> </span><span class="si">{active}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span> <span class="o">=</span> <span class="n">name_str</span><span class="p">,</span> <span class="n">active</span> <span class="o">=</span> <span class="n">actv_qubit_str</span><span class="p">)</span>
+        
+        <span class="c1"># create the new qcirc file</span>
+        <span class="n">qcirc_file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">circuit_name</span> <span class="o">+</span> <span class="s2">&quot;.qcirc&quot;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
+        <span class="n">qcirc_file</span><span class="o">.</span><span class="n">writelines</span><span class="p">([</span><span class="s2">&quot;Number of qubits: </span><span class="si">{nq}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">nq</span> <span class="o">=</span> <span class="n">n_qubits</span><span class="p">),</span> <span class="n">Gate_Str</span><span class="p">])</span>
+        <span class="n">qcirc_file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        
+        <span class="k">if</span> <span class="n">print_dir</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">circuit_name</span> <span class="o">+</span> <span class="s2">&quot;.qcirc&quot;</span><span class="p">)</span>
+
+    
+    <span class="c1">## ** Create Quantum Circuit Object with the newly made pulse_dict **</span>
+    <span class="k">return</span> <span class="n">QuantumCircuit</span><span class="p">(</span><span class="n">circuit_name</span><span class="p">,</span> <span class="n">n_qubits</span><span class="p">,</span> <span class="n">pulse_dict</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Zach D. Merino.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

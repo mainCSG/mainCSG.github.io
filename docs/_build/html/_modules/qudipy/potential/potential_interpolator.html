@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>qudipy.potential.potential_interpolator &mdash; QuDiPy Documentation 1.0.0 documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/language_data.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> QuDiPy Documentation
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">QuDiPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">qudipy.potential.potential_interpolator</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for qudipy.potential.potential_interpolator</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">PotentialInterpolator class</span>
+
+<span class="sd">@author: simba</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">scipy.interpolate</span> <span class="kn">import</span> <span class="n">RegularGridInterpolator</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">scipy.signal</span> <span class="kn">import</span> <span class="n">find_peaks</span>
+<span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="kn">import</span> <span class="n">fminbound</span>
+
+<span class="kn">import</span> <span class="nn">qudipy</span> <span class="k">as</span> <span class="nn">qd</span>
+<span class="kn">import</span> <span class="nn">qudipy.utils</span> <span class="k">as</span> <span class="nn">utils</span>
+<span class="kn">from</span> <span class="nn">qudipy.qutils.solvers</span> <span class="kn">import</span> <span class="n">solve_schrodinger_eq</span>
+<span class="kn">from</span> <span class="nn">qudipy.qutils.math</span> <span class="kn">import</span> <span class="n">inner_prod</span>
+<span class="kn">from</span> <span class="nn">qudipy.potential</span> <span class="kn">import</span> <span class="n">GridParameters</span>
+
+<div class="viewcode-block" id="PotentialInterpolator"><a class="viewcode-back" href="../../../qudipy.potential.html#qudipy.potential.potential_interpolator.PotentialInterpolator">[docs]</a><span class="k">class</span> <span class="nc">PotentialInterpolator</span><span class="p">:</span>
+    
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctrl_vals</span><span class="p">,</span> <span class="n">ctrl_names</span><span class="p">,</span> <span class="n">interp_data</span><span class="p">,</span> <span class="n">single_dim_idx</span><span class="p">,</span> 
+                 <span class="n">constants</span><span class="o">=</span><span class="n">qd</span><span class="o">.</span><span class="n">Constants</span><span class="p">(),</span> <span class="n">y_slice</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Initialize the class which, at its core, is basically a wrapper for </span>
+<span class="sd">        the scipy RegularGridInterpolator class.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        ctrl_vals : 2D list</span>
+<span class="sd">            List of grid vectors for each control variable (gate voltages AND</span>
+<span class="sd">            x and y coords).</span>
+<span class="sd">        interp_data : nd array</span>
+<span class="sd">            Array of 2D potential (or electric field) data which is to be</span>
+<span class="sd">            interpolated. Number of dimensions should be number of controls +2</span>
+<span class="sd">            (where the +2 is for x and y coords)</span>
+<span class="sd">        single_dim_idx : list of ints</span>
+<span class="sd">            List of all control indices which only have a singleton dimension.</span>
+
+<span class="sd">        Keyword Arguments</span>
+<span class="sd">        -----------------</span>
+<span class="sd">        constants : Constants object, optional</span>
+<span class="sd">            Constants object containing material parameter details.</span>
+<span class="sd">            The default is a Constants object assuming vacuum as the material</span>
+<span class="sd">            system.</span>
+<span class="sd">        y_slice : float, optional</span>
+<span class="sd">            Used to create an interpolator of only 1D potentials. Specify a </span>
+<span class="sd">            slice along the y-axis at which to take the 1D potential when </span>
+<span class="sd">            constructing the interpolator. Units should be specified in [m]. </span>
+<span class="sd">            The default is None.</span>
+<span class="sd">            </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="c1"># Build interpolator object (spline is not supported...)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">interp_obj</span> <span class="o">=</span> <span class="n">RegularGridInterpolator</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">ctrl_vals</span><span class="p">),</span>
+                                                  <span class="n">interp_data</span><span class="p">)</span>
+        
+        <span class="c1"># Track how many of the originally inputted grid vectors had only a </span>
+        <span class="c1"># single dimension</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">single_dims</span> <span class="o">=</span> <span class="n">single_dim_idx</span>
+        <span class="k">if</span> <span class="n">y_slice</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">=</span> <span class="s1">&#39;2D&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n_voltage_ctrls</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ctrl_vals</span><span class="p">)</span><span class="o">-</span><span class="mi">2</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">=</span> <span class="s1">&#39;1D&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n_voltage_ctrls</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ctrl_vals</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span>
+        
+        <span class="c1"># Extract grid vectors</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x_coords</span> <span class="o">=</span> <span class="n">ctrl_vals</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s1">&#39;2D&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gate_values</span> <span class="o">=</span> <span class="n">ctrl_vals</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">y_coords</span> <span class="o">=</span> <span class="n">ctrl_vals</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s1">&#39;1D&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gate_values</span> <span class="o">=</span> <span class="n">ctrl_vals</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        
+        <span class="c1"># Get min/max values for each voltage control</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_max_vals</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_voltage_ctrls</span><span class="p">):</span>
+            <span class="n">curr_unique_volts</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gate_values</span><span class="p">[</span><span class="n">idx</span><span class="p">])</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">min_max_vals</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="nb">min</span><span class="p">(</span><span class="n">curr_unique_volts</span><span class="p">),</span>
+                                      <span class="nb">max</span><span class="p">(</span><span class="n">curr_unique_volts</span><span class="p">)])</span>
+        <span class="c1"># Store constants</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">constants</span> <span class="o">=</span> <span class="n">constants</span>
+        
+        <span class="c1"># Store control names</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_names</span> <span class="o">=</span> <span class="n">ctrl_names</span>
+    
+    <span class="c1"># indirectly defining call method for the class so that it can be overridden</span>
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">volt_vec_input</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>    
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call_method</span><span class="p">(</span><span class="n">volt_vec_input</span><span class="p">)</span>     <span class="c1"># in case it&#39;s overridden</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call_method</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">volt_vec_input</span><span class="p">)</span>
+
+<div class="viewcode-block" id="PotentialInterpolator.call_method"><a class="viewcode-back" href="../../../qudipy.potential.html#qudipy.potential.potential_interpolator.PotentialInterpolator.call_method">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">call_method</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">volt_vec_input</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Call method for class</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        volt_vec_input : 2D float array</span>
+<span class="sd">            Array of control variable value vectors at which we wish to find </span>
+<span class="sd">            the interpolated 2D potential. Each row corresponds to a new </span>
+<span class="sd">            control variable vector.</span>
+<span class="sd">            </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        result : 2D float array</span>
+<span class="sd">            Interpolated 2D potential at the supplied control variable value</span>
+<span class="sd">            vectors.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        
+        <span class="c1"># Make a list where each element in the list contains the grid points</span>
+        <span class="c1"># for each respective control variable</span>
+
+        <span class="n">volt_vec</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">volt_vec_input</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+                 
+        <span class="c1"># First check if the singleton dimensions were included in volt_vec</span>
+        <span class="c1"># and remove if so</span>
+        <span class="c1"># if True ==&gt; they were NOT included</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">volt_vec</span><span class="p">)</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_voltage_ctrls</span><span class="p">:</span>
+            <span class="c1"># Double check that the inputted voltage vector has at least the</span>
+            <span class="c1"># original amount of voltages inputted (including the single dim</span>
+            <span class="c1"># voltages)</span>
+            <span class="n">exp_num</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_voltage_ctrls</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">single_dims</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">volt_vec</span><span class="p">)</span> <span class="o">!=</span> <span class="n">exp_num</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Input voltage vector does not have&#39;</span> <span class="o">+</span>
+                                 <span class="s1">&#39; correct number of elements.</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> 
+                                 <span class="sa">f</span><span class="s1">&#39;Expected </span><span class="si">{</span><span class="n">exp_num</span><span class="si">}</span><span class="s1"> or </span><span class="si">{</span><span class="n">exp_num</span><span class="o">-</span><span class="mi">2</span><span class="si">}</span><span class="s1"> number&#39;</span> <span class="o">+</span>
+                                 <span class="sa">f</span><span class="s1">&#39; of elements, got </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">volt_vec</span><span class="p">)</span><span class="si">}</span><span class="s1"> instead.&#39;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">volt_vec</span> <span class="o">=</span> <span class="p">[</span><span class="n">volt_vec</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">volt_vec</span><span class="p">))</span> <span class="k">if</span>
+                            <span class="n">idx</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">single_dims</span><span class="p">]</span>
+        
+        <span class="c1"># Check if values are out of min/max range</span>
+        <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_voltage_ctrls</span><span class="p">):</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">volt_vec</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_max_vals</span><span class="p">[</span><span class="n">idx</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span> <span class="ow">and</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">volt_vec</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_max_vals</span><span class="p">[</span><span class="n">idx</span><span class="p">][</span><span class="mi">1</span><span class="p">])):</span>
+                <span class="k">pass</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Input voltage vector values are out of&#39;</span> <span class="o">+</span>
+                                 <span class="s1">&#39; range of grid vectors.&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Get number of control vector inputs</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">n_pts</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">volt_vec</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+            <span class="n">n_pts</span> <span class="o">=</span> <span class="mi">1</span>
+            
+        <span class="c1"># Get a 1D array of all coordinate points we need to query the</span>
+        <span class="c1"># interpolator at</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s1">&#39;2D&#39;</span><span class="p">:</span>
+            <span class="n">coord_data_x</span><span class="p">,</span> <span class="n">coord_data_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_coords</span><span class="p">,</span>
+                                                     <span class="bp">self</span><span class="o">.</span><span class="n">y_coords</span><span class="p">)</span>
+            <span class="n">coord_data_x</span> <span class="o">=</span> <span class="n">coord_data_x</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+            <span class="n">coord_data_y</span> <span class="o">=</span> <span class="n">coord_data_y</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+            <span class="n">coord_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">coord_data_y</span><span class="p">,</span> <span class="n">coord_data_x</span><span class="p">])</span>
+            
+            <span class="c1"># Get number of coordinate points</span>
+            <span class="n">n_coords</span> <span class="o">=</span> <span class="n">coord_data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s1">&#39;1D&#39;</span><span class="p">:</span>
+            <span class="n">coord_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_coords</span>     
+            
+            <span class="c1"># Get number of coordinate points</span>
+            <span class="n">n_coords</span> <span class="o">=</span> <span class="n">coord_data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                                
+        <span class="c1"># Repeat the set of coordinate points n times, 1 for each control </span>
+        <span class="c1"># vector input</span>
+        <span class="n">coord_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">coord_data</span><span class="p">,</span><span class="n">n_pts</span><span class="p">)</span>
+        
+        <span class="c1"># Now stack the control vector inputs and repeat them for each</span>
+        <span class="c1"># coordinate point</span>
+        <span class="n">ctrl_vec_stack</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">volt_vec</span><span class="p">),</span><span class="n">n_coords</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        
+        <span class="c1"># Now stack the control vector inputs and the coordinate points</span>
+        <span class="n">interp_stacked</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">ctrl_vec_stack</span><span class="p">,</span> <span class="n">coord_data</span><span class="p">])</span>
+        
+        <span class="c1"># Do the interpolation</span>
+        <span class="n">out_array</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interp_obj</span><span class="p">(</span><span class="n">interp_stacked</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+        
+        <span class="c1"># Reshape back to our original shape</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s1">&#39;2D&#39;</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">out_array</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">n_pts</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_coords</span><span class="o">.</span><span class="n">size</span><span class="p">,</span>
+                                               <span class="bp">self</span><span class="o">.</span><span class="n">x_coords</span><span class="o">.</span><span class="n">size</span><span class="p">)))</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s1">&#39;1D&#39;</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">out_array</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">n_pts</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_coords</span><span class="o">.</span><span class="n">size</span><span class="p">)))</span>
+            
+        <span class="k">return</span> <span class="n">result</span></div>
+        
+    
+<div class="viewcode-block" id="PotentialInterpolator.plot"><a class="viewcode-back" href="../../../qudipy.potential.html#qudipy.potential.potential_interpolator.PotentialInterpolator.plot">[docs]</a>    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">volt_vec</span><span class="p">,</span> <span class="n">plot_type</span><span class="o">=</span><span class="s1">&#39;2D&#39;</span><span class="p">,</span> <span class="n">y_slice</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">x_slice</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+             <span class="n">show_wf</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">wf_n</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Method for plotting the potential landscape at an arbitrary voltage </span>
+<span class="sd">        configuration.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        volt_vec : 1D float array</span>
+<span class="sd">            Array of voltage vectors at which we wish to find the interpolated</span>
+<span class="sd">            1D or 2D potential.</span>
+<span class="sd">            </span>
+<span class="sd">        Keyword Arguments</span>
+<span class="sd">        -----------------</span>
+<span class="sd">        plot_type : string, optional</span>
+<span class="sd">            Type of plot to show of the potential. Accepted arguments are:</span>
+<span class="sd">            - &#39;2D&#39;: show a 2D plot of the potential landscape. </span>
+<span class="sd">            - &#39;1D&#39;: show 1D slices of the potential landscape along x- and y-axes.</span>
+<span class="sd">            If the potentialInterpolator is for 1D potentials, then this</span>
+<span class="sd">            keyword argument will do nothing.</span>
+<span class="sd">            The default is &#39;2D&#39;.</span>
+<span class="sd">        y_slice : float, optional</span>
+<span class="sd">            Location in [m] along y-axis of where to take a 1D slice of the </span>
+<span class="sd">            potential along the x-axis to plot. Only applies if plot_type=&#39;1D&#39;.</span>
+<span class="sd">            The default is 0.</span>
+<span class="sd">        x_slice : float, optional</span>
+<span class="sd">            Location in [m] along x-axis of where to take a 1D slice of the </span>
+<span class="sd">            potential along the y-axis to plot. Only applies if plot_type=&#39;1D&#39;. </span>
+<span class="sd">            If not specified, then only a plot along the x-axis will be shown.</span>
+<span class="sd">            If the potentialInterpolator is for 1D potentials, then this</span>
+<span class="sd">            keyword argument will do nothing.</span>
+<span class="sd">            The default is None.</span>
+<span class="sd">        show_wf : bool, optional</span>
+<span class="sd">            If True, the wavefunction probability will be overlaid on the </span>
+<span class="sd">            potential for 1D plots, and for 2D plots, there will be a subplot </span>
+<span class="sd">            added showing the wavefunction probability.</span>
+<span class="sd">            The deafult is False.</span>
+<span class="sd">        wf_n : int, optional</span>
+<span class="sd">            Will plot the nth energy wavefunction. Indexing starts at 0</span>
+<span class="sd">            which indicates the ground state wavefunction.</span>
+<span class="sd">            The default is 0.</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="c1"># If the potentialInterpolator only supports 1D potentials, then</span>
+        <span class="c1"># fix the default plot_type</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s1">&#39;1D&#39;</span><span class="p">:</span>
+            <span class="n">plot_type</span> <span class="o">=</span> <span class="s1">&#39;1D&#39;</span>
+
+        <span class="c1"># Helper function to help add wavefunction overlay to potential plots.</span>
+        <span class="k">def</span> <span class="nf">_add_wf_overlay</span><span class="p">(</span><span class="n">ax</span><span class="p">,</span> <span class="n">int_pot</span><span class="p">,</span> <span class="n">slice_idx</span><span class="p">,</span> <span class="n">slice_axis</span><span class="p">,</span>
+                            <span class="n">wf_n</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+            <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">            Adds the wavefunction probability to an already created axes </span>
+<span class="sd">            object plot of the potential.</span>
+<span class="sd">            </span>
+<span class="sd">            Parameters</span>
+<span class="sd">            ----------</span>
+<span class="sd">            ax : axis object</span>
+<span class="sd">                Axis object for the desired axis where you want to add the </span>
+<span class="sd">                overlay of the wavefunction.</span>
+<span class="sd">            int_pot : 2D array</span>
+<span class="sd">                The 2D interpolated potential we are currently plotting.</span>
+<span class="sd">            slice_idx : int</span>
+<span class="sd">                The index indicating where to take a 1D slice of the 2D</span>
+<span class="sd">                wavefunction.</span>
+<span class="sd">            slice_axis : string</span>
+<span class="sd">                String indicating which axis we are taking a slice of the 2D </span>
+<span class="sd">                wavefunction. Changes how we take a slice of the wavefunction</span>
+<span class="sd">                meshgrid.</span>
+<span class="sd">                </span>
+<span class="sd">            Keyword Arguments</span>
+<span class="sd">            -----------------</span>
+<span class="sd">            wf_n : int, optional</span>
+<span class="sd">                Will plot the nth energy wavefunction. Indexing starts at 0</span>
+<span class="sd">                which indicates the ground state wavefunction.</span>
+<span class="sd">                The default is 0.</span>
+<span class="sd">            </span>
+<span class="sd">            Returns</span>
+<span class="sd">            -------</span>
+<span class="sd">            None.</span>
+<span class="sd">            &#39;&#39;&#39;</span>
+             
+            <span class="c1"># Update color for old axis</span>
+            <span class="n">color</span> <span class="o">=</span> <span class="s1">&#39;tab:blue&#39;</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;1D potential [J]&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="n">labelcolor</span><span class="o">=</span><span class="n">color</span><span class="p">)</span>
+            
+            <span class="c1"># Make new axis for overlay</span>
+            <span class="n">ax_wf</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">twinx</span><span class="p">()</span>
+            
+            <span class="c1"># Set color of new axis to be red</span>
+            <span class="n">color</span> <span class="o">=</span> <span class="s1">&#39;tab:red&#39;</span>
+            <span class="n">ax_wf</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;State </span><span class="si">{</span><span class="n">wf_n</span><span class="si">}</span><span class="s1"> probability&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">)</span>
+            <span class="n">ax_wf</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="n">labelcolor</span><span class="o">=</span><span class="n">color</span><span class="p">)</span>
+            
+            <span class="c1"># Find the nth wavefunction probabilty</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s1">&#39;2D&#39;</span><span class="p">:</span>
+                <span class="n">gparams</span> <span class="o">=</span> <span class="n">GridParameters</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_coords</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">y_coords</span><span class="p">,</span> 
+                                         <span class="n">potential</span><span class="o">=</span><span class="n">int_pot</span><span class="p">)</span>
+                <span class="n">_</span><span class="p">,</span> <span class="n">state</span> <span class="o">=</span> <span class="n">solve_schrodinger_eq</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">constants</span><span class="p">,</span> <span class="n">gparams</span><span class="p">,</span> 
+                                                <span class="n">n_sols</span><span class="o">=</span><span class="p">(</span><span class="n">wf_n</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s1">&#39;1D&#39;</span><span class="p">:</span>
+                <span class="n">gparams</span> <span class="o">=</span> <span class="n">GridParameters</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_coords</span><span class="p">,</span> <span class="n">potential</span><span class="o">=</span><span class="n">int_pot</span><span class="p">)</span>
+                <span class="n">_</span><span class="p">,</span> <span class="n">state</span> <span class="o">=</span> <span class="n">solve_schrodinger_eq</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">constants</span><span class="p">,</span> <span class="n">gparams</span><span class="p">,</span> 
+                                                <span class="n">n_sols</span><span class="o">=</span><span class="p">(</span><span class="n">wf_n</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span>
+            
+            <span class="c1"># Get correct slice of wavefunction</span>
+            <span class="k">if</span> <span class="n">slice_axis</span> <span class="o">==</span> <span class="s1">&#39;y&#39;</span><span class="p">:</span>
+                <span class="n">gparams_1D</span> <span class="o">=</span> <span class="n">GridParameters</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_coords</span><span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s1">&#39;2D&#39;</span><span class="p">:</span>
+                    <span class="n">state</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">state</span><span class="p">[</span><span class="n">slice_idx</span><span class="p">,:,</span><span class="n">wf_n</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s1">&#39;1D&#39;</span><span class="p">:</span>
+                    <span class="n">state</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">state</span><span class="p">[:,</span><span class="n">wf_n</span><span class="p">])</span>
+            <span class="k">elif</span> <span class="n">slice_axis</span> <span class="o">==</span> <span class="s1">&#39;x&#39;</span><span class="p">:</span>
+                <span class="n">gparams_1D</span> <span class="o">=</span> <span class="n">GridParameters</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y_coords</span><span class="p">)</span>
+                <span class="n">state</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">state</span><span class="p">[:,</span><span class="n">slice_idx</span><span class="p">,</span><span class="n">wf_n</span><span class="p">])</span>
+                
+            <span class="c1"># Renormalize wf and find probability</span>
+            <span class="n">state</span> <span class="o">=</span> <span class="n">state</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">inner_prod</span><span class="p">(</span><span class="n">gparams_1D</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">state</span><span class="p">))</span>
+            <span class="n">state_prob</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">conj</span><span class="p">()))</span>
+               
+            <span class="k">if</span> <span class="n">slice_axis</span> <span class="o">==</span> <span class="s1">&#39;y&#39;</span><span class="p">:</span>
+                <span class="n">ax_wf</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_coords</span><span class="o">/</span><span class="mf">1E-9</span><span class="p">,</span> <span class="n">state_prob</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">slice_axis</span> <span class="o">==</span> <span class="s1">&#39;x&#39;</span><span class="p">:</span>
+                <span class="n">ax_wf</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y_coords</span><span class="o">/</span><span class="mf">1E-9</span><span class="p">,</span> <span class="n">state_prob</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">)</span>
+
+        <span class="c1"># Get the potential        </span>
+        <span class="n">int_pot</span> <span class="o">=</span> <span class="bp">self</span><span class="p">(</span><span class="n">volt_vec</span><span class="p">)</span>
+        
+        <span class="c1"># Do a 1D plot</span>
+        <span class="k">if</span> <span class="n">plot_type</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;1D&#39;</span><span class="p">:</span>
+            <span class="c1"># Get the y-axis slice index</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s1">&#39;2D&#39;</span><span class="p">:</span>
+                <span class="n">y_idx</span><span class="p">,</span> <span class="n">y_val</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">find_nearest</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y_coords</span><span class="p">,</span> <span class="n">y_slice</span><span class="p">)</span>
+            
+            <span class="c1"># If x-axis slice isn&#39;t sepcified, just show x-axis plot.</span>
+            <span class="k">if</span> <span class="n">x_slice</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span><span class="mi">8</span><span class="p">))</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s1">&#39;2D&#39;</span><span class="p">:</span>
+                    <span class="n">pot_1D</span> <span class="o">=</span> <span class="n">int_pot</span><span class="p">[</span><span class="n">y_idx</span><span class="p">,:]</span><span class="o">.</span><span class="n">T</span>
+                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s1">&#39;1D&#39;</span><span class="p">:</span>
+                    <span class="n">pot_1D</span> <span class="o">=</span> <span class="n">int_pot</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_coords</span><span class="o">/</span><span class="mf">1E-9</span><span class="p">,</span> <span class="n">pot_1D</span><span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s1">&#39;2D&#39;</span><span class="p">:</span>
+                    <span class="n">ax</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">xlabel</span><span class="o">=</span><span class="s1">&#39;x-coords [nm]&#39;</span><span class="p">,</span> <span class="n">ylabel</span><span class="o">=</span><span class="s1">&#39;1D potential [J]&#39;</span><span class="p">,</span>
+                       <span class="n">title</span><span class="o">=</span><span class="sa">f</span><span class="s1">&#39;Potential along x-axis at y=</span><span class="si">{</span><span class="n">y_val</span><span class="o">/</span><span class="mf">1E-9</span><span class="si">:</span><span class="s1">.2f</span><span class="si">}</span><span class="s1"> nm&#39;</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s1">&#39;1D&#39;</span><span class="p">:</span>
+                    <span class="n">ax</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">xlabel</span><span class="o">=</span><span class="s1">&#39;x-coords [nm]&#39;</span><span class="p">,</span> <span class="n">ylabel</span><span class="o">=</span><span class="s1">&#39;1D potential [J]&#39;</span><span class="p">)</span>  
+                <span class="n">ax</span><span class="o">.</span><span class="n">grid</span><span class="p">()</span>
+                
+                <span class="c1"># Overlay wavefunction if desired</span>
+                <span class="k">if</span> <span class="n">show_wf</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s1">&#39;2D&#39;</span><span class="p">:</span>
+                        <span class="n">_add_wf_overlay</span><span class="p">(</span><span class="n">ax</span><span class="p">,</span> <span class="n">int_pot</span><span class="p">,</span> <span class="n">wf_n</span><span class="o">=</span><span class="n">wf_n</span><span class="p">,</span>
+                                        <span class="n">slice_idx</span><span class="o">=</span><span class="n">y_idx</span><span class="p">,</span> <span class="n">slice_axis</span><span class="o">=</span><span class="s1">&#39;y&#39;</span><span class="p">)</span>
+                    <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s1">&#39;1D&#39;</span><span class="p">:</span>
+                        <span class="n">_add_wf_overlay</span><span class="p">(</span><span class="n">ax</span><span class="p">,</span> <span class="n">int_pot</span><span class="p">,</span> <span class="n">wf_n</span><span class="o">=</span><span class="n">wf_n</span><span class="p">,</span> <span class="n">slice_idx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                        <span class="n">slice_axis</span><span class="o">=</span><span class="s1">&#39;y&#39;</span><span class="p">)</span>    
+                    
+                    <span class="c1"># otherwise the right y-label is slightly clipped</span>
+                    <span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+
+            <span class="c1"># If x-axis slice is specified, show both x- and y-axes plots</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Get the x-axis slice index</span>
+                <span class="n">x_idx</span><span class="p">,</span> <span class="n">x_val</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">find_nearest</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_coords</span><span class="p">,</span> <span class="n">x_slice</span><span class="p">)</span>
+                
+                <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span><span class="mi">8</span><span class="p">))</span>
+                <span class="n">ax1</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">121</span><span class="p">)</span>
+                <span class="n">ax2</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">122</span><span class="p">)</span>
+                
+                <span class="c1"># potential along x-axis at y-axis slice</span>
+                <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_coords</span><span class="o">/</span><span class="mf">1E-9</span><span class="p">,</span> <span class="n">int_pot</span><span class="p">[</span><span class="n">y_idx</span><span class="p">,:]</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+                <span class="n">ax1</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">xlabel</span><span class="o">=</span><span class="s1">&#39;x-coords [nm]&#39;</span><span class="p">,</span> <span class="n">ylabel</span><span class="o">=</span><span class="s1">&#39;1D potential [J]&#39;</span><span class="p">,</span>
+                       <span class="n">title</span><span class="o">=</span><span class="sa">f</span><span class="s1">&#39;Potential along x-axis at y=</span><span class="si">{</span><span class="n">y_val</span><span class="o">/</span><span class="mf">1E-9</span><span class="si">:</span><span class="s1">.2f</span><span class="si">}</span><span class="s1"> nm&#39;</span><span class="p">)</span>
+                <span class="n">ax1</span><span class="o">.</span><span class="n">grid</span><span class="p">()</span>
+                                
+                <span class="c1"># potential along y-axis at x-axis slice</span>
+                <span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y_coords</span><span class="o">/</span><span class="mf">1E-9</span><span class="p">,</span> <span class="n">int_pot</span><span class="p">[:,</span><span class="n">x_idx</span><span class="p">])</span>
+                <span class="n">ax2</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">xlabel</span><span class="o">=</span><span class="s1">&#39;y-coords [nm]&#39;</span><span class="p">,</span> <span class="n">ylabel</span><span class="o">=</span><span class="s1">&#39;1D potential [J]&#39;</span><span class="p">,</span>
+                       <span class="n">title</span><span class="o">=</span><span class="sa">f</span><span class="s1">&#39;Potential along y-axis at x=</span><span class="si">{</span><span class="n">x_val</span><span class="o">/</span><span class="mf">1E-9</span><span class="si">:</span><span class="s1">.2f</span><span class="si">}</span><span class="s1"> nm&#39;</span><span class="p">)</span>
+                <span class="n">ax2</span><span class="o">.</span><span class="n">grid</span><span class="p">()</span>
+                
+                <span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+                
+                <span class="c1"># Overlay wavefunction if desired</span>
+                <span class="k">if</span> <span class="n">show_wf</span><span class="p">:</span>
+                    
+                    <span class="n">_add_wf_overlay</span><span class="p">(</span><span class="n">ax1</span><span class="p">,</span> <span class="n">int_pot</span><span class="p">,</span> <span class="n">wf_n</span><span class="o">=</span><span class="n">wf_n</span><span class="p">,</span>
+                                    <span class="n">slice_idx</span><span class="o">=</span><span class="n">y_idx</span><span class="p">,</span> <span class="n">slice_axis</span><span class="o">=</span><span class="s1">&#39;y&#39;</span><span class="p">)</span>
+                    
+                    <span class="n">_add_wf_overlay</span><span class="p">(</span><span class="n">ax2</span><span class="p">,</span> <span class="n">int_pot</span><span class="p">,</span> <span class="n">wf_n</span><span class="o">=</span><span class="n">wf_n</span><span class="p">,</span>
+                                    <span class="n">slice_idx</span><span class="o">=</span><span class="n">x_idx</span><span class="p">,</span> <span class="n">slice_axis</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">)</span>
+                    
+                    <span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">(</span><span class="n">pad</span><span class="o">=</span><span class="mf">3.0</span><span class="p">)</span>
+        <span class="c1"># Do a 2D plot</span>
+        <span class="k">elif</span> <span class="n">plot_type</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;2D&#39;</span><span class="p">:</span>
+            
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">show_wf</span><span class="p">:</span>
+                <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span><span class="mi">8</span><span class="p">))</span>
+                <span class="n">img</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">int_pot</span><span class="p">,</span> <span class="n">interpolation</span><span class="o">=</span><span class="s1">&#39;bilinear&#39;</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;viridis&#39;</span><span class="p">,</span>
+                               <span class="n">origin</span><span class="o">=</span><span class="s1">&#39;lower&#39;</span><span class="p">,</span> <span class="n">extent</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">x_coords</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="o">/</span><span class="mf">1E-9</span><span class="p">,</span> 
+                               <span class="bp">self</span><span class="o">.</span><span class="n">x_coords</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">/</span><span class="mf">1E-9</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_coords</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="o">/</span><span class="mf">1E-9</span><span class="p">,</span>
+                               <span class="bp">self</span><span class="o">.</span><span class="n">y_coords</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">/</span><span class="mf">1E-9</span><span class="p">]</span>
+                               <span class="p">)</span>
+                <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span><span class="n">location</span><span class="o">=</span><span class="s1">&#39;right&#39;</span><span class="p">,</span> <span class="n">shrink</span><span class="o">=</span><span class="mf">0.6</span><span class="p">)</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">xlabel</span><span class="o">=</span><span class="s1">&#39;x-coords [nm]&#39;</span><span class="p">,</span><span class="n">ylabel</span><span class="o">=</span><span class="s1">&#39;y-coords [nm]&#39;</span><span class="p">,</span>
+                       <span class="n">title</span><span class="o">=</span><span class="s1">&#39;2D potential profile [ J ]&#39;</span><span class="p">)</span>
+            <span class="c1"># Overlay wavefunction if desired</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span><span class="mi">8</span><span class="p">))</span>
+                
+                <span class="c1"># Plot potential in first subplot</span>
+                <span class="n">im0</span> <span class="o">=</span> <span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">int_pot</span><span class="p">,</span> <span class="n">interpolation</span><span class="o">=</span><span class="s1">&#39;bilinear&#39;</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;viridis&#39;</span><span class="p">,</span>
+                               <span class="n">origin</span><span class="o">=</span><span class="s1">&#39;lower&#39;</span><span class="p">,</span> <span class="n">extent</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">x_coords</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="o">/</span><span class="mf">1E-9</span><span class="p">,</span> 
+                               <span class="bp">self</span><span class="o">.</span><span class="n">x_coords</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">/</span><span class="mf">1E-9</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_coords</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="o">/</span><span class="mf">1E-9</span><span class="p">,</span>
+                               <span class="bp">self</span><span class="o">.</span><span class="n">y_coords</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">/</span><span class="mf">1E-9</span><span class="p">]</span>
+                               <span class="p">)</span>
+                <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">im0</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">location</span><span class="o">=</span><span class="s1">&#39;right&#39;</span><span class="p">,</span> <span class="n">shrink</span><span class="o">=</span><span class="mf">0.6</span><span class="p">)</span>
+                <span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">xlabel</span><span class="o">=</span><span class="s1">&#39;x-coords [nm]&#39;</span><span class="p">,</span><span class="n">ylabel</span><span class="o">=</span><span class="s1">&#39;y-coords [nm]&#39;</span><span class="p">,</span>
+                            <span class="n">title</span><span class="o">=</span><span class="s1">&#39;2D potential profile [ J ]&#39;</span><span class="p">)</span>
+                
+                <span class="c1"># Find the wavefunction probability</span>
+                <span class="n">gparams</span> <span class="o">=</span> <span class="n">GridParameters</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_coords</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">y_coords</span><span class="p">,</span> 
+                                             <span class="n">potential</span><span class="o">=</span><span class="n">int_pot</span><span class="p">)</span>
+                <span class="n">_</span><span class="p">,</span> <span class="n">state</span> <span class="o">=</span> <span class="n">solve_schrodinger_eq</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">constants</span><span class="p">,</span> <span class="n">gparams</span><span class="p">,</span>
+                                                <span class="n">n_sols</span><span class="o">=</span><span class="p">(</span><span class="n">wf_n</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span>
+                <span class="n">state</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">state</span><span class="p">[:,:,</span><span class="n">wf_n</span><span class="p">])</span>
+                
+                <span class="n">state_prob</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">conj</span><span class="p">()))</span>
+                       
+                <span class="n">im1</span> <span class="o">=</span> <span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">state_prob</span><span class="p">,</span> <span class="n">interpolation</span><span class="o">=</span><span class="s1">&#39;bilinear&#39;</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;viridis&#39;</span><span class="p">,</span>
+                               <span class="n">origin</span><span class="o">=</span><span class="s1">&#39;lower&#39;</span><span class="p">,</span> <span class="n">extent</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">x_coords</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="o">/</span><span class="mf">1E-9</span><span class="p">,</span> 
+                               <span class="bp">self</span><span class="o">.</span><span class="n">x_coords</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">/</span><span class="mf">1E-9</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_coords</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="o">/</span><span class="mf">1E-9</span><span class="p">,</span>
+                               <span class="bp">self</span><span class="o">.</span><span class="n">y_coords</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">/</span><span class="mf">1E-9</span><span class="p">]</span>
+                               <span class="p">)</span>
+                <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">im1</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">location</span><span class="o">=</span><span class="s1">&#39;right&#39;</span><span class="p">,</span> <span class="n">shrink</span><span class="o">=</span><span class="mf">0.6</span><span class="p">)</span>
+                <span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">xlabel</span><span class="o">=</span><span class="s1">&#39;x-coords [nm]&#39;</span><span class="p">,</span><span class="n">ylabel</span><span class="o">=</span><span class="s1">&#39;y-coords [nm]&#39;</span><span class="p">,</span>
+                            <span class="n">title</span><span class="o">=</span><span class="sa">f</span><span class="s1">&#39;State </span><span class="si">{</span><span class="n">wf_n</span><span class="si">}</span><span class="s1"> probability&#39;</span><span class="p">)</span>
+                          
+        <span class="c1"># Raise an error if we don&#39;t recognize the plot_type</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Error with specified plot_type </span><span class="si">{</span><span class="n">plot_type</span><span class="si">}</span><span class="s1">. &#39;</span> <span class="o">+</span>
+                             <span class="s1">&#39;Either &#39;&#39;1D&#39;&#39; or &#39;&#39;2D&#39;&#39; allowed.&#39;</span><span class="p">)</span>
+            
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>
+                    
+    
+<div class="viewcode-block" id="PotentialInterpolator.find_resonant_tc"><a class="viewcode-back" href="../../../qudipy.potential.html#qudipy.potential.potential_interpolator.PotentialInterpolator.find_resonant_tc">[docs]</a>    <span class="k">def</span> <span class="nf">find_resonant_tc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">volt_vec</span><span class="p">,</span> <span class="n">swept_ctrl</span><span class="p">,</span> <span class="n">bnds</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">peak_threshold</span><span class="o">=</span><span class="mf">1E5</span><span class="p">,</span>
+                         <span class="n">slice_axis</span><span class="o">=</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="n">slice_val</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Find the resonant tunnel coupling point for a individual control</span>
+<span class="sd">        variable in a given control vector.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        volt_vec : float array</span>
+<span class="sd">            Control variable vector. Aside from the swept control, the other </span>
+<span class="sd">            supplied control variable values will remain fixed during the </span>
+<span class="sd">            search for the resonant tunnel coupling point.</span>
+<span class="sd">        swept_ctrl : int or string</span>
+<span class="sd">            Index of the control variable to sweep in the supplied volt_vec</span>
+<span class="sd">            argument OR the corresponding control variable name of the variable</span>
+<span class="sd">            to sweep.</span>
+<span class="sd">        </span>
+<span class="sd">        Keyword Arguments</span>
+<span class="sd">        -----------------</span>
+<span class="sd">        bnds : float array, optional</span>
+<span class="sd">            An array specifying the min and max bounds of the swept control</span>
+<span class="sd">            variable. The default is the full min and max bounds of the</span>
+<span class="sd">            corresponding control variable as defined in the </span>
+<span class="sd">            potentialInterpolator object.</span>
+<span class="sd">        peak_threshold : float, optional</span>
+<span class="sd">            The minimum amplitude in peak height to be considered a peak.</span>
+<span class="sd">            The default is 1E5.</span>
+<span class="sd">        slice_axis : string, optional</span>
+<span class="sd">            Specify which axis along &#39;x&#39; or &#39;y&#39; to find the wavefunction peaks</span>
+<span class="sd">            along. The default is &#39;y&#39;.</span>
+<span class="sd">        slice_val : float, optional</span>
+<span class="sd">            Specify the location along the slice_axis at which to find the </span>
+<span class="sd">            wavefunction peaks along. Units must be in [m]. </span>
+<span class="sd">            The default is 0 [m].</span>
+<span class="sd">            </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        res_ctrl : float</span>
+<span class="sd">            The value of the control variable which gives the resonant tunnel</span>
+<span class="sd">            coupling point.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="c1"># If swept_ctrl is an integer, then no need to find the corresponding</span>
+        <span class="c1"># index. If swept_ctrl is a string, we need to check that it is one of</span>
+        <span class="c1"># the control names and then find the corresponding index.</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">swept_ctrl</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="c1"># Get corresponding control index</span>
+                <span class="n">ctrl_idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_names</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">swept_ctrl</span><span class="p">)</span>
+            <span class="c1"># Want to raise custom error message.</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Supplied swept_ctrl name </span><span class="si">{</span><span class="n">swept_ctrl</span><span class="si">}</span><span class="s1"> is &#39;</span><span class="o">+</span>
+                                 <span class="s1">&#39;invalid.</span><span class="se">\n</span><span class="s1">Useable control names are:</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">+</span>
+                                 <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ctrl_names</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+                            
+            <span class="c1"># If user omits singleton dimensions control from volt_vec, then</span>
+            <span class="c1"># we need to correct the ctrl_idx</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">volt_vec</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_voltage_ctrls</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">single_dims</span><span class="p">):</span>
+                <span class="k">pass</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">amt_to_sub</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">single_dims</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">idx</span> <span class="o">&lt;</span> <span class="n">ctrl_idx</span><span class="p">:</span>
+                        <span class="n">amt_to_sub</span> <span class="o">+=</span> <span class="mi">1</span>
+                
+                <span class="n">ctrl_idx</span> <span class="o">-=</span> <span class="n">amt_to_sub</span>     
+            
+            <span class="c1"># Swap out swept_ctrl for the index now instead</span>
+            <span class="n">swept_ctrl</span> <span class="o">=</span> <span class="n">ctrl_idx</span>
+        <span class="c1"># If it is an int, check that it&#39;s not out of range w.r.t. volt_vec</span>
+        <span class="k">elif</span> <span class="n">swept_ctrl</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="n">volt_vec</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Supplied swept_ctrl index </span><span class="si">{</span><span class="n">swept_ctrl</span><span class="si">}</span><span class="s1"> is invalid.</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">+</span>
+                             <span class="sa">f</span><span class="s1">&#39;Voltage vector only has </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">volt_vec</span><span class="p">)</span><span class="si">}</span><span class="s1"> elements.&#39;</span><span class="p">)</span>
+          
+        <span class="c1"># If bnds are not supplied, then set as min max of available voltage</span>
+        <span class="c1"># ranges</span>
+        <span class="k">if</span> <span class="n">bnds</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">bnds</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">min_max_vals</span><span class="p">[</span><span class="n">swept_ctrl</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> 
+                    <span class="bp">self</span><span class="o">.</span><span class="n">min_max_vals</span><span class="p">[</span><span class="n">swept_ctrl</span><span class="p">][</span><span class="mi">1</span><span class="p">]]</span>
+              
+        <span class="c1"># Right now... We are assuming a linear chain of quantum dots where</span>
+        <span class="c1"># the axis of the linear chain is centered at y=0.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s1">&#39;2D&#39;</span><span class="p">:</span>
+            <span class="n">gparams</span> <span class="o">=</span> <span class="n">GridParameters</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_coords</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_coords</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s1">&#39;1D&#39;</span><span class="p">:</span>
+            <span class="n">gparams</span> <span class="o">=</span> <span class="n">GridParameters</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_coords</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">slice_axis</span><span class="o">==</span><span class="s1">&#39;y&#39;</span><span class="p">:</span>
+            <span class="c1"># Need for renormalizing 1D wfs</span>
+            <span class="n">gparams_1D</span> <span class="o">=</span> <span class="n">GridParameters</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_coords</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s1">&#39;2D&#39;</span><span class="p">:</span>
+                <span class="n">slice_idx</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">find_nearest</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y_coords</span><span class="p">,</span> <span class="n">slice_val</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">slice_axis</span><span class="o">==</span><span class="s1">&#39;x&#39;</span><span class="p">:</span>
+            <span class="n">gparams_1D</span> <span class="o">=</span> <span class="n">GridParameters</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y_coords</span><span class="p">)</span>
+            <span class="n">slice_idx</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">find_nearest</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_coords</span><span class="p">,</span> <span class="n">slice_val</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Inputted slice_axis </span><span class="si">{</span><span class="n">slice_axis</span><span class="si">}</span><span class="s1"> is not &#39;</span><span class="o">+</span>
+                                 <span class="s1">&#39;recognized. Supported values are &#39;&#39;x&#39;&#39; and &#39;&#39;y&#39;&#39;.&#39;</span><span class="p">)</span>
+        
+        <span class="c1"># Helper function to take in a voltage vector and return the peaks</span>
+        <span class="k">def</span> <span class="nf">_find_peaks</span><span class="p">(</span><span class="n">curr_val</span><span class="p">):</span>
+            <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">            Find the wavefunction peaks for a potential landscape.</span>
+<span class="sd">            </span>
+<span class="sd">            Parameters</span>
+<span class="sd">            ----------</span>
+<span class="sd">            curr_val : float</span>
+<span class="sd">                The current search value of the swept control index.</span>
+<span class="sd">                </span>
+<span class="sd">            Returns</span>
+<span class="sd">            -------</span>
+<span class="sd">            curr_peaks : 1D float array</span>
+<span class="sd">                Indicies of the found peaks.</span>
+<span class="sd">            curr_props : dictionary</span>
+<span class="sd">                Diciontary of properties related to the found peaks.</span>
+<span class="sd">            &#39;&#39;&#39;</span>
+            <span class="n">curr_volt_vec</span> <span class="o">=</span> <span class="n">volt_vec</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">curr_volt_vec</span><span class="p">[</span><span class="n">swept_ctrl</span><span class="p">]</span> <span class="o">=</span> <span class="n">curr_val</span>
+            <span class="n">curr_pot</span> <span class="o">=</span> <span class="bp">self</span><span class="p">(</span><span class="n">curr_volt_vec</span><span class="p">)</span>
+            
+            <span class="n">gparams</span><span class="o">.</span><span class="n">update_potential</span><span class="p">(</span><span class="n">curr_pot</span><span class="p">)</span>
+        
+            <span class="c1"># Find wavefunction and probability distribution</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">state</span> <span class="o">=</span> <span class="n">solve_schrodinger_eq</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">constants</span><span class="p">,</span> <span class="n">gparams</span><span class="p">)</span>
+            <span class="c1"># Get 1D wavefunction and renormalize</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s1">&#39;2D&#39;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">slice_axis</span><span class="o">==</span><span class="s1">&#39;y&#39;</span><span class="p">:</span>
+                    <span class="n">state</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">state</span><span class="p">[</span><span class="n">slice_idx</span><span class="p">,:])</span>
+                <span class="k">elif</span> <span class="n">slice_axis</span><span class="o">==</span><span class="s1">&#39;x&#39;</span><span class="p">:</span>
+                    <span class="n">state</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">state</span><span class="p">[:,</span><span class="n">slice_idx</span><span class="p">])</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s1">&#39;1D&#39;</span><span class="p">:</span>
+                <span class="n">state</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+                
+            <span class="n">state</span> <span class="o">=</span> <span class="n">state</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">inner_prod</span><span class="p">(</span><span class="n">gparams_1D</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">state</span><span class="p">))</span>
+            <span class="c1"># np.real shouldn&#39;t be needed, but numerical imprecision causes a warning</span>
+            <span class="n">state_prob</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">conj</span><span class="p">()))</span>
+            
+            <span class="c1"># Find wavefunction peak</span>
+            <span class="n">curr_peaks</span><span class="p">,</span> <span class="n">curr_props</span> <span class="o">=</span> <span class="n">find_peaks</span><span class="p">(</span><span class="n">state_prob</span><span class="p">,</span>
+                                           <span class="n">height</span><span class="o">=</span><span class="n">peak_threshold</span><span class="p">,</span>
+                                           <span class="n">width</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+            
+            <span class="k">return</span> <span class="n">curr_peaks</span><span class="p">,</span> <span class="n">curr_props</span>
+        
+        <span class="c1"># Check bnds window to see if a solution even exists.</span>
+        <span class="c1"># We do this by tuning to the min/max bounds and seeing if the peak</span>
+        <span class="c1"># changes position from dot to dot. If it does, then a solution exists.</span>
+        <span class="c1"># If not, then better bounds need to be chosen.  </span>
+                
+        <span class="c1"># Find wavefunction peak at min boundary</span>
+        <span class="n">min_peaks</span><span class="p">,</span> <span class="n">min_props</span> <span class="o">=</span> <span class="n">_find_peaks</span><span class="p">(</span><span class="n">bnds</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        
+        <span class="c1"># Find wavefunction peak at max boundary</span>
+        <span class="n">max_peaks</span><span class="p">,</span> <span class="n">max_props</span> <span class="o">=</span> <span class="n">_find_peaks</span><span class="p">(</span><span class="n">bnds</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        
+        <span class="c1"># CHECK THE BOUNDARIES TO SEE IF VALID</span>
+        <span class="c1"># If min wavefunction has two peak locations, then the boundary point</span>
+        <span class="c1"># is actually a close guess. We need to make sure the largest peak</span>
+        <span class="c1"># of the two peaks does not move w.r.t to the max boundary though.</span>
+        <span class="c1"># Otherwise, we won&#39;t pass through the resonant tunnel coupling point.</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">min_peaks</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">max_peaks</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># Find the taller peak of the two.</span>
+            <span class="n">tall_pk_idx</span> <span class="o">=</span> <span class="n">min_props</span><span class="p">[</span><span class="s1">&#39;peak_heights&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">argmax</span><span class="p">()</span>
+            <span class="c1"># If that peak location is the same as the location for the max</span>
+            <span class="c1"># boundary peak, then we won&#39;t find a resonant tc point.</span>
+            <span class="k">if</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">max_peaks</span> <span class="o">-</span> <span class="n">min_peaks</span><span class="p">[</span><span class="n">tall_pk_idx</span><span class="p">])</span> <span class="o">&lt;</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span>
+                    <span class="p">[</span><span class="n">min_props</span><span class="p">[</span><span class="s1">&#39;widths&#39;</span><span class="p">][</span><span class="n">tall_pk_idx</span><span class="p">],</span> <span class="n">max_props</span><span class="p">[</span><span class="s1">&#39;widths&#39;</span><span class="p">]])):</span>
+                
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Invalid bounds to search for resonant tunnel coupling &#39;</span><span class="o">+</span>
+                  <span class="s1">&#39;point.</span><span class="se">\n</span><span class="s1">The min bound shows two peaks but the wavefunction &#39;</span><span class="o">+</span>
+                  <span class="s1">&#39;is more localized in</span><span class="se">\n</span><span class="s1">the same location as at the maximum &#39;</span><span class="o">+</span>
+                  <span class="s1">&#39;boundary point.</span><span class="se">\n</span><span class="s1">No control value in the given bounds will &#39;</span><span class="o">+</span>
+                  <span class="s1">&#39;be able to find the resonant tunnel coupling.</span><span class="se">\n</span><span class="s1">Please LOWER &#39;</span><span class="o">+</span>
+                  <span class="s1">&#39;the MINIMUM bounds and try again.</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+                
+                <span class="k">return</span> <span class="kc">None</span>
+        <span class="c1"># Same as above but vice versa for the max boundary</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">min_peaks</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">max_peaks</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="c1"># Find the taller peak of the two.</span>
+            <span class="n">tall_pk_idx</span> <span class="o">=</span> <span class="n">max_props</span><span class="p">[</span><span class="s1">&#39;peak_heights&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">argmax</span><span class="p">()</span>
+            <span class="c1"># If that peak location is the same as the location for the max</span>
+            <span class="c1"># boundary peak, then we won&#39;t find a resonant tc point.</span>
+            <span class="k">if</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">max_peaks</span><span class="p">[</span><span class="n">tall_pk_idx</span><span class="p">]</span> <span class="o">-</span> <span class="n">min_peaks</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span>
+                    <span class="p">[</span><span class="n">min_props</span><span class="p">[</span><span class="s1">&#39;widths&#39;</span><span class="p">],</span> <span class="n">max_props</span><span class="p">[</span><span class="s1">&#39;widths&#39;</span><span class="p">][</span><span class="n">tall_pk_idx</span><span class="p">]])):</span>
+                
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Invalid bounds to search for resonant tunnel coupling &#39;</span><span class="o">+</span>
+                  <span class="s1">&#39;point.</span><span class="se">\n</span><span class="s1">The max bound shows two peaks but the wavefunction &#39;</span><span class="o">+</span>
+                  <span class="s1">&#39;is more localized in</span><span class="se">\n</span><span class="s1">the same location as at the minimum &#39;</span><span class="o">+</span>
+                  <span class="s1">&#39;boundary point.</span><span class="se">\n</span><span class="s1">No control value in the given bounds will &#39;</span><span class="o">+</span>
+                  <span class="s1">&#39;be able to find the resonant tunnel coupling.</span><span class="se">\n</span><span class="s1">Please INCREASE &#39;</span><span class="o">+</span>
+                  <span class="s1">&#39;the MAXIMUM bounds and try again.</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>   
+                
+                <span class="k">return</span> <span class="kc">None</span>
+        <span class="c1"># If both bounds have only 1 peak, then do this check.</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">min_peaks</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">max_peaks</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># If the wavefunction location doesn&#39;t change more than the width of</span>
+            <span class="c1"># the wavefunction between the min and max bounds, then the </span>
+            <span class="c1"># wavefunction is staying in the same location.</span>
+            <span class="k">if</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">max_peaks</span> <span class="o">-</span> <span class="n">min_peaks</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span>
+                  <span class="p">[</span><span class="n">min_props</span><span class="p">[</span><span class="s1">&#39;widths&#39;</span><span class="p">],</span> <span class="n">max_props</span><span class="p">[</span><span class="s1">&#39;widths&#39;</span><span class="p">]])):</span>
+            
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Invalid bounds to search for resonant tunnel coupling &#39;</span><span class="o">+</span>
+                      <span class="s1">&#39;point.</span><span class="se">\n</span><span class="s1">The min and max bounds showed the wavefunction &#39;</span><span class="o">+</span>
+                      <span class="s1">&#39;staying in the same potential minima.</span><span class="se">\n</span><span class="s1">Please change &#39;</span><span class="o">+</span>
+                      <span class="s1">&#39;the bounds so that the min and max boundaries have the &#39;</span><span class="o">+</span>
+                      <span class="s1">&#39;wavefunction</span><span class="se">\n</span><span class="s1">localized in different potential minima.</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+            
+                <span class="k">return</span> <span class="kc">None</span>
+        <span class="c1"># If both boundaries have two peaks, then need to make sure the</span>
+        <span class="c1"># tallest peak for both boundary wavefunction changes.</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">min_peaks</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">max_peaks</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="c1"># Get both tallest peaks</span>
+            <span class="n">tall_pk_min_idx</span> <span class="o">=</span> <span class="n">min_props</span><span class="p">[</span><span class="s1">&#39;peak_heights&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">argmax</span><span class="p">()</span>
+            <span class="n">tall_pk_max_idx</span> <span class="o">=</span> <span class="n">max_props</span><span class="p">[</span><span class="s1">&#39;peak_heights&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">argmax</span><span class="p">()</span>
+            <span class="c1"># Check that tallest peak moves location between boundary points</span>
+            <span class="k">if</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">max_peaks</span><span class="p">[</span><span class="n">tall_pk_max_idx</span><span class="p">]</span> <span class="o">-</span> <span class="n">min_peaks</span><span class="p">[</span><span class="n">tall_pk_min_idx</span><span class="p">])</span> <span class="o">&lt;</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">([</span><span class="n">min_props</span><span class="p">[</span><span class="s1">&#39;widths&#39;</span><span class="p">][</span><span class="n">tall_pk_min_idx</span><span class="p">],</span>
+                         <span class="n">max_props</span><span class="p">[</span><span class="s1">&#39;widths&#39;</span><span class="p">][</span><span class="n">tall_pk_max_idx</span><span class="p">]])):</span>
+                
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Invalid bounds to search for resonant tunnel coupling &#39;</span><span class="o">+</span>
+                      <span class="s1">&#39;point.</span><span class="se">\n</span><span class="s1">The min and max bounds showed the wavefunction &#39;</span><span class="o">+</span>
+                      <span class="s1">&#39;staying in the same potential minima.</span><span class="se">\n</span><span class="s1">Please change &#39;</span><span class="o">+</span>
+                      <span class="s1">&#39;the bounds so that the min and max boundaries have the &#39;</span><span class="o">+</span>
+                      <span class="s1">&#39;wavefunction</span><span class="se">\n</span><span class="s1">localized in different potential minima.</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+                
+                <span class="k">return</span> <span class="kc">None</span>
+        <span class="c1"># Catch all other conditions.</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Invalid bounds to search for resonant tunnel coupling &#39;</span><span class="o">+</span>
+                  <span class="sa">f</span><span class="s1">&#39;point.</span><span class="se">\n</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">min_peaks</span><span class="p">)</span><span class="si">}</span><span class="s1"> peaks found at lower boundary.</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">+</span>
+                  <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">max_peaks</span><span class="p">)</span><span class="si">}</span><span class="s1"> peaks found at higher boundary.</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">+</span>
+                  <span class="s1">&#39;Provide new boundaries or change the input control value array.</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+            
+            <span class="k">return</span> <span class="kc">None</span>
+                
+        <span class="c1"># If the boundary window is very large (&gt;1 mV), we will try to narrow </span>
+        <span class="c1"># it down to help make fminbound work otherwise it can miss the </span>
+        <span class="c1"># resonance point due to the way we define the find_peak_difference</span>
+        <span class="c1"># function.</span>
+        <span class="c1"># Need these for while loop. Get tallest peak location index for </span>
+        <span class="c1"># min and max boundary points.</span>
+        <span class="n">tall_min_peak_idx</span> <span class="o">=</span> <span class="n">min_peaks</span><span class="p">[</span><span class="n">min_props</span><span class="p">[</span><span class="s1">&#39;peak_heights&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">argmax</span><span class="p">()]</span>
+        <span class="n">tall_max_peak_idx</span> <span class="o">=</span> <span class="n">max_peaks</span><span class="p">[</span><span class="n">max_props</span><span class="p">[</span><span class="s1">&#39;peak_heights&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">argmax</span><span class="p">()]</span>
+        <span class="k">while</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">bnds</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">1E-3</span><span class="p">:</span>
+            <span class="c1"># Curr midpoint</span>
+            <span class="n">bnd_mid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">bnds</span><span class="p">)</span>
+            
+            <span class="c1"># Get peaks at midpoint</span>
+            <span class="n">mid_peaks</span><span class="p">,</span> <span class="n">mid_props</span> <span class="o">=</span> <span class="n">_find_peaks</span><span class="p">(</span><span class="n">bnd_mid</span><span class="p">)</span>
+            
+            <span class="c1"># Get tallest peak location index</span>
+            <span class="n">tall_mid_peak_idx</span> <span class="o">=</span> <span class="n">mid_peaks</span><span class="p">[</span><span class="n">mid_props</span><span class="p">[</span><span class="s1">&#39;peak_heights&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">argmax</span><span class="p">()]</span>
+            
+            <span class="c1"># See if tallest peak is closer to min or max boundary max peak</span>
+            <span class="c1"># and then replace closer boundary with the midpoint.</span>
+            <span class="k">if</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">tall_min_peak_idx</span> <span class="o">-</span> <span class="n">tall_mid_peak_idx</span><span class="p">)</span> <span class="o">&lt;</span>
+                <span class="nb">abs</span><span class="p">(</span><span class="n">tall_max_peak_idx</span> <span class="o">-</span> <span class="n">tall_mid_peak_idx</span><span class="p">)):</span>
+                <span class="n">tall_min_peak_idx</span> <span class="o">=</span> <span class="n">tall_mid_peak_idx</span>
+                <span class="n">bnds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">bnd_mid</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">tall_max_peak_idx</span> <span class="o">=</span> <span class="n">tall_mid_peak_idx</span>
+                <span class="n">bnds</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">bnd_mid</span>
+            
+        <span class="c1"># Helper function for fminbound search</span>
+        <span class="k">def</span> <span class="nf">find_peak_difference</span><span class="p">(</span><span class="n">curr_val</span><span class="p">):</span>
+            <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">            Find the difference in peak height between two wavefunction peaks.</span>
+<span class="sd">            </span>
+<span class="sd">            Parameters</span>
+<span class="sd">            ----------</span>
+<span class="sd">            curr_val : float</span>
+<span class="sd">                The current search value of the swept control index.</span>
+<span class="sd">                </span>
+<span class="sd">            Returns</span>
+<span class="sd">            -------</span>
+<span class="sd">            pk_diff : float</span>
+<span class="sd">                Difference in height between the two peaks.</span>
+<span class="sd">            &#39;&#39;&#39;</span>
+            
+            <span class="c1"># Find wavefunction peak at curr_val</span>
+            <span class="n">peaks</span><span class="p">,</span> <span class="n">props</span> <span class="o">=</span> <span class="n">_find_peaks</span><span class="p">(</span><span class="n">curr_val</span><span class="p">)</span>
+            
+            <span class="c1"># If there are two peaks, then return the peak difference, otherwise</span>
+            <span class="c1"># return a large value to the minimzer.</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">peaks</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">pk_diff</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">props</span><span class="p">[</span><span class="s1">&#39;peak_heights&#39;</span><span class="p">]))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">pk_diff</span> <span class="o">=</span> <span class="mf">1E8</span>
+                        
+            <span class="k">return</span> <span class="n">pk_diff</span>
+        
+        <span class="c1"># Search for the point where the peak heights are equal. Since the dots </span>
+        <span class="c1"># are assumed to be similarly sized, this would be close to the 0</span>
+        <span class="c1"># detuning point.        </span>
+        <span class="n">volt_tolerance</span> <span class="o">=</span> <span class="mf">1E-6</span> <span class="c1"># muV</span>
+        <span class="n">res_ctrl</span> <span class="o">=</span> <span class="n">fminbound</span><span class="p">(</span><span class="n">find_peak_difference</span><span class="p">,</span> <span class="n">bnds</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">bnds</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> 
+                        <span class="n">xtol</span><span class="o">=</span><span class="n">volt_tolerance</span><span class="p">)</span>
+        
+        <span class="c1"># Round value to the order of magnitude given by the tolerance.</span>
+        <span class="n">res_ctrl</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">res_ctrl</span><span class="p">,</span><span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">volt_tolerance</span><span class="p">)))))</span>
+        <span class="n">res_ctrl</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">res_ctrl</span><span class="p">)</span>        
+
+        <span class="k">return</span> <span class="n">res_ctrl</span></div></div>
+    
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Zach D. Merino.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

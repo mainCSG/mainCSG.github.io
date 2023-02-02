@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>unit_tests.process_nextnano_tests.test_process_nextnano_files &mdash; QuDiPy Documentation 1.0.0 documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/language_data.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> QuDiPy Documentation
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">QuDiPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">unit_tests.process_nextnano_tests.test_process_nextnano_files</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for unit_tests.process_nextnano_tests.test_process_nextnano_files</h1><div class="highlight"><pre>
+<span></span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">Unittests for the module potential.process_nextnano.py.</span>
+
+<span class="sd">@author: Zach</span>
+<span class="sd">&#39;&#39;&#39;</span>
+
+<span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">sys</span>
+<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()))</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pytest</span>
+
+<span class="kn">import</span> <span class="nn">qudipy.potential</span> <span class="k">as</span> <span class="nn">pot</span>
+
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">Instructions for running unittests:</span>
+
+<span class="sd">1) Open cmd or anaconda promt and change directory to the unittest directory</span>
+<span class="sd">2) Make sure tutorial data is downloaded and located in tutorial directory.</span>
+<span class="sd">3) Run the unittest via unittest/pytest package:</span>
+<span class="sd">    - Unittest is built into python; pytest must be downloaded with </span>
+<span class="sd">    &quot;python -m pip install pytest&quot;.</span>
+<span class="sd">    - Enter comand: &quot;python -m unittest &lt;filename.py&gt;&quot; or</span>
+<span class="sd">        &quot;python -m pytest &lt;filename.py&gt;&quot;</span>
+
+<span class="sd">Note: Markers are used to call unitest functions for specific aspects of the </span>
+<span class="sd">    test files. Marker declirations are done before the function.</span>
+
+<span class="sd">    Example:</span>
+
+<span class="sd">        First: Define custom marker in pytest.ini configuration file.</span>
+
+<span class="sd">        Second: Add marker to desired function as follows.</span>
+<span class="sd">        </span>
+<span class="sd">            @pytest.mark.&lt;marker name&gt;</span>
+<span class="sd">            def &lt;function name&gt;():</span>
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">Define custom markers as follows:</span>
+
+<span class="sd">markers =</span>
+<span class="sd">        &lt;marker 1 name&gt;: &lt;optional description&gt;,</span>
+<span class="sd">        &lt;marker 2 name&gt;,</span>
+<span class="sd">        &lt;marker 2 name&gt;</span>
+<span class="sd">&#39;&#39;&#39;</span>
+
+<span class="c1"># Test data is being imported correctly</span>
+<div class="viewcode-block" id="test_data_importation"><a class="viewcode-back" href="../../../unit_tests.process_nextnano_tests.html#unit_tests.process_nextnano_tests.test_process_nextnano_files.test_data_importation">[docs]</a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">process_data</span>
+<span class="k">def</span> <span class="nf">test_data_importation</span><span class="p">(</span><span class="n">ctrl_data_input_path</span><span class="p">,</span><span class="n">ctrl_data</span><span class="p">):</span>
+
+    <span class="c1"># Check that any data from path is imported (list is False if empty)</span>
+    <span class="c1"># assert ctrl_data is False</span>
+    <span class="k">assert</span> <span class="n">ctrl_data</span>
+
+    <span class="c1"># Make sure every trial run was imported</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">ctrl_data</span><span class="p">)</span> <span class="o">==</span> <span class="mi">8</span>
+
+    <span class="c1"># Make sure a trial run was imported correctly</span>
+
+    <span class="c1"># first sublist: control names</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">ctrl_data</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;ctrl_names&#39;</span><span class="p">])</span> <span class="o">==</span> <span class="mi">6</span>
+
+    <span class="c1"># second sublsit: potential list containing 3D information</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">ctrl_data</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;ctrl_values&#39;</span><span class="p">])</span> <span class="o">==</span> <span class="mi">376656</span>
+
+    <span class="c1"># third sublist: cordinates for potential list</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">ctrl_data</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;coord&#39;</span><span class="p">])</span> <span class="o">==</span> <span class="mi">3</span>
+
+    <span class="c1"># Make sure the structure of the data is correct</span>
+    <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">ctrl_data</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;ctrl_names&#39;</span><span class="p">])</span> <span class="ow">is</span> <span class="nb">list</span>
+    <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">ctrl_data</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;ctrl_values&#39;</span><span class="p">])</span> <span class="ow">is</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+    <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">ctrl_data</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;coord&#39;</span><span class="p">])</span> <span class="ow">is</span> <span class="nb">dict</span></div>
+
+<span class="c1"># get_ctrl works and get_ctrl_vals works</span>
+<div class="viewcode-block" id="test_ctrl_val_minipulation"><a class="viewcode-back" href="../../../unit_tests.process_nextnano_tests.html#unit_tests.process_nextnano_tests.test_process_nextnano_files.test_ctrl_val_minipulation">[docs]</a><span class="k">def</span> <span class="nf">test_ctrl_val_minipulation</span><span class="p">(</span><span class="n">ctrl_data_input_path</span><span class="p">,</span> <span class="n">ctrl_data</span><span class="p">):</span>
+    
+    <span class="c1"># Make sure control names are parsed correctly</span>
+    <span class="k">for</span> <span class="n">subdir</span><span class="p">,</span> <span class="n">base_dir</span><span class="p">,</span> <span class="n">files</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">ctrl_data_input_path</span><span class="p">):</span>
+
+        <span class="c1"># Collect simulation meta data files</span>
+        <span class="n">list_of_files</span> <span class="o">=</span> <span class="n">pot</span><span class="o">.</span><span class="n">get_files</span><span class="p">(</span><span class="n">ctrl_data_input_path</span><span class="p">,</span> <span class="s1">&#39;.log&#39;</span><span class="p">)</span>
+
+        <span class="c1"># parse voltage information for the directory one level higher than</span>
+        <span class="c1"># /output or /bias_000_000_000</span>
+        <span class="n">trig</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">subdir</span> <span class="o">!=</span> <span class="n">ctrl_data_input_path</span> <span class="ow">and</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">list_of_files</span><span class="p">:</span>
+                <span class="n">gates</span> <span class="o">=</span> <span class="n">pot</span><span class="o">.</span><span class="n">get_ctrl</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">subdir</span><span class="p">,</span><span class="n">file</span><span class="p">),</span><span class="s1">&#39;name&#39;</span><span class="p">)</span>
+                <span class="c1"># Trigger inner loop break</span>
+                <span class="n">trig</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">break</span>
+        
+        <span class="c1"># Break outer loop if inner loop was broken</span>
+        <span class="k">if</span> <span class="n">trig</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">break</span>
+
+    <span class="k">assert</span> <span class="n">gates</span> <span class="o">==</span> <span class="p">[</span><span class="s1">&#39;V3&#39;</span><span class="p">,</span><span class="s1">&#39;V2&#39;</span><span class="p">,</span><span class="s1">&#39;V4&#39;</span><span class="p">,</span><span class="s1">&#39;V5&#39;</span><span class="p">,</span><span class="s1">&#39;V1&#39;</span><span class="p">,</span><span class="s1">&#39;Si&#39;</span><span class="p">]</span>
+    
+    <span class="c1"># Make sure control values are combined correctly</span>
+    <span class="n">ctrl_vals</span> <span class="o">=</span> <span class="n">pot</span><span class="o">.</span><span class="n">process_nextnano</span><span class="o">.</span><span class="n">get_ctrl_vals</span><span class="p">(</span><span class="n">ctrl_data</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="n">ctrl_data</span><span class="o">.</span><span class="n">keys</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">ctrl_vals</span><span class="p">)</span>
+
+    <span class="k">assert</span> <span class="n">ctrl_vals</span> <span class="o">==</span> <span class="p">[[</span><span class="mf">0.2</span><span class="p">],[</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">],[</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.22</span><span class="p">,</span> <span class="mf">0.24</span><span class="p">,</span> <span class="mf">0.26</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.1</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.1</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]]</span></div>
+
+
+<span class="c1">#### THESE UNIT TESTS ARE BEING DEPRECATED WITH THE REFACTORED QUDIPY CODE ####</span>
+
+<span class="c1"># # reshape_field works </span>
+<span class="c1"># def test_reshape_field(ctrl_data_input_path, ctrl_data):</span>
+    
+<span class="c1">#     ctrl_data = pot.process_nextnano.import_dir(ctrl_data_input_path</span>
+<span class="c1">#                                                     ,show_files=True)</span>
+
+<span class="c1">#     z = 0.45</span>
+<span class="c1">#     f_name = &#39;Uxy&#39;</span>
+
+<span class="c1">#     # slice an x-y plane of the potentials</span>
+<span class="c1">#     potential2D = pot.reshape_field(ctrl_data[0][&#39;ctrl_values&#39;],ctrl_data[0][&#39;coord&#39;][&#39;x&#39;]</span>
+<span class="c1">#         ,ctrl_data[0][&#39;coord&#39;][&#39;y&#39;],ctrl_data[0][&#39;coord&#39;][&#39;z&#39;],z, f_name)</span>
+
+<span class="c1">#     assert np.shape(potential2D) == (103,35)</span>
+
+<span class="c1"># # Make sure xy_potential and write_data works</span>
+<span class="c1"># def test_finilized_2D_data(ctrl_data_input_path, ctrl_data_output_path, ctrl_data):</span>
+
+<span class="c1">#     z = 0.45</span>
+<span class="c1">#     f_name = [&#39;Uxy&#39;]</span>
+<span class="c1">#     # f_name = &#39;pot&#39;</span>
+
+<span class="c1">#     file_trig, coords_and_pot = pot.write_data(ctrl_data_input_path, </span>
+<span class="c1">#         ctrl_data_output_path, z,f_name)</span>
+
+
+<span class="c1">#     # Make sure x/y coordinates are added to 2D potential</span>
+<span class="c1">#     assert np.shape(coords_and_pot) == (36,104)</span>
+
+<span class="c1">#     # Make sure data was converted correctly or saved</span>
+<span class="c1">#     assert file_trig == 0</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Zach D. Merino.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

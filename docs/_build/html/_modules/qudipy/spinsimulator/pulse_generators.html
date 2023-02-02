@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>qudipy.spinsimulator.pulse_generators &mdash; QuDiPy Documentation 1.0.0 documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/language_data.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> QuDiPy Documentation
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">QuDiPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">qudipy.spinsimulator.pulse_generators</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for qudipy.spinsimulator.pulse_generators</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Created on Wed Oct 21 11:20:47 2020</span>
+
+<span class="sd">The script contains functions that generate simple constant pulses </span>
+<span class="sd">in spin space.</span>
+
+<span class="sd">@author: bkhromet</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="c1">#For data manipulation</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">import</span> <span class="nn">math</span>
+
+<span class="c1"># Circuit module containing control pulses and ideal circuits</span>
+<span class="kn">from</span> <span class="nn">qudipy.circuit</span> <span class="kn">import</span> <span class="n">ControlPulse</span>
+<span class="c1"># Constants class</span>
+<span class="kn">from</span> <span class="nn">qudipy.utils.constants</span> <span class="kn">import</span> <span class="n">Constants</span>
+
+<span class="c1">#material system is chosen to be vacuum by default because such parameters as </span>
+<span class="c1">#effective mass or dielectric constant do not matter for spin simulations;</span>
+<span class="n">consts</span> <span class="o">=</span> <span class="n">Constants</span><span class="p">(</span><span class="s2">&quot;vacuum&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="rot_square"><a class="viewcode-back" href="../../../qudipy.spinsimulator.html#qudipy.spinsimulator.pulse_generators.rot_square">[docs]</a><span class="k">def</span> <span class="nf">rot_square</span><span class="p">(</span><span class="n">qubits</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">axis</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">B_0</span><span class="p">,</span> <span class="n">B_rf</span><span class="p">,</span> <span class="n">f_rf</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+               <span class="n">delta_g</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="n">num_val</span><span class="o">=</span><span class="mi">300</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Function that creates a constant (square) ROTX, ROTY or ROTZ pulse </span>
+<span class="sd">    for a given RF field.</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    qubits: int / iterable of ints</span>
+<span class="sd">        The qubit(s) to be exposed to the rotation pulse.</span>
+<span class="sd">    N: int</span>
+<span class="sd">        Number of qubits in the system.</span>
+<span class="sd">    axis: string</span>
+<span class="sd">        Specifies the axis of rotation: &quot;X&quot;, &quot;Y&quot; or &quot;Z&quot;.</span>
+<span class="sd">    theta: float</span>
+<span class="sd">        Specifies the angle of rotation (in degrees).</span>
+<span class="sd">    B_0: float</span>
+<span class="sd">        Zeeman field.</span>
+<span class="sd">    B_rf: float</span>
+<span class="sd">        constant ESR field magnitude during the pulse</span>
+<span class="sd">    </span>
+<span class="sd">        </span>
+<span class="sd">    Keyword Arguments</span>
+<span class="sd">    -----------------</span>
+<span class="sd">    f_rf: float, optional</span>
+<span class="sd">        The frequency of the ESR field. By default, it is equated to</span>
+<span class="sd">            the Larmor frequency calculated from B_0.</span>
+<span class="sd">    delta_g: float, optional</span>
+<span class="sd">        Approximate value of deviation g-factor used to cancel the effect </span>
+<span class="sd">        of global RF field on the unspecified qubits.</span>
+<span class="sd">    num_val: int, optional</span>
+<span class="sd">        number of data points</span>
+<span class="sd">            </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    rotpulse: ControlPulse object / tuple of such objects </span>
+<span class="sd">        Pulse / tuple of pulses corresponding to the requested rotation </span>
+<span class="sd">        on the Bloch sphere  </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">f_rf</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">f_rf</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span> <span class="n">consts</span><span class="o">.</span><span class="n">muB</span> <span class="o">*</span> <span class="n">B_0</span> <span class="o">/</span> <span class="n">consts</span><span class="o">.</span><span class="n">hbar</span> 
+    <span class="k">if</span> <span class="n">axis</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;X&quot;</span><span class="p">,</span> <span class="s2">&quot;Y&quot;</span><span class="p">):</span>
+        <span class="n">phis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_val</span><span class="p">,</span> <span class="mf">0.</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">axis</span> <span class="o">==</span> <span class="s2">&quot;Y&quot;</span><span class="p">:</span>
+            <span class="n">phis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_val</span><span class="p">,</span> <span class="mi">90</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">theta</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">phis</span> <span class="o">=</span> <span class="n">phis</span> <span class="o">+</span> <span class="mi">180</span>
+        <span class="n">bs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_val</span><span class="p">,</span> <span class="n">B_rf</span><span class="p">)</span>
+        
+        <span class="n">pulse_length</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">((</span><span class="n">theta</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">180</span><span class="p">)</span> <span class="o">*</span> 
+                    <span class="n">consts</span><span class="o">.</span><span class="n">hbar</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">consts</span><span class="o">.</span><span class="n">muB</span> <span class="o">*</span> <span class="n">B_rf</span><span class="p">))</span>
+        
+        <span class="n">rotpulse</span> <span class="o">=</span> <span class="n">ControlPulse</span><span class="p">(</span><span class="s2">&quot;ROT</span><span class="si">{}</span><span class="s2">_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">theta</span><span class="p">),</span> 
+                    <span class="s2">&quot;effective&quot;</span><span class="p">,</span> <span class="n">pulse_length</span><span class="o">=</span> <span class="n">pulse_length</span><span class="p">)</span> 
+                        <span class="c1">#to comply with Brandon&#39;s code which uses picoseconds</span>
+                        
+        <span class="n">rotpulse</span><span class="o">.</span><span class="n">add_control_variable</span><span class="p">(</span><span class="s2">&quot;phi&quot;</span><span class="p">,</span> <span class="n">phis</span><span class="p">)</span>
+        <span class="n">rotpulse</span><span class="o">.</span><span class="n">add_control_variable</span><span class="p">(</span><span class="s2">&quot;B_rf&quot;</span><span class="p">,</span> <span class="n">bs</span><span class="p">)</span>
+        
+        <span class="c1"># adding deviation g-factors to make unused qubits </span>
+        <span class="c1"># effectively &quot;idle&quot; under the pulse</span>
+        
+        <span class="n">ifint</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">qubits</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>    <span class="c1">#track a single qubit</span>
+        <span class="n">ifiterable</span> <span class="o">=</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">qubits</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span><span class="nb">list</span><span class="p">,</span> <span class="nb">set</span><span class="p">))</span>
+              <span class="ow">and</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">qubits</span><span class="p">))</span>
+               
+        <span class="k">if</span> <span class="n">ifiterable</span><span class="p">:</span> 
+            <span class="n">set_qubits</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span> 
+        <span class="k">elif</span> <span class="n">ifint</span><span class="p">:</span>
+            <span class="n">set_qubits</span> <span class="o">=</span> <span class="p">{</span><span class="n">qubits</span><span class="p">}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The tracked qubits should be specified &quot;</span> <span class="o">+</span>  
+                             <span class="s2">&quot;by an int or an iterable of ints. None of the &quot;</span> <span class="o">+</span>  
+                             <span class="s2">&quot;qubits have been detuned to idle&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># tuning the target qubit(s) on resonance, the variables are named in </span>
+        <span class="c1"># compliance with the write-up</span>
+        <span class="n">omega</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">consts</span><span class="o">.</span><span class="n">muB</span> <span class="o">*</span> <span class="n">B_0</span> <span class="o">/</span> <span class="n">consts</span><span class="o">.</span><span class="n">hbar</span>
+        <span class="n">omega_capital</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">consts</span><span class="o">.</span><span class="n">muB</span> <span class="o">*</span> <span class="n">B_rf</span> <span class="o">/</span> <span class="n">consts</span><span class="o">.</span><span class="n">hbar</span>
+        
+        <span class="k">if</span> <span class="n">B_0</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">dg0</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">f_rf</span> <span class="o">/</span> <span class="n">omega</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+            
+            <span class="k">for</span> <span class="n">qub</span> <span class="ow">in</span> <span class="n">set_qubits</span><span class="p">:</span>
+                <span class="n">rotpulse</span><span class="o">.</span><span class="n">add_control_variable</span><span class="p">(</span><span class="s2">&quot;delta_g_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">qub</span><span class="p">),</span> 
+                                                  <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_val</span><span class="p">,</span> <span class="n">dg0</span><span class="p">))</span>        
+    
+        <span class="n">idle_qubs</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">N</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span> <span class="o">-</span> <span class="n">set_qubits</span>
+        <span class="c1"># calculating the exact value of delta_g, see the write-up for the </span>
+        <span class="c1"># derivation</span>
+
+        <span class="c1">#number of full rotations on the Bloch sphere for the idling qubit</span>
+        <span class="n">nrot</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">omega</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">delta_g</span><span class="p">)</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> 
+                              <span class="n">f_rf</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">omega_capital</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> 
+                               <span class="n">pulse_length</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+        
+        <span class="n">dg1</span> <span class="o">=</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="mi">2</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">nrot</span><span class="o">/</span><span class="n">pulse_length</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> 
+               <span class="o">-</span> <span class="n">omega_capital</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="n">omega</span> <span class="o">+</span><span class="mi">2</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span><span class="n">f_rf</span> <span class="p">)</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">/</span> <span class="n">omega</span>
+        
+        <span class="n">dg2</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="mi">2</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">nrot</span><span class="o">/</span><span class="n">pulse_length</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span>
+               <span class="o">-</span> <span class="n">omega_capital</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="n">omega</span> <span class="o">+</span><span class="mi">2</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span><span class="n">f_rf</span> <span class="p">)</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">/</span> <span class="n">omega</span>
+        
+        <span class="c1">#choosing the closest value</span>
+        <span class="n">exact_delta_g</span> <span class="o">=</span> <span class="n">dg1</span> <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">dg1</span><span class="o">-</span><span class="n">delta_g</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">abs</span><span class="p">(</span><span class="n">dg2</span><span class="o">-</span><span class="n">delta_g</span><span class="p">)</span> <span class="k">else</span> <span class="n">dg2</span>
+            
+        <span class="k">for</span> <span class="n">qub</span> <span class="ow">in</span> <span class="n">idle_qubs</span><span class="p">:</span>
+            <span class="n">rotpulse</span><span class="o">.</span><span class="n">add_control_variable</span><span class="p">(</span><span class="s2">&quot;delta_g_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">qub</span><span class="p">),</span> 
+                                         <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_val</span><span class="p">,</span> <span class="n">exact_delta_g</span><span class="p">))</span>
+                
+        <span class="k">return</span> <span class="n">rotpulse</span>
+        <span class="c1">#del rotpulse</span>
+    <span class="k">if</span> <span class="n">axis</span><span class="o">==</span><span class="s2">&quot;Z&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">rot_square</span><span class="p">(</span><span class="n">qubits</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="s2">&quot;X&quot;</span><span class="p">,</span> <span class="o">-</span><span class="mi">90</span><span class="p">,</span> <span class="n">B_0</span><span class="p">,</span> <span class="n">B_rf</span><span class="p">,</span> 
+                                                   <span class="n">f_rf</span><span class="p">,</span> <span class="n">delta_g</span><span class="p">,</span> <span class="n">num_val</span><span class="p">),</span> 
+                <span class="n">rot_square</span><span class="p">(</span><span class="n">qubits</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="s2">&quot;Y&quot;</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">B_0</span><span class="p">,</span> <span class="n">B_rf</span><span class="p">,</span>
+                                                   <span class="n">f_rf</span><span class="p">,</span> <span class="n">delta_g</span><span class="p">,</span> <span class="n">num_val</span><span class="p">),</span> 
+                <span class="n">rot_square</span><span class="p">(</span><span class="n">qubits</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="s2">&quot;X&quot;</span><span class="p">,</span> <span class="mi">90</span><span class="p">,</span> <span class="n">B_0</span><span class="p">,</span> <span class="n">B_rf</span><span class="p">,</span> 
+                                                   <span class="n">f_rf</span><span class="p">,</span> <span class="n">delta_g</span><span class="p">,</span> <span class="n">num_val</span><span class="p">)]</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Incorrect input of axis, please try again&quot;</span><span class="p">)</span></div>
+    
+    
+<div class="viewcode-block" id="swap"><a class="viewcode-back" href="../../../qudipy.spinsimulator.html#qudipy.spinsimulator.pulse_generators.swap">[docs]</a><span class="k">def</span> <span class="nf">swap</span><span class="p">(</span><span class="n">qubits</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">J</span><span class="p">,</span> <span class="n">B_0</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">f_rf</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">num_val</span><span class="o">=</span><span class="mi">300</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A function that builds a simple SWAP gate.</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    qubits: tuple of 2 ints</span>
+<span class="sd">        Pair of indices of the two interacting qubits. Temporarily, only the </span>
+<span class="sd">        case of two neighboring qubits is supported. </span>
+<span class="sd">    N: int</span>
+<span class="sd">        Number of qubits in the system.</span>
+<span class="sd">    J: float</span>
+<span class="sd">        Exchange coupling between the specified qubits</span>
+<span class="sd">        </span>
+<span class="sd">    Keyword Arguments</span>
+<span class="sd">    -----------------</span>
+<span class="sd">    B_0: float</span>
+<span class="sd">        Zeeman field. Default is zero.</span>
+<span class="sd">    f_rf: float, optional</span>
+<span class="sd">        The frequency of the ESR field specified for the system. By default, </span>
+<span class="sd">        it is equated to the Larmor frequency calculated from B_0.</span>
+<span class="sd">    num_val: int, optional</span>
+<span class="sd">        number of data points </span>
+<span class="sd">            </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    swappulse: ControlPulse object</span>
+<span class="sd">        Pulse corresponding to the SWAP between the two specified neighboring </span>
+<span class="sd">        qubits</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The indices of the interacting qubits are specified &quot;</span> 
+                         <span class="s2">&quot;incorrectly. There should be a list/tuple with two &quot;</span>
+                         <span class="s2">&quot;integers&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Temporarily, only the exchange between neighboring&quot;</span>
+                         <span class="s2">&quot;qubits is supported&quot;</span><span class="p">)</span>
+    <span class="n">qubit</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>    
+    <span class="n">Js</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_val</span><span class="p">,</span> <span class="n">J</span><span class="p">)</span>
+    <span class="n">swappulse</span> <span class="o">=</span> <span class="n">ControlPulse</span><span class="p">(</span><span class="s2">&quot;SWAP_</span><span class="si">{}</span><span class="s2">_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">qubit</span><span class="p">,</span> <span class="n">qubit</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> 
+                                <span class="s2">&quot;effective&quot;</span><span class="p">,</span> <span class="n">pulse_length</span> <span class="o">=</span> <span class="n">consts</span><span class="o">.</span><span class="n">h</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">J</span><span class="p">))</span> 
+    <span class="n">swappulse</span><span class="o">.</span><span class="n">add_control_variable</span><span class="p">(</span><span class="s2">&quot;J_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">qubit</span><span class="p">),</span> <span class="n">Js</span><span class="p">)</span>
+    
+    <span class="c1">#tuning all qubits on resonance</span>
+    <span class="k">if</span> <span class="n">B_0</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">omega</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">consts</span><span class="o">.</span><span class="n">muB</span> <span class="o">*</span> <span class="n">B_0</span> <span class="o">/</span> <span class="n">consts</span><span class="o">.</span><span class="n">hbar</span>
+        <span class="n">dg0</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">f_rf</span> <span class="o">/</span> <span class="n">omega</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">qub</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">N</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">swappulse</span><span class="o">.</span><span class="n">add_control_variable</span><span class="p">(</span><span class="s2">&quot;delta_g_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">qub</span><span class="p">),</span> 
+                                         <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_val</span><span class="p">,</span> <span class="n">dg0</span><span class="p">))</span>
+    
+    <span class="k">return</span> <span class="n">swappulse</span></div>
+
+<div class="viewcode-block" id="rswap"><a class="viewcode-back" href="../../../qudipy.spinsimulator.html#qudipy.spinsimulator.pulse_generators.rswap">[docs]</a><span class="k">def</span> <span class="nf">rswap</span><span class="p">(</span><span class="n">qubits</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">J</span><span class="p">,</span> <span class="n">B_0</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">f_rf</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">num_val</span><span class="o">=</span><span class="mi">300</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A function that builds a simple √SWAP gate.</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    qubits: tuple of 2 ints</span>
+<span class="sd">        Pair of indices of the two interacting qubits. Temporarily, only the </span>
+<span class="sd">        case of two neighboring qubits is supported. </span>
+<span class="sd">    N: int</span>
+<span class="sd">        Number of qubits in the system.</span>
+<span class="sd">    J: float</span>
+<span class="sd">        Exchange coupling between the specified qubits.   </span>
+<span class="sd">        </span>
+<span class="sd">    Keyword Arguments</span>
+<span class="sd">    -----------------</span>
+<span class="sd">    B_0: float</span>
+<span class="sd">        Zeeman field. Default is zero.</span>
+<span class="sd">    f_rf: float, optional</span>
+<span class="sd">        The frequency of the ESR field specified for the system.By default, </span>
+<span class="sd">        it is equated to the Larmor frequency calculated from B_0.</span>
+<span class="sd">    num_val: int, optional</span>
+<span class="sd">        number of data points </span>
+<span class="sd">            </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    rswappulse: ControlPulse object</span>
+<span class="sd">        Pulse corresponding to the SWAP between the two specified neighboring </span>
+<span class="sd">        qubits</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The indices of the interacting qubits are specified &quot;</span> 
+                         <span class="s2">&quot;incorrectly. There should be a list/tuple with two &quot;</span>
+                         <span class="s2">&quot;integers&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Temporarily, only the exchange between neighboring&quot;</span>
+                         <span class="s2">&quot;qubits is supported&quot;</span><span class="p">)</span>
+    <span class="n">qubit</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>    
+    <span class="n">Js</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_val</span><span class="p">,</span> <span class="n">J</span><span class="p">)</span>
+    <span class="n">rswappulse</span> <span class="o">=</span> <span class="n">ControlPulse</span><span class="p">(</span><span class="s2">&quot;RSWAP_</span><span class="si">{}</span><span class="s2">_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">qubit</span><span class="p">,</span> <span class="n">qubit</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> 
+                                <span class="s2">&quot;effective&quot;</span><span class="p">,</span> <span class="n">pulse_length</span> <span class="o">=</span> <span class="n">consts</span><span class="o">.</span><span class="n">h</span> <span class="o">/</span> <span class="p">(</span><span class="mi">4</span> <span class="o">*</span> <span class="n">J</span><span class="p">))</span> 
+    <span class="n">rswappulse</span><span class="o">.</span><span class="n">add_control_variable</span><span class="p">(</span><span class="s2">&quot;J_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">qubit</span><span class="p">),</span> <span class="n">Js</span><span class="p">)</span>
+    
+    <span class="c1">#tuning all qubits on resonance</span>
+    <span class="k">if</span> <span class="n">B_0</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">omega</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">consts</span><span class="o">.</span><span class="n">muB</span> <span class="o">*</span> <span class="n">B_0</span> <span class="o">/</span> <span class="n">consts</span><span class="o">.</span><span class="n">hbar</span>
+        <span class="n">dg0</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">f_rf</span> <span class="o">/</span> <span class="n">omega</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">qub</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">N</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">rswappulse</span><span class="o">.</span><span class="n">add_control_variable</span><span class="p">(</span><span class="s2">&quot;delta_g_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">qub</span><span class="p">),</span> 
+                                         <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_val</span><span class="p">,</span> <span class="n">dg0</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">rswappulse</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Zach D. Merino.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

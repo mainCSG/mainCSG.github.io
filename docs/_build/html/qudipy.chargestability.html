@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>qudipy.chargestability package &mdash; QuDiPy Documentation 1.0.0 documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> QuDiPy Documentation
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">qudipy.chargestability package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-qudipy.chargestability.csd_analysis">qudipy.chargestability.csd_analysis module</a></li>
+<li><a class="reference internal" href="#module-qudipy.chargestability.csd_cim">qudipy.chargestability.csd_cim module</a></li>
+<li><a class="reference internal" href="#module-qudipy.chargestability.csd_hubbard">qudipy.chargestability.csd_hubbard module</a></li>
+<li><a class="reference internal" href="#module-qudipy.chargestability">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">QuDiPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a></li>
+      <li class="breadcrumb-item active">qudipy.chargestability package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/qudipy.chargestability.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="qudipy-chargestability-package">
+<h1>qudipy.chargestability package<a class="headerlink" href="#qudipy-chargestability-package" title="Permalink to this headline">¶</a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="module-qudipy.chargestability.csd_analysis">
+<span id="qudipy-chargestability-csd-analysis-module"></span><h2>qudipy.chargestability.csd_analysis module<a class="headerlink" href="#module-qudipy.chargestability.csd_analysis" title="Permalink to this headline">¶</a></h2>
+<p>File used to analyze charge stability diagrams in order to produce 
+capacitance matrices, virtual gating, lever arms, etc.
+For a good review of the Hough transform, check 
+<a class="reference external" href="https://alyssaq.github.io/2014/understanding-hough-transform/">https://alyssaq.github.io/2014/understanding-hough-transform/</a>.
+Hough transfrom code based off of 
+<a class="reference external" href="https://github.com/alyssaq/hough_transform">https://github.com/alyssaq/hough_transform</a>.</p>
+<dl class="class">
+<dt id="qudipy.chargestability.csd_analysis.CSDAnalysis">
+<em class="property">class </em><code class="sig-prename descclassname">qudipy.chargestability.csd_analysis.</code><code class="sig-name descname">CSDAnalysis</code><span class="sig-paren">(</span><em class="sig-param">csd</em>, <em class="sig-param">capacitances=None</em>, <em class="sig-param">blur_sigma=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qudipy/chargestability/csd_analysis.html#CSDAnalysis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qudipy.chargestability.csd_analysis.CSDAnalysis" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Initialize the charge stability diagram analysis class which
+analyzes charge stability diagrams to extract parameters.</p>
+<dl class="method">
+<dt id="qudipy.chargestability.csd_analysis.CSDAnalysis.find_tripletpoints">
+<code class="sig-name descname">find_tripletpoints</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/qudipy/chargestability/csd_analysis.html#CSDAnalysis.find_tripletpoints"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qudipy.chargestability.csd_analysis.CSDAnalysis.find_tripletpoints" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finds locations of triple points in a charge stability diagram
+This function is NOT general and only works in the case of 4
+main transition lines with a middle transition that is missing.</p>
+<p>None</p>
+<p>triple_points: list of tuples with correspond to coordinates
+(x,y) of the triple point</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="qudipy.chargestability.csd_analysis.CSDAnalysis.generate_bitmap">
+<code class="sig-name descname">generate_bitmap</code><span class="sig-paren">(</span><em class="sig-param">threshold</em>, <em class="sig-param">threshold_type='percentile'</em>, <em class="sig-param">plotting=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qudipy/chargestability/csd_analysis.html#CSDAnalysis.generate_bitmap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qudipy.chargestability.csd_analysis.CSDAnalysis.generate_bitmap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transforms the charge stability diagram into a bitmap. Threshold
+determines whether bit is considered ‘on’ or ‘off’</p>
+<dl class="simple">
+<dt>threshold: float</dt><dd><p>Specifies the threshold, which determines whether bit is 
+considered ‘on’ or ‘off’. Behaves differently depending 
+on threshold_type</p>
+</dd>
+</dl>
+<dl>
+<dt>threshold_type: string</dt><dd><p>Flag for which type of thresholding to do (default 
+‘percentile’)
+-   ‘percentile’: will set all elements in the array above</p>
+<blockquote>
+<div><p>the set percentile to 1 and all those below to 0,
+ignoring NaN values 
+e.g with threshold=99, only elements above the 99th 
+percentile will be set to 1</p>
+</div></blockquote>
+<ul class="simple">
+<li><p>‘absolute’: will set all elements in the array above the 
+specified value to 1 and all those below to 0 
+e.g with threshold=20, only elements whos is value 
+greater or equal 20 will be set to 1</p></li>
+</ul>
+</dd>
+<dt>plotting: bool</dt><dd><p>Flag which determines whether or not to plot the resulting
+thresholded Hough accumulator (default False)</p>
+</dd>
+</dl>
+<p>None</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="qudipy.chargestability.csd_analysis.CSDAnalysis.hough_cluster">
+<code class="sig-name descname">hough_cluster</code><span class="sig-paren">(</span><em class="sig-param">eps</em>, <em class="sig-param">min_samples</em>, <em class="sig-param">plotting=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qudipy/chargestability/csd_analysis.html#CSDAnalysis.hough_cluster"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qudipy.chargestability.csd_analysis.CSDAnalysis.hough_cluster" title="Permalink to this definition">¶</a></dt>
+<dd><p>Clusters the points in the thresholded Hough transform 
+accumulator.</p>
+<p>#TODO confirm types
+eps: float</p>
+<blockquote>
+<div><p>maximum distance for points to be considered in the local
+neighbourhood of each other</p>
+</div></blockquote>
+<dl class="simple">
+<dt>min_samples: int</dt><dd><p>minimum number of samples within the local
+neighbourhood in order for the point to be considered 
+a core part of the cluster</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>plotting: bool</dt><dd><p>boolean flag which sets whether or not to plot the
+results of clustering (default False)</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>centroids: numpy array of &lt;type&gt;</dt><dd><p>numpy array of pairs [theta, rhos] corresponding to 
+valid charge transition line</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="qudipy.chargestability.csd_analysis.CSDAnalysis.hough_transform">
+<code class="sig-name descname">hough_transform</code><span class="sig-paren">(</span><em class="sig-param">num_thetas=180</em>, <em class="sig-param">theta_min=0</em>, <em class="sig-param">theta_max=90</em>, <em class="sig-param">plotting=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qudipy/chargestability/csd_analysis.html#CSDAnalysis.hough_transform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qudipy.chargestability.csd_analysis.CSDAnalysis.hough_transform" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs the Hough transform on the charge stability diagram
+bitmap stored in the object</p>
+<p>None</p>
+<p>#TODO confirm types
+num_thetas: int</p>
+<blockquote>
+<div><p>number of angle points to sweep over (default 180)</p>
+</div></blockquote>
+<dl class="simple">
+<dt>theta_min: float</dt><dd><p>smallest angle (in degrees) to start the sweep from, 
+which should not be smaller than -90 (default -90)</p>
+</dd>
+<dt>theta_max: float</dt><dd><p>largest angle (in degrees) to sweep to, which should
+not be greater than 90 (default 90)</p>
+</dd>
+<dt>plotting: bool</dt><dd><p>flag which determines whether to plot the resulting
+Hough accumulator (default False)</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>Accumulator: 2D numpy array</dt><dd><p>Counts in each bin for a particular value of theta and rho</p>
+</dd>
+<dt>thetas: 1D numpy array</dt><dd><p>Values of theta for which accumulator swept over</p>
+</dd>
+<dt>rhos: 1D numpy array</dt><dd><p>Values of distance for which accumulator swept over</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="qudipy.chargestability.csd_analysis.CSDAnalysis.plot">
+<code class="sig-name descname">plot</code><span class="sig-paren">(</span><em class="sig-param">derivative=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qudipy/chargestability/csd_analysis.html#CSDAnalysis.plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qudipy.chargestability.csd_analysis.CSDAnalysis.plot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrapper which plots the charge stability diagram, and the
+derivative of the charge stability diagram if it is meaningful</p>
+<p>None</p>
+<p>None</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="qudipy.chargestability.csd_analysis.CSDAnalysis.plot_csd_with_lines">
+<code class="sig-name descname">plot_csd_with_lines</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/qudipy/chargestability/csd_analysis.html#CSDAnalysis.plot_csd_with_lines"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qudipy.chargestability.csd_analysis.CSDAnalysis.plot_csd_with_lines" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function which plots the CSD with the fitted lines over top of it</p>
+<p>None</p>
+<p>None</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="qudipy.chargestability.csd_analysis.CSDAnalysis.plot_triple_points">
+<code class="sig-name descname">plot_triple_points</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/qudipy/chargestability/csd_analysis.html#CSDAnalysis.plot_triple_points"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qudipy.chargestability.csd_analysis.CSDAnalysis.plot_triple_points" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plots charge stability diagram with fitted lines (terminated at
+the correct triple points). This function is NOT general and 
+only works in the case of 4 main transition lines with a middle 
+transition that is missing.</p>
+<p>None</p>
+<p>None</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="qudipy.chargestability.csd_analysis.CSDAnalysis.threshold_hough_accumulator">
+<code class="sig-name descname">threshold_hough_accumulator</code><span class="sig-paren">(</span><em class="sig-param">threshold</em>, <em class="sig-param">threshold_type='percentile'</em>, <em class="sig-param">plotting=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qudipy/chargestability/csd_analysis.html#CSDAnalysis.threshold_hough_accumulator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qudipy.chargestability.csd_analysis.CSDAnalysis.threshold_hough_accumulator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transforms the Hough transform accumulator stored in the objects
+into a binary accumulator using a threshold. Threshold 
+determines whether accumulator value is set to 1 or 0. The 
+threshold flag determines how the threshold is interpreted.</p>
+<dl class="simple">
+<dt>threshold: float  </dt><dd><p>Specifies the threshold. Behaves differently depending on
+threshold_type</p>
+</dd>
+</dl>
+<dl>
+<dt>threshold_type: string</dt><dd><p>Flag for type of thresholding to do (default ‘percentile’)
+- ‘percentile’: will set all elements in the array above</p>
+<blockquote>
+<div><p>the set percentile to 1 and all those below to 0,
+ignoring NaN values  
+e.g with threshold=99, only elements above the 99th 
+percentile will be set to 1</p>
+</div></blockquote>
+<ul class="simple">
+<li><p>‘absolute’: will set all elements in the array above the 
+specified value to 1 and all those below to 0 
+e.g with threshold=20, only elements whose value is 
+greater or equal 20 will be set to 1</p></li>
+</ul>
+</dd>
+<dt>plotting: bool</dt><dd><p>flag which determines whether or not to plot the 
+resulting thresholded Hough accumulator (default False)</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>accumulator_threshold: 2D numpy array </dt><dd><p>Array with counts (either 0 or 1), each corresponding to 
+elements in self.accumulator</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-qudipy.chargestability.csd_cim">
+<span id="qudipy-chargestability-csd-cim-module"></span><h2>qudipy.chargestability.csd_cim module<a class="headerlink" href="#module-qudipy.chargestability.csd_cim" title="Permalink to this headline">¶</a></h2>
+<p>File used to generate and plot charge stability diagrams for double dot
+systems using the constant interaction model.</p>
+<dl class="class">
+<dt id="qudipy.chargestability.csd_cim.CIMCSD">
+<em class="property">class </em><code class="sig-prename descclassname">qudipy.chargestability.csd_cim.</code><code class="sig-name descname">CIMCSD</code><span class="sig-paren">(</span><em class="sig-param">c_l</em>, <em class="sig-param">c_r</em>, <em class="sig-param">c_m</em>, <em class="sig-param">c_g1</em>, <em class="sig-param">c_g2</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qudipy/chargestability/csd_cim.html#CIMCSD"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qudipy.chargestability.csd_cim.CIMCSD" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Initialize the charge stability diagram class which generates charge
+stability diagrams based on given capacitance parameters. Based off 
+of the analisys in section II.A and Appendix 3 in 
+<a class="reference external" href="https://doi.org/10.1103/RevModPhys.75.1">https://doi.org/10.1103/RevModPhys.75.1</a>. This class is intended for 
+testing of the analysis module and comparing extracted input 
+parameter with known input parameters.</p>
+<dl class="method">
+<dt id="qudipy.chargestability.csd_cim.CIMCSD.calculate_energy">
+<code class="sig-name descname">calculate_energy</code><span class="sig-paren">(</span><em class="sig-param">n_1</em>, <em class="sig-param">n_2</em>, <em class="sig-param">v_g1</em>, <em class="sig-param">v_g2</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qudipy/chargestability/csd_cim.html#CIMCSD.calculate_energy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qudipy.chargestability.csd_cim.CIMCSD.calculate_energy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns energy of dot with occupation n_1, n_2 with applied 
+voltages v_g1, v_g2. Dependent on c_l, c_r, c_m, c_g1 and c_g2 
+defined when object is initialized.</p>
+<dl class="simple">
+<dt>n_1: int</dt><dd><p>Occupation on dot 1</p>
+</dd>
+<dt>n_2: int</dt><dd><p>Occupation on dot 2</p>
+</dd>
+<dt>v_g1: float</dt><dd><p>voltage on plunger gate 1</p>
+</dd>
+<dt>v_g2: float</dt><dd><p>voltage on plunger gate 2</p>
+</dd>
+</dl>
+<p>Energy of system in joules</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="qudipy.chargestability.csd_cim.CIMCSD.generate_csd">
+<code class="sig-name descname">generate_csd</code><span class="sig-paren">(</span><em class="sig-param">v_g1_max</em>, <em class="sig-param">v_g2_max</em>, <em class="sig-param">v_g1_min=0</em>, <em class="sig-param">v_g2_min=0</em>, <em class="sig-param">num=100</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qudipy/chargestability/csd_cim.html#CIMCSD.generate_csd"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qudipy.chargestability.csd_cim.CIMCSD.generate_csd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates the charge stability diagram between v_g1(2)_min and
+v_g1(2)_max with num by num data points in 2D</p>
+<dl class="simple">
+<dt>v_g1_max: float</dt><dd><p>maximum voltage on plunger gate 1</p>
+</dd>
+<dt>v_g2_max: float</dt><dd><p>maximum voltage on plunger gate 2</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>v_g1_min: float</dt><dd><p>minimum voltage on plunger gate 1 (default 0)</p>
+</dd>
+<dt>v_g2_min: float</dt><dd><p>minimum voltage on plunger gate 2 (default 0)</p>
+</dd>
+<dt>num: int</dt><dd><p>number of voltage point in 1d, which leads to a num^2 
+charge stability diagram (default 100)</p>
+</dd>
+</dl>
+<p>None</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-qudipy.chargestability.csd_hubbard">
+<span id="qudipy-chargestability-csd-hubbard-module"></span><h2>qudipy.chargestability.csd_hubbard module<a class="headerlink" href="#module-qudipy.chargestability.csd_hubbard" title="Permalink to this headline">¶</a></h2>
+<p>File used to generate and plot charge stability diagrams from provided
+potentials using the Hubbrad model
+For more information about the method, see the references 
+<a class="reference external" href="https://doi.org/10.1103/PhysRevB.83.235314">https://doi.org/10.1103/PhysRevB.83.235314</a> and 
+<a class="reference external" href="https://doi.org/10.1103/PhysRevB.83.161301">https://doi.org/10.1103/PhysRevB.83.161301</a></p>
+<dl class="class">
+<dt id="qudipy.chargestability.csd_hubbard.HubbardCSD">
+<em class="property">class </em><code class="sig-prename descclassname">qudipy.chargestability.csd_hubbard.</code><code class="sig-name descname">HubbardCSD</code><span class="sig-paren">(</span><em class="sig-param">n_sites</em>, <em class="sig-param">n_e</em>, <em class="sig-param">cap_matrix</em>, <em class="sig-param">h_mu=False</em>, <em class="sig-param">h_t=False</em>, <em class="sig-param">h_u=False</em>, <em class="sig-param">**param_dict</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qudipy/chargestability/csd_hubbard.html#HubbardCSD"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qudipy.chargestability.csd_hubbard.HubbardCSD" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Initialize the charge stability diagram class which generates charge
+stability diagrams based on given capacitance parameters.
+Based on section III in <a class="reference external" href="https://doi.org/10.1103/PhysRevB.83.235314">https://doi.org/10.1103/PhysRevB.83.235314</a>.
+This class is intended for use with NextNano potentials to simulate
+charge stability diagrams of various designs, but can also be used 
+with analytic potentials.</p>
+<dl class="method">
+<dt id="qudipy.chargestability.csd_hubbard.HubbardCSD.generate_csd">
+<code class="sig-name descname">generate_csd</code><span class="sig-paren">(</span><em class="sig-param">initial_v</em>, <em class="sig-param">g1</em>, <em class="sig-param">g2</em>, <em class="sig-param">v_g1_max</em>, <em class="sig-param">v_g2_max</em>, <em class="sig-param">num=100</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qudipy/chargestability/csd_hubbard.html#HubbardCSD.generate_csd"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qudipy.chargestability.csd_hubbard.HubbardCSD.generate_csd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates the charge stability diagram between v_g1(2)_min
+and v_g1(2)_max with num by num data points in 2D</p>
+<p>initial_v: Initial voltage vector on all gates
+g1: Index of first gate to vary in the charge stability diagram
+g2: Index of second gate to vary in the charge stability diagram
+v_g1_max: maximum voltage on g1 in volts
+v_g2_max: maximum voltage on g2 in volts</p>
+<dl class="simple">
+<dt>num: number of voltage point in 1d, which leads to a num^2 charge</dt><dd><p>stability diagram (default 100)</p>
+</dd>
+</dl>
+<p>None</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="qudipy.chargestability.csd_hubbard.HubbardCSD.load_potential">
+<code class="sig-name descname">load_potential</code><span class="sig-paren">(</span><em class="sig-param">file_path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qudipy/chargestability/csd_hubbard.html#HubbardCSD.load_potential"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qudipy.chargestability.csd_hubbard.HubbardCSD.load_potential" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-qudipy.chargestability">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-qudipy.chargestability" title="Permalink to this headline">¶</a></h2>
+<p>Charge stability module</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Zach D. Merino.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>qudipy.circuit.file_parsers &mdash; QuDiPy Documentation 1.0.0 documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/language_data.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> QuDiPy Documentation
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">QuDiPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">qudipy.circuit.file_parsers</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for qudipy.circuit.file_parsers</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Functions for handling control pulse files .ctrlp</span>
+
+<span class="sd">@author: simba</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">.quantum_circuit</span> <span class="kn">import</span> <span class="n">QuantumCircuit</span>
+<span class="kn">from</span> <span class="nn">.control_pulse</span> <span class="kn">import</span> <span class="n">ControlPulse</span>
+
+<span class="k">def</span> <span class="nf">_load_one_pulse</span><span class="p">(</span><span class="n">f_name</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    This function takes a single .ctrlp file and extracts the pulse information.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    f_name : string</span>
+<span class="sd">        Full file path to the control pulse file to load.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    ctrl_pulse : ControlPulse object</span>
+<span class="sd">        Control pulse object containing all information loaded from the file.</span>
+
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="c1"># Check file extension</span>
+    <span class="k">if</span> <span class="n">f_name</span><span class="p">[</span><span class="o">-</span><span class="mi">6</span><span class="p">::]</span> <span class="o">!=</span> <span class="s2">&quot;.ctrlp&quot;</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unrecognized control pulse file type...&quot;</span> <span class="o">+</span>
+                         <span class="s2">&quot; Expected .ctrlp file.&quot;</span><span class="p">)</span>
+    
+    <span class="c1"># Open file and extract pulse name</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">f_name</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+    <span class="n">pulse_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    
+    <span class="c1"># Count the number of lines which don&#39;t have control pulse vs time information</span>
+    <span class="n">line_cnt</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="c1"># Initialize ideal gate to None object for if it isn&#39;t specified in the</span>
+    <span class="c1"># pulse file</span>
+    <span class="n">ideal_gate</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+        <span class="c1"># Keep track of how many lines to skip for reading in the pulse table</span>
+        <span class="n">line_cnt</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="c1"># Parse line by line (don&#39;t care about ordering except that Control </span>
+        <span class="c1"># pulses is the last line)</span>
+        <span class="k">if</span> <span class="s2">&quot;control pulses:&quot;</span> <span class="ow">in</span> <span class="n">x</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+            <span class="k">break</span>
+        <span class="k">elif</span> <span class="s2">&quot;pulse type:&quot;</span> <span class="ow">in</span> <span class="n">x</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+            <span class="c1"># Remove any leading/ending white space and convert to lowercase</span>
+            <span class="n">pulse_type</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="s2">&quot;pulse length:&quot;</span> <span class="ow">in</span> <span class="n">x</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+            <span class="n">pulse_length</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span> 
+        <span class="k">elif</span> <span class="s2">&quot;ideal gate:&quot;</span> <span class="ow">in</span> <span class="n">x</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+            <span class="n">ideal_gate</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+            
+    <span class="c1"># Initialize the control pulse object</span>
+    <span class="n">ctrl_pulse</span> <span class="o">=</span> <span class="n">ControlPulse</span><span class="p">(</span><span class="n">pulse_name</span><span class="p">,</span> <span class="n">pulse_type</span><span class="p">,</span> <span class="n">pulse_length</span><span class="p">,</span> <span class="n">ideal_gate</span><span class="p">)</span>
+    
+    <span class="c1"># Read the rest of the pulse file to get the pulse information</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">f_name</span><span class="p">,</span> <span class="n">skiprows</span> <span class="o">=</span> <span class="n">line_cnt</span><span class="p">)</span>
+    
+    <span class="c1"># Loop over each column in the pulse table and add control variables to </span>
+    <span class="c1"># control pulse object</span>
+    <span class="n">ctrl_var_names</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span>
+    <span class="k">for</span> <span class="n">ctrl_var</span> <span class="ow">in</span> <span class="n">ctrl_var_names</span><span class="p">:</span>
+        <span class="n">ctrl_pulse</span><span class="o">.</span><span class="n">add_control_variable</span><span class="p">(</span><span class="n">ctrl_var</span><span class="p">,</span> <span class="n">df</span><span class="p">[</span><span class="n">ctrl_var</span><span class="p">])</span>
+    
+    <span class="k">return</span> <span class="n">ctrl_pulse</span>
+
+<div class="viewcode-block" id="load_pulses"><a class="viewcode-back" href="../../../qudipy.circuit.html#qudipy.circuit.file_parsers.load_pulses">[docs]</a><span class="k">def</span> <span class="nf">load_pulses</span><span class="p">(</span><span class="n">f_names</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    This function takes multiple .ctrlp files as inputs and constructs a</span>
+<span class="sd">    dictionary containing every control pulse&#39;s information</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    f_names : list of strings</span>
+<span class="sd">        Full file path to the control pulse file to load.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pulse_dict : dictionary of ControlPulse objects</span>
+<span class="sd">        Dictionary containing many control pulse objects</span>
+<span class="sd">        </span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    
+    <span class="n">pulse_dict</span> <span class="o">=</span> <span class="p">{}</span>
+    
+    <span class="c1"># Check if list of file names was passed.</span>
+    <span class="c1"># If it was not, then only a single file name was passed and we need to</span>
+    <span class="c1"># wrap it in a list container.</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">f_names</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="n">f_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">f_names</span><span class="p">]</span>
+    
+    <span class="c1"># Loop through each file, load the pulse then add to the pulse dictionary.</span>
+    <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">f_names</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">f</span><span class="p">))</span>
+        <span class="n">curr_pulse</span> <span class="o">=</span> <span class="n">_load_one_pulse</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+        
+        <span class="n">pulse_dict</span><span class="p">[</span><span class="n">curr_pulse</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">curr_pulse</span>
+        
+    <span class="k">return</span> <span class="n">pulse_dict</span></div>
+      
+<div class="viewcode-block" id="load_circuit"><a class="viewcode-back" href="../../../qudipy.circuit.html#qudipy.circuit.file_parsers.load_circuit">[docs]</a><span class="k">def</span> <span class="nf">load_circuit</span><span class="p">(</span><span class="n">f_name</span><span class="p">,</span> <span class="n">gate_dict</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    This function takes in a single quantum circuit .qcirc file as input and </span>
+<span class="sd">    constructs a quantum circuit object</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    f_name : string</span>
+<span class="sd">        Full file path to the circuit file.</span>
+<span class="sd">        </span>
+<span class="sd">    Keyword Arguments</span>
+<span class="sd">    -----------------</span>
+<span class="sd">    gate_dict : dictionary of controlPulse objects, optional</span>
+<span class="sd">        Contains all loaded control pulse objects to be used in the </span>
+<span class="sd">        quantumCircuit&#39;s circuit sequence. Default is {}.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    q_circ : QuantumCircuit object</span>
+<span class="sd">        Class containing information loaded from the .qcirc file </span>
+<span class="sd">        required for simulation.</span>
+
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="c1"># If a dictionary was not passed to the function, assign gate_dict as an empty dictionary</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">gate_dict</span><span class="p">:</span>
+        <span class="n">gate_dict</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="c1"># Check file extension</span>
+    <span class="k">if</span> <span class="n">f_name</span><span class="p">[</span><span class="o">-</span><span class="mi">6</span><span class="p">::]</span> <span class="o">!=</span> <span class="s2">&quot;.qcirc&quot;</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unrecognized quantum circuit file type...&quot;</span> <span class="o">+</span>
+                         <span class="s2">&quot; Expected .qcirc file.&quot;</span><span class="p">)</span>
+    
+    <span class="c1"># Open the file and extract the circuit name</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">f_name</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+    <span class="n">circuit_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># Loop over every gate in the circuit file</span>
+    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+        <span class="c1"># Parse line by line</span>
+        <span class="k">if</span> <span class="s2">&quot;Number of qubits:&quot;</span> <span class="ow">in</span> <span class="n">x</span><span class="p">:</span>
+            <span class="n">n_qubits</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+            
+            <span class="c1"># Initialize the quantum circuit object</span>
+            <span class="n">q_circ</span> <span class="o">=</span> <span class="n">QuantumCircuit</span><span class="p">(</span><span class="n">circuit_name</span><span class="p">,</span> <span class="n">n_qubits</span><span class="p">,</span> <span class="n">gate_dict</span><span class="p">)</span>       
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Parse the line information</span>
+            <span class="n">temp</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">)</span>
+            
+            <span class="n">gate_name</span> <span class="o">=</span> <span class="n">temp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            
+            <span class="c1"># Track if the current line in the file is an ideal gate or a</span>
+            <span class="c1"># pulse file that was loaded</span>
+            <span class="n">is_ideal_gate</span> <span class="o">=</span> <span class="n">check_ideal_gate</span><span class="p">(</span><span class="n">gate_name</span><span class="p">)</span>
+            
+            <span class="c1"># Check that the gate name is one that was actually loaded or a</span>
+            <span class="c1"># valid ideal gate and print an error if not</span>
+            <span class="k">if</span> <span class="n">gate_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">q_circ</span><span class="o">.</span><span class="n">gates</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">is_ideal_gate</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Problem loading circuit file: &quot;</span> <span class="o">+</span>
+                                 <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">circuit_name</span><span class="si">}</span><span class="s2">.</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span>
+                                 <span class="sa">f</span><span class="s2">&quot;Gate </span><span class="si">{</span><span class="n">gate_name</span><span class="si">}</span><span class="s2"> could not be loaded as &quot;</span> <span class="o">+</span>
+                                 <span class="s2">&quot;the corresponding pulse was not loaded or &quot;</span> <span class="o">+</span> 
+                                 <span class="s2">&quot;is not the gate name a ideal gate keyword.</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span>
+                                 <span class="s2">&quot;Check .qcirc file for typos or load the &quot;</span> <span class="o">+</span>
+                                 <span class="s2">&quot;corresponding pulse file.&quot;</span><span class="p">)</span>
+            
+            <span class="c1"># If it&#39;s not an ideal gate, get the ideal_gate equivalent from</span>
+            <span class="c1"># the pulse object dictionary in quantumCircuit object </span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">is_ideal_gate</span><span class="p">:</span>
+                <span class="c1"># Update tracker that checks if .qcirc is all ideal gates or not</span>
+                <span class="n">q_circ</span><span class="o">.</span><span class="n">ideal_circuit</span> <span class="o">=</span> <span class="kc">False</span>
+                
+                <span class="c1"># Get the corresponding ideal gate</span>
+                <span class="n">ideal_gate</span> <span class="o">=</span> <span class="n">q_circ</span><span class="o">.</span><span class="n">gates</span><span class="p">[</span><span class="n">gate_name</span><span class="p">]</span><span class="o">.</span><span class="n">ideal_gate</span>
+                <span class="c1"># Check that it&#39;s a valid ideal gate keyword and that the </span>
+                <span class="c1"># ideal_gate isn&#39;t None (i.e. not specified in the pulse file)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">check_ideal_gate</span><span class="p">(</span><span class="n">ideal_gate</span><span class="p">)</span> <span class="ow">and</span> <span class="n">ideal_gate</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Problem loading circuit file: &quot;</span> <span class="o">+</span>
+                                     <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">circuit_name</span><span class="si">}</span><span class="s2">.</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span>
+                                     <span class="sa">f</span><span class="s2">&quot;Gate </span><span class="si">{</span><span class="n">gate_name</span><span class="si">}</span><span class="s2">.ctrlp could not be loaded &quot;</span> <span class="o">+</span>
+                                     <span class="s2">&quot;as the ideal gate keyword was not recognized.&quot;</span><span class="p">)</span>
+            <span class="c1"># If it is an ideal gate</span>
+            <span class="k">elif</span> <span class="n">is_ideal_gate</span><span class="p">:</span>
+                <span class="n">ideal_gate</span> <span class="o">=</span> <span class="n">gate_name</span>
+                <span class="n">gate_name</span> <span class="o">=</span> <span class="s2">&quot;IDEAL_GATE&quot;</span>
+            
+            <span class="n">gate_aff_qubits</span> <span class="o">=</span> <span class="n">temp</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+            <span class="c1"># int() always rounds down so as a precaution we convert to float,</span>
+            <span class="c1"># then round, then convert to int.</span>
+            <span class="n">gate_aff_qubits</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">qubit_idx</span><span class="p">)))</span> 
+                               <span class="k">for</span> <span class="n">qubit_idx</span> <span class="ow">in</span> <span class="n">gate_aff_qubits</span><span class="p">]</span>
+            <span class="n">q_circ</span><span class="o">.</span><span class="n">add_gate</span><span class="p">(</span><span class="n">gate_name</span><span class="p">,</span> <span class="n">ideal_gate</span><span class="p">,</span> <span class="n">gate_aff_qubits</span><span class="p">)</span>
+
+    <span class="c1"># Check now if every gate in the circuit file loaded had a ideal gate </span>
+    <span class="c1"># correctly specified or not.  If not, then warn user that we cannot print</span>
+    <span class="c1"># the ideal circuit nor do simulations of the ideal circuit as well.</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">q_circ</span><span class="o">.</span><span class="n">specified_all_ideal</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;WARNING: Problem loading circuit file: </span><span class="si">{</span><span class="n">circuit_name</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Not every gate loaded had a corresponding ideal specified&#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;correctly or specified at all in the file. This will prevent&#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;you from simulating the ideal quantum circuit for </span><span class="si">{</span><span class="n">circuit_name</span><span class="si">}</span><span class="s1">.</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+    
+    <span class="k">return</span> <span class="n">q_circ</span>    </div>
+    
+<div class="viewcode-block" id="check_ideal_gate"><a class="viewcode-back" href="../../../qudipy.circuit.html#qudipy.circuit.file_parsers.check_ideal_gate">[docs]</a><span class="k">def</span> <span class="nf">check_ideal_gate</span><span class="p">(</span><span class="n">gate_name</span><span class="p">,</span> <span class="n">qubit_idx</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    This function checks if the supplied gate_name is a valid ideal gate</span>
+<span class="sd">    keyword used to simulate an ideal quantum circuit. </span>
+<span class="sd">    Current supported keywords are</span>
+<span class="sd">    I, RX###, RY###, RZ###, H, CTRLX, CTRLY, CTRLZ, SWAP, RSWAP, R(x,y,z)###,</span>
+<span class="sd">    and negative rotations are supported by RX-###, RY-###, RZ-###, R(x,y,z)-###</span>
+<span class="sd">    where ### in the R gates indicates the gate&#39;s rotation angle in degrees.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    gate_name : string</span>
+<span class="sd">        Gate name to be tested.</span>
+<span class="sd">        </span>
+<span class="sd">    Keyword Arguments</span>
+<span class="sd">    -----------------</span>
+<span class="sd">    qubit_idx : list of ints, optional</span>
+<span class="sd">        Indices of qubits used by gate. Default is [].</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    boolean</span>
+
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="c1"># If qubit_idx was not passed to function, assign an empty list</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">qubit_idx</span><span class="p">:</span>
+        <span class="n">qubit_idx</span> <span class="o">=</span> <span class="p">[]</span>
+    
+    <span class="c1"># If gate name is None type then that means there was no ideal gate line</span>
+    <span class="c1"># specified in the corresponding pulse file</span>
+    <span class="c1"># Also, quick check by looking at gate name length</span>
+    <span class="k">if</span> <span class="n">gate_name</span> <span class="o">==</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">gate_name</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="mi">11</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="kc">False</span>
+    
+    <span class="c1"># Check for an R gate first</span>
+    
+    <span class="c1"># helper function for organization</span>
+    <span class="k">def</span> <span class="nf">valid_rot_angle</span><span class="p">(</span><span class="n">gate_name</span><span class="p">,</span> <span class="n">arbitrary_rotation</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        @author: Madi</span>
+<span class="sd">        returns True if the angle connected to the</span>
+<span class="sd">        rotation gate has the form ### or -###</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">        -------------</span>
+<span class="sd">        gate_name: Str</span>
+<span class="sd">            the gate name to be tested</span>
+<span class="sd">        arbitrary_rotation: Bool</span>
+<span class="sd">            True if the rotation is an arbitrary rotation, and</span>
+<span class="sd">            False otherwise</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -----------</span>
+<span class="sd">        Boolean</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">shift</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="n">arbitrary_rotation</span><span class="p">:</span>
+            <span class="n">shift</span> <span class="o">=</span> <span class="mi">5</span>
+        <span class="k">if</span> <span class="n">gate_name</span><span class="p">[</span><span class="mi">2</span> <span class="o">+</span> <span class="n">shift</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;-&quot;</span><span class="p">:</span>
+            <span class="n">strt_ind</span> <span class="o">=</span> <span class="mi">3</span> <span class="o">+</span> <span class="n">shift</span>
+            <span class="n">end_ind</span> <span class="o">=</span> <span class="mi">6</span> <span class="o">+</span> <span class="n">shift</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">strt_ind</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">shift</span>
+            <span class="n">end_ind</span> <span class="o">=</span> <span class="mi">5</span> <span class="o">+</span> <span class="n">shift</span>
+        <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">strt_ind</span><span class="p">,</span><span class="n">end_ind</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="nb">int</span><span class="p">(</span><span class="n">gate_name</span><span class="p">[</span><span class="n">idx</span><span class="p">])</span>
+            <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">IndexError</span><span class="p">):</span>
+                <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="kc">True</span>
+    
+    <span class="c1"># Check for an R gate </span>
+    <span class="k">if</span> <span class="n">gate_name</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;R&quot;</span><span class="p">:</span> 
+        <span class="k">if</span> <span class="n">gate_name</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;X&quot;</span><span class="p">,</span><span class="s2">&quot;Y&quot;</span><span class="p">,</span><span class="s2">&quot;Z&quot;</span><span class="p">]:</span>
+            <span class="c1"># Now check that the next three characters are ints</span>
+            <span class="k">if</span> <span class="n">valid_rot_angle</span><span class="p">(</span><span class="n">gate_name</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+                <span class="k">return</span> <span class="kc">True</span>
+        
+        <span class="k">if</span> <span class="n">gate_name</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;(&quot;</span> <span class="ow">and</span> <span class="n">gate_name</span><span class="p">[</span><span class="mi">7</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;)&quot;</span><span class="p">:</span>
+            <span class="c1"># Check that the brackets are formated correctly</span>
+            <span class="k">for</span> <span class="n">ind</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">7</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">ind</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">gate_name</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span><span class="o">.</span><span class="n">isnumeric</span><span class="p">():</span>
+                        <span class="k">return</span> <span class="kc">False</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">gate_name</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;,&quot;</span><span class="p">:</span>
+                        <span class="k">return</span> <span class="kc">False</span>
+            <span class="c1"># Now check that the next three characters are ints</span>
+            <span class="k">if</span> <span class="n">valid_rot_angle</span><span class="p">(</span><span class="n">gate_name</span><span class="p">,</span> <span class="kc">True</span><span class="p">):</span>
+                <span class="k">return</span> <span class="kc">True</span>
+    
+    <span class="c1"># Check I, H, and CTRL gates, and (if CTRL, SWAP, or RSWAP gate)</span>
+    <span class="c1"># check qubit number (must be an even number of used qubits)</span>
+    <span class="k">if</span> <span class="n">gate_name</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;I&quot;</span><span class="p">,</span> <span class="s2">&quot;H&quot;</span><span class="p">)</span> \
+            <span class="ow">or</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">gate_name</span><span class="p">)</span> <span class="o">==</span> <span class="mi">5</span> \
+            <span class="ow">and</span> <span class="n">gate_name</span><span class="p">[:</span><span class="mi">4</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;CTRL&quot;</span> \
+            <span class="ow">and</span> <span class="n">gate_name</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;Z&quot;</span><span class="p">,</span><span class="s2">&quot;X&quot;</span><span class="p">,</span><span class="s2">&quot;Y&quot;</span><span class="p">]</span> \
+            <span class="ow">or</span> <span class="n">gate_name</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;SWAP&quot;</span><span class="p">,</span> <span class="s2">&quot;RSWAP&quot;</span><span class="p">))</span> \
+            <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">qubit_idx</span><span class="p">),</span><span class="mi">2</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">True</span>
+    
+    <span class="c1"># Otherwise</span>
+    <span class="k">return</span> <span class="kc">False</span></div>
+
+    
+    
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Zach D. Merino.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

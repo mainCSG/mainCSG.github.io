@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>qudipy.utils.constants &mdash; QuDiPy Documentation 1.0.0 documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/language_data.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> QuDiPy Documentation
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">QuDiPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">qudipy.utils.constants</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for qudipy.utils.constants</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Constants class</span>
+
+<span class="sd">@author: simba, zach</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">constants</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<div class="viewcode-block" id="Constants"><a class="viewcode-back" href="../../../qudipy.utils.html#qudipy.utils.constants.Constants">[docs]</a><span class="k">class</span> <span class="nc">Constants</span><span class="p">:</span>
+    
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">material_system</span><span class="o">=</span><span class="s2">&quot;vacuum&quot;</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        </span>
+<span class="sd">        Keyword Arguments</span>
+<span class="sd">        -----------------</span>
+<span class="sd">        material_system : string, optional</span>
+<span class="sd">            String specifying which material system the constant class is for.</span>
+<span class="sd">            Currently allowed systems are: [&quot;vacuum&quot;,&quot;Si/SiO2&quot;, &quot;Si/SiGe&quot;, &quot;GaAs&quot;].</span>
+<span class="sd">            Default is vacuum.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None.</span>
+
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="c1"># Default units are SI [International system]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="s2">&quot;SI&quot;</span>
+        
+        <span class="c1">### Mathematical constants ###</span>
+
+        <span class="c1"># Pi</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pi</span> <span class="o">=</span> <span class="n">constants</span><span class="o">.</span><span class="n">pi</span>         
+
+        <span class="c1">### Physical constants ###</span>
+
+        <span class="c1"># Planck&#39;s constant [J*s]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">h</span> <span class="o">=</span> <span class="n">constants</span><span class="o">.</span><span class="n">h</span>
+        <span class="c1"># Reduced Planck&#39;s constant [J*s]              </span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hbar</span> <span class="o">=</span> <span class="n">constants</span><span class="o">.</span><span class="n">hbar</span>   
+        <span class="c1"># Electron charge [C]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">e</span> <span class="o">=</span> <span class="n">constants</span><span class="o">.</span><span class="n">e</span>
+        <span class="c1"># Free electron mass [kg]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">m0</span> <span class="o">=</span> <span class="n">constants</span><span class="o">.</span><span class="n">m_e</span>
+        <span class="c1"># Speed of light [m/s]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">=</span> <span class="n">constants</span><span class="o">.</span><span class="n">c</span>
+        <span class="c1"># Bohr magneton [J/T]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">muB</span> <span class="o">=</span> <span class="n">constants</span><span class="o">.</span><span class="n">physical_constants</span><span class="p">[</span><span class="s1">&#39;Bohr magneton&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="c1"># Vacuum permitivity [F/m]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eps0</span> <span class="o">=</span> <span class="n">constants</span><span class="o">.</span><span class="n">epsilon_0</span>
+        <span class="c1"># Boltzmann constant [J/K]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kB</span> <span class="o">=</span> <span class="n">constants</span><span class="o">.</span><span class="n">physical_constants</span><span class="p">[</span><span class="s1">&#39;Boltzmann constant&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+
+
+
+
+        <span class="c1"># Material system constants</span>
+        <span class="c1"># Supported material systems include [Si/SiO2, Si/SiGe, GaAs, air]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">material_system</span> <span class="o">=</span> <span class="n">material_system</span>
+        
+        <span class="k">if</span> <span class="n">material_system</span> <span class="o">==</span> <span class="s2">&quot;Si/SiO2&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">epsR</span> <span class="o">=</span> <span class="mf">7.8</span>                 <span class="c1"># Dielectric constant</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">eps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">eps0</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">epsR</span>  <span class="c1"># Permitivity [F/m]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">me</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">m0</span><span class="o">*</span><span class="mf">0.191</span>         <span class="c1"># Effective mass [kg]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mu_2</span> <span class="o">=</span> <span class="mf">2.2</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1e-9</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span>     <span class="c1"># Quadratic Stark shift coefficient [m^2/V^2]</span>
+        <span class="k">elif</span> <span class="n">material_system</span> <span class="o">==</span> <span class="s2">&quot;Si/SiGe&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">epsR</span> <span class="o">=</span> <span class="mf">12.375</span>              <span class="c1"># Dielectric constant</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">eps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">eps0</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">epsR</span>  <span class="c1"># Permitivity [F/m]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">me</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">m0</span><span class="o">*</span><span class="mf">0.191</span>         <span class="c1"># Effective mass [kg]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mu_2</span> <span class="o">=</span> <span class="kc">None</span>                <span class="c1"># Quadratic Stark shift coefficient [m^2/V^2]</span>
+        <span class="k">elif</span> <span class="n">material_system</span> <span class="o">==</span> <span class="s2">&quot;GaAs&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">epsR</span> <span class="o">=</span> <span class="mf">13.1</span>                <span class="c1"># Dielectric constant</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">eps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">eps0</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">epsR</span>  <span class="c1"># Permitivity [F/m]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">me</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">m0</span><span class="o">*</span><span class="mf">0.067</span>         <span class="c1"># Effective mass [kg]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mu_2</span> <span class="o">=</span> <span class="kc">None</span>                <span class="c1"># Quadratic Stark shift coefficient [m^2/V^2]</span>
+        <span class="k">elif</span> <span class="n">material_system</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;vacuum&quot;</span> <span class="ow">or</span> <span class="s2">&quot;air&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">epsR</span> <span class="o">=</span> <span class="mi">1</span>                   <span class="c1"># Dielectric constant</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">eps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">eps0</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">epsR</span>  <span class="c1"># Permitivity [F/m]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">me</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">m0</span>               <span class="c1"># Effective mass [kg]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mu_2</span> <span class="o">=</span> <span class="kc">None</span>                <span class="c1"># Quadratic Stark shift coefficient [m^2/V^2]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># If no or unrecognized material system specified assume &quot;air&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">epsR</span> <span class="o">=</span> <span class="mi">1</span>                   <span class="c1"># Dielectric constant</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">eps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">eps0</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">epsR</span>  <span class="c1"># Permitivity [F/m]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">me</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">m0</span>               <span class="c1"># Effective mass [kg]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mu_2</span> <span class="o">=</span> <span class="kc">None</span>                <span class="c1"># Quadratic Stark shift coefficient [m^2/V^2]</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;WARNING: Material system either not recognized or defined.</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">+</span>
+                  <span class="s2">&quot;Assuming &quot;&quot;vacuum&quot;&quot; as the material system.</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">+</span>
+                  <span class="s2">&quot;Allowed material systems are: [&quot;&quot;Si/SiO2&quot;&quot;, &quot;&quot;Si/SiGe&quot;&quot;,&quot;</span><span class="o">+</span>
+                                                 <span class="s2">&quot; &quot;&quot;GaAs&quot;&quot;, &quot;&quot;vacuum&quot;&quot;]&quot;</span><span class="p">)</span>   
+
+        <span class="c1"># effective Rydberg energy and distance in SI units    </span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">a_B</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">eps</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">hbar</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">me</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">e</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Ry</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">e</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span> <span class="p">(</span><span class="mi">8</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">eps</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">a_B</span><span class="p">)</span></div>
+            
+        
+        
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Zach D. Merino.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

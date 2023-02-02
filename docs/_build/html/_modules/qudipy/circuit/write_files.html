@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>qudipy.circuit.write_files &mdash; QuDiPy Documentation 1.0.0 documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/language_data.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> QuDiPy Documentation
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">QuDiPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">qudipy.circuit.write_files</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for qudipy.circuit.write_files</h1><div class="highlight"><pre>
+<span></span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">Module to write .ctrlp files and .qcirc files </span>
+<span class="sd">from the respective ContrsolPulse and QuantumCircuit</span>
+<span class="sd">Objects </span>
+
+<span class="sd">@author: Madi</span>
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="c1"># ******* Import Modules ******* </span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">.quantum_circuit</span> <span class="kn">import</span> <span class="n">QuantumCircuit</span>
+<span class="kn">from</span> <span class="nn">.control_pulse</span> <span class="kn">import</span> <span class="n">ControlPulse</span>
+
+<div class="viewcode-block" id="write_ctrlp"><a class="viewcode-back" href="../../../qudipy.circuit.html#qudipy.circuit.write_files.write_ctrlp">[docs]</a><span class="k">def</span> <span class="nf">write_ctrlp</span><span class="p">(</span><span class="n">CntrlPulse</span><span class="p">,</span> <span class="n">print_ctrlp</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+	<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">	Writes a .ctrlp file from the ControlPulse</span>
+<span class="sd">	object passed </span>
+<span class="sd">	</span>
+<span class="sd">	Parameters:</span>
+<span class="sd">	------------</span>
+<span class="sd">	CntrlPulse: ControlPulse Object</span>
+<span class="sd">		Specifies what information to add into</span>
+<span class="sd">		the .ctrlp file</span>
+
+<span class="sd">	Keyword Arguments:</span>
+<span class="sd">	-------------------</span>
+<span class="sd">	print_qcirc: Bool</span>
+<span class="sd">		If True, the function will print out the</span>
+<span class="sd">		.ctrlp file. If False, nothing will be </span>
+<span class="sd">		printed</span>
+<span class="sd">	</span>
+<span class="sd">	Returns:</span>
+<span class="sd">	------------</span>
+<span class="sd">	Returns a .ctrlp file containing the</span>
+<span class="sd">	information in the ControlPulse object</span>
+<span class="sd">	</span>
+<span class="sd">	Effects:</span>
+<span class="sd">	------------</span>
+<span class="sd">	Prints to screen: </span>
+<span class="sd">		Prints the .ctrlp file to screen</span>
+<span class="sd">	</span>
+<span class="sd">	Requires:</span>
+<span class="sd">	------------</span>
+<span class="sd">	* A valid ControlPulse class object as </span>
+<span class="sd">	  a parameter defined in the directory</span>
+<span class="sd">	  qudipy/circuit/control_pulse.py</span>
+<span class="sd">	&#39;&#39;&#39;</span>
+	<span class="c1"># retrieve all pieces of information</span>
+	<span class="n">name</span> <span class="o">=</span> <span class="n">CntrlPulse</span><span class="o">.</span><span class="n">name</span> 
+	<span class="n">ideal_gate</span> <span class="o">=</span> <span class="n">CntrlPulse</span><span class="o">.</span><span class="n">ideal_gate</span>
+	<span class="n">p_type</span> <span class="o">=</span> <span class="n">CntrlPulse</span><span class="o">.</span><span class="n">pulse_type</span>
+	<span class="n">p_length</span> <span class="o">=</span> <span class="n">CntrlPulse</span><span class="o">.</span><span class="n">length</span>
+	<span class="n">pulse_key</span> <span class="o">=</span> <span class="n">CntrlPulse</span><span class="o">.</span><span class="n">ctrl_names</span>
+	<span class="n">pulse_vals</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">CntrlPulse</span><span class="o">.</span><span class="n">ctrl_pulses</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+	<span class="n">gates</span> <span class="o">=</span> <span class="n">CntrlPulse</span><span class="o">.</span><span class="n">gates</span>
+	
+	<span class="c1">## * Format Control Pulse data into writable strings *</span>
+	
+	<span class="c1"># Format a string of all of the control names</span>
+	<span class="n">key_str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+	<span class="n">vals_str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+	<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pulse_key</span><span class="p">):</span>
+		<span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">pulse_key</span><span class="p">)</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+			<span class="n">key_str</span> <span class="o">=</span> <span class="n">key_str</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">key</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="n">key_str</span> <span class="o">=</span> <span class="n">key_str</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">key</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="o">+</span> <span class="s2">&quot;,&quot;</span> 
+	
+	<span class="c1"># Format a string of control values</span>
+	<span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">pulse_vals</span><span class="p">[</span><span class="mi">0</span><span class="p">])):</span>
+		<span class="n">vals_str_line</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+		<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">pulse_key</span><span class="p">)):</span>
+			<span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">pulse_key</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+				<span class="n">vals_str_line</span> <span class="o">=</span> <span class="n">vals_str_line</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">pulse_vals</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">])</span>
+			<span class="k">else</span><span class="p">:</span>
+				<span class="n">vals_str_line</span> <span class="o">=</span> <span class="n">vals_str_line</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">pulse_vals</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">])</span> <span class="o">+</span> <span class="s2">&quot;, &quot;</span>
+		<span class="k">if</span> <span class="n">j</span> <span class="o">==</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">pulse_vals</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+			<span class="n">vals_str</span> <span class="o">=</span> <span class="n">vals_str</span> <span class="o">+</span> <span class="n">vals_str_line</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="n">vals_str</span> <span class="o">=</span> <span class="n">vals_str</span> <span class="o">+</span> <span class="n">vals_str_line</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+	
+	<span class="c1"># Check if the ControlPulse contains different simultaneous</span>
+	<span class="c1"># gates</span>
+	<span class="k">if</span> <span class="n">gates</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+		<span class="c1"># Pull out gate sequence</span>
+		<span class="n">circ_seq</span>  <span class="o">=</span> <span class="n">gates</span><span class="o">.</span><span class="n">circuit_sequence</span>
+		
+		<span class="c1"># Check for Invalid Data</span>
+		<span class="c1"># Create error message</span>
+		<span class="n">err_mess</span> <span class="o">=</span> <span class="s2">&quot;QuantumCircuit object stored within &quot;</span> <span class="o">+</span> \
+		<span class="s2">&quot;a </span><span class="si">{}</span><span class="s2"> ControlPulse object is not a valid simultaneous&quot;</span> <span class="o">+</span>\
+		<span class="s2">&quot;gate&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+		
+		<span class="c1"># Check if conditions are correct for a valid </span>
+		<span class="c1"># simultaneous gate QuantumCircuit, if not print</span>
+		<span class="c1"># error message</span>
+		<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">circ_seq</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+			<span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">err_mess</span><span class="p">)</span>
+			
+		<span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">circ_seq</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">tuple</span><span class="p">):</span>
+			<span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">err_mess</span><span class="p">)</span>
+		
+		<span class="c1"># Create string of all gates and their effected qubits</span>
+		<span class="k">for</span> <span class="n">gate</span> <span class="ow">in</span> <span class="n">circ_seq</span><span class="p">:</span>
+			<span class="n">G</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">g</span><span class="p">:</span> <span class="n">format_single_gate</span><span class="p">(</span><span class="n">g</span><span class="p">),</span> <span class="n">gate</span><span class="p">))</span>
+			<span class="c1"># Join them together with a bar | in between gates</span>
+			<span class="n">ideal_gate</span> <span class="o">=</span> <span class="s2">&quot; | &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">G</span><span class="p">)</span>
+			
+				
+	<span class="c1"># Write the .ctrlp file</span>
+	<span class="n">ctrlp_file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;.ctrlp&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
+	<span class="n">ctrlp_file</span><span class="o">.</span><span class="n">writelines</span><span class="p">([</span><span class="s2">&quot;# </span><span class="si">{n}</span><span class="s2">.ctrlp</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n</span> <span class="o">=</span> <span class="n">name</span><span class="p">),</span>
+							<span class="s2">&quot;Ideal gate: </span><span class="si">{ig}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ig</span> <span class="o">=</span> <span class="n">ideal_gate</span><span class="p">),</span>
+							<span class="s2">&quot;Pulse type: </span><span class="si">{pt}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pt</span> <span class="o">=</span> <span class="n">p_type</span><span class="p">),</span>
+							<span class="s2">&quot;Pulse length: </span><span class="si">{pl}</span><span class="s2"> s</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pl</span> <span class="o">=</span> <span class="n">p_length</span><span class="p">),</span>
+							<span class="s2">&quot;Control pulses:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+							<span class="n">key_str</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+							<span class="n">vals_str</span><span class="p">])</span>
+	
+	<span class="c1"># Close file to stop making any changes</span>
+	<span class="n">ctrlp_file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+	
+	<span class="c1"># Print the file </span>
+	<span class="k">if</span> <span class="n">print_ctrlp</span><span class="p">:</span>
+		<span class="n">directory</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;.ctrlp&quot;</span>
+		<span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
+		<span class="nb">print</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+		<span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+		
+	<span class="c1"># return the .ctrlp file</span>
+	<span class="k">return</span><span class="p">(</span><span class="n">ctrlp_file</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="write_qcirc"><a class="viewcode-back" href="../../../qudipy.circuit.html#qudipy.circuit.write_files.write_qcirc">[docs]</a><span class="k">def</span> <span class="nf">write_qcirc</span><span class="p">(</span><span class="n">QntmCirc</span><span class="p">,</span> <span class="n">print_qcirc</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+	<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">	Writes a .qcirc object representing the </span>
+<span class="sd">	Quantum Circuit object passed </span>
+
+<span class="sd">	Parameters:</span>
+<span class="sd">	----------------</span>
+<span class="sd">	QntmCirc: QuantumCircuit</span>
+<span class="sd">		The QuantumCircuit object that is to be</span>
+<span class="sd">		written into a .qcirc file</span>
+<span class="sd">	</span>
+<span class="sd">	Keyword Arguments:</span>
+<span class="sd">	-------------------</span>
+<span class="sd">	print_qcirc: Bool, optional</span>
+<span class="sd">		The predicate determining if the user</span>
+<span class="sd">		wants the .qcirc file to be printed to</span>
+<span class="sd">		screen. Default is True</span>
+
+<span class="sd">	Returns</span>
+<span class="sd">	----------</span>
+<span class="sd">	Returns a .qcirc file</span>
+<span class="sd">	</span>
+<span class="sd">	Requires:</span>
+<span class="sd">	----------</span>
+<span class="sd">	* A valid QuantumCircuit class object is passed</span>
+<span class="sd">	  as per the class defined with the directory</span>
+<span class="sd">	  qudipy/circuit/quantum_circuit.py</span>
+<span class="sd">	&#39;&#39;&#39;</span>
+	<span class="c1"># Pull out all information needed from the circuit</span>
+	<span class="c1"># and store them as variables.</span>
+	<span class="n">name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">QntmCirc</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+	<span class="n">n_qubits</span> <span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">QntmCirc</span><span class="o">.</span><span class="n">n_qubits</span><span class="p">)</span>
+	<span class="n">sequence</span> <span class="o">=</span> <span class="n">QntmCirc</span><span class="o">.</span><span class="n">circuit_sequence</span>
+	
+	<span class="c1"># ** Create file using the circuit name **</span>
+	<span class="n">qcirc_file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;.qcirc&quot;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
+	
+	<span class="c1"># *Create string of formated gates*</span>
+	<span class="n">string</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+	<span class="k">for</span> <span class="n">gate</span> <span class="ow">in</span> <span class="n">sequence</span><span class="p">:</span>
+		<span class="c1"># Consider the instance where there are two different</span>
+		<span class="c1"># gates acting simultaneously (gates stored in a tuple)</span>
+		<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">gate</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+			<span class="c1"># Create list of formatted gates</span>
+			<span class="n">G</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">g</span><span class="p">:</span> <span class="n">format_single_gate</span><span class="p">(</span><span class="n">g</span><span class="p">),</span> <span class="n">gate</span><span class="p">))</span>
+			<span class="c1"># Join them together with a bar | in between gates</span>
+			<span class="n">gate_str</span> <span class="o">=</span> <span class="s2">&quot; | &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">G</span><span class="p">)</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="n">gate_str</span> <span class="o">=</span> <span class="n">format_single_gate</span><span class="p">(</span><span class="n">gate</span><span class="p">)</span>
+		<span class="n">string</span> <span class="o">=</span> <span class="n">string</span> <span class="o">+</span> <span class="n">gate_str</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+	<span class="c1"># Remove the extra newline character and add first line </span>
+	<span class="c1"># of .qcirc file</span>
+	<span class="n">string</span> <span class="o">=</span> <span class="n">string</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+	<span class="c1"># Write in the number of qubits</span>
+	<span class="n">write_str</span> <span class="o">=</span> <span class="s2">&quot;Number of qubits: </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n_qubits</span><span class="p">)</span> <span class="o">+</span> <span class="n">string</span>
+	
+	<span class="c1"># ** Write the file **</span>
+	<span class="n">qcirc_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">write_str</span><span class="p">)</span>
+	<span class="n">qcirc_file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span> <span class="c1"># Close file</span>
+	
+	<span class="c1"># ** Read and print contents of file **</span>
+	<span class="n">directory</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;.qcirc&quot;</span>
+	<span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
+	<span class="nb">print</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+	<span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+	
+	<span class="c1"># Return the .qcirc file</span>
+	<span class="k">return</span><span class="p">(</span><span class="n">qcirc_file</span><span class="p">)</span></div>
+
+
+
+
+<span class="c1">## ********** HELPER FUNCTIONS ********** </span>
+
+<div class="viewcode-block" id="format_single_gate"><a class="viewcode-back" href="../../../qudipy.circuit.html#qudipy.circuit.write_files.format_single_gate">[docs]</a><span class="k">def</span> <span class="nf">format_single_gate</span><span class="p">(</span><span class="n">gate</span><span class="p">):</span>
+	<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">	Formats a gate into a writable string</span>
+<span class="sd">	</span>
+<span class="sd">	Parameters:</span>
+<span class="sd">	------------</span>
+<span class="sd">	gate: Listof(Str, Listof(Int))</span>
+<span class="sd">		The length 3 list that contains</span>
+<span class="sd">		one gate inside of a QuantumCircuit </span>
+<span class="sd">		sequence</span>
+<span class="sd">	</span>
+<span class="sd">	Requires:</span>
+<span class="sd">	------------</span>
+<span class="sd">	gate is in the following form:</span>
+<span class="sd">	[&#39;gate_name&#39;, &#39;Ideal Gate&#39;, [effected qubits]]</span>
+<span class="sd">	</span>
+<span class="sd">	Returns:</span>
+<span class="sd">	------------</span>
+<span class="sd">	String</span>
+<span class="sd">		used to write the gate in the .qcirc file</span>
+<span class="sd">	&#39;&#39;&#39;</span>
+	<span class="c1"># Retrieve the gate name</span>
+	<span class="n">gate_name</span> <span class="o">=</span> <span class="n">gate</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+	
+	<span class="c1"># Format effected qubits into a string</span>
+	<span class="c1"># 1) convert list to list of strings</span>
+	<span class="n">eff_qubits_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">gate</span><span class="p">[</span><span class="mi">2</span><span class="p">]))</span>
+	<span class="c1"># 2) join each elemet with a space between them</span>
+	<span class="n">eff_qubits</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">eff_qubits_list</span><span class="p">)</span>
+	
+	<span class="c1"># Put together the string and return it</span>
+	<span class="n">gate_str</span> <span class="o">=</span> <span class="n">gate_name</span> <span class="o">+</span> <span class="s2">&quot; &quot;</span> <span class="o">+</span> <span class="n">eff_qubits</span>
+	<span class="k">return</span> <span class="n">gate_str</span></div>
+
+	
+	
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Zach D. Merino.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

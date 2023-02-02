@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>qudipy.chargestability.csd_cim &mdash; QuDiPy Documentation 1.0.0 documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/language_data.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> QuDiPy Documentation
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">QuDiPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">qudipy.chargestability.csd_cim</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for qudipy.chargestability.csd_cim</h1><div class="highlight"><pre>
+<span></span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">File used to generate and plot charge stability diagrams for double dot</span>
+<span class="sd">systems using the constant interaction model.</span>
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">math</span> <span class="kn">import</span> <span class="n">floor</span>
+<span class="kn">from</span> <span class="nn">..utils.constants</span> <span class="kn">import</span> <span class="n">Constants</span>
+
+<span class="n">consts</span> <span class="o">=</span> <span class="n">Constants</span><span class="p">(</span><span class="s2">&quot;vacuum&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="CIMCSD"><a class="viewcode-back" href="../../../qudipy.chargestability.html#qudipy.chargestability.csd_cim.CIMCSD">[docs]</a><span class="k">class</span> <span class="nc">CIMCSD</span><span class="p">:</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Initialize the charge stability diagram class which generates charge</span>
+<span class="sd">    stability diagrams based on given capacitance parameters. Based off </span>
+<span class="sd">    of the analisys in section II.A and Appendix 3 in </span>
+<span class="sd">    https://doi.org/10.1103/RevModPhys.75.1. This class is intended for </span>
+<span class="sd">    testing of the analysis module and comparing extracted input </span>
+<span class="sd">    parameter with known input parameters.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">c_l</span><span class="p">,</span> <span class="n">c_r</span><span class="p">,</span> <span class="n">c_m</span><span class="p">,</span> <span class="n">c_g1</span><span class="p">,</span> <span class="n">c_g2</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">         </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        c_l: float</span>
+<span class="sd">            Capacitance between the left resevoir and dot 1</span>
+<span class="sd">        c_r: float</span>
+<span class="sd">            Capacitance between the right resevoir dot 2</span>
+<span class="sd">        c_m: float</span>
+<span class="sd">            Capacitance between dot 1 and 2</span>
+<span class="sd">        c_g1: float</span>
+<span class="sd">            Capacitance between gate 1 and dot 1</span>
+<span class="sd">        c_g2: float </span>
+<span class="sd">            Capacitance between gate 2 and dot 2</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="c1"># TODO generalize this number</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_sites</span> <span class="o">=</span> <span class="mi">2</span>
+        
+        <span class="c1"># Capacitances between dots and resevoirs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c_l</span> <span class="o">=</span> <span class="n">c_l</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c_r</span> <span class="o">=</span> <span class="n">c_r</span>
+
+        <span class="c1"># Capacitances between dots</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c_m</span> <span class="o">=</span> <span class="n">c_m</span>
+
+        <span class="c1"># Gate-dot capacitances</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c_g1</span> <span class="o">=</span> <span class="n">c_g1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c_g2</span> <span class="o">=</span> <span class="n">c_g2</span>
+
+        <span class="c1"># Calculated constants</span>
+        <span class="c1"># Total sum of capacitances on dots</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c_1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">c_l</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">c_g1</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">c_m</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c_2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">c_r</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">c_g2</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">c_m</span>
+
+        <span class="c1"># Dot charging energy</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">e_c1</span> <span class="o">=</span> <span class="n">consts</span><span class="o">.</span><span class="n">e</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">c_1</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">c_1</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">c_2</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">c_m</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">e_c2</span> <span class="o">=</span> <span class="n">consts</span><span class="o">.</span><span class="n">e</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">c_2</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">c_1</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">c_2</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">c_m</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+
+        <span class="c1"># Electrostatic coupling energy</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">e_cm</span> <span class="o">=</span> <span class="n">consts</span><span class="o">.</span><span class="n">e</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">c_m</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">c_1</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">c_2</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">c_m</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+
+        <span class="c1"># Attributes to be defined in later methods</span>
+        <span class="c1"># generate_csd:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">v_g1_min</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">v_g1_max</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">v_g2_min</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">v_g2_max</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">v_1_values</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">v_2_values</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">occupation</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="CIMCSD.generate_csd"><a class="viewcode-back" href="../../../qudipy.chargestability.html#qudipy.chargestability.csd_cim.CIMCSD.generate_csd">[docs]</a>    <span class="k">def</span> <span class="nf">generate_csd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v_g1_max</span><span class="p">,</span> <span class="n">v_g2_max</span><span class="p">,</span> <span class="n">v_g1_min</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">v_g2_min</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="mi">100</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39; </span>
+<span class="sd">        Generates the charge stability diagram between v_g1(2)_min and</span>
+<span class="sd">        v_g1(2)_max with num by num data points in 2D</span>
+
+<span class="sd">        ----------</span>
+<span class="sd">        v_g1_max: float</span>
+<span class="sd">            maximum voltage on plunger gate 1</span>
+<span class="sd">        v_g2_max: float</span>
+<span class="sd">            maximum voltage on plunger gate 2</span>
+
+<span class="sd">        Keyword Arguments</span>
+<span class="sd">        -----------------</span>
+<span class="sd">        v_g1_min: float</span>
+<span class="sd">            minimum voltage on plunger gate 1 (default 0)</span>
+<span class="sd">        v_g2_min: float</span>
+<span class="sd">            minimum voltage on plunger gate 2 (default 0)</span>
+<span class="sd">        num: int</span>
+<span class="sd">            number of voltage point in 1d, which leads to a num^2 </span>
+<span class="sd">            charge stability diagram (default 100)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="c1"># Save for later</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num</span> <span class="o">=</span> <span class="n">num</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">v_g1_min</span> <span class="o">=</span> <span class="n">v_g1_min</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">v_g1_max</span> <span class="o">=</span> <span class="n">v_g1_max</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">v_g2_min</span> <span class="o">=</span> <span class="n">v_g2_min</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">v_g2_max</span> <span class="o">=</span> <span class="n">v_g2_max</span>
+
+        <span class="c1"># Generates all the voltages to be swept</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">v_1_values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">around</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">v_g1_min</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">v_g1_max</span><span class="p">,</span> <span class="n">num</span><span class="p">),</span> <span class="n">decimals</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">v_2_values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">around</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">v_g2_min</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">v_g2_max</span><span class="p">,</span> <span class="n">num</span><span class="p">),</span> <span class="n">decimals</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span>
+        
+        <span class="c1"># Goes through all the v_1 and v_2 values and generate the csd data</span>
+        <span class="n">occupation</span> <span class="o">=</span> <span class="p">[[[</span><span class="bp">self</span><span class="o">.</span><span class="n">_lowest_energy</span><span class="p">(</span><span class="n">v_1</span><span class="p">,</span> <span class="n">v_2</span><span class="p">)]</span> <span class="k">for</span> <span class="n">v_1</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">v_1_values</span><span class="p">]</span> <span class="k">for</span> <span class="n">v_2</span> 
+                        <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">v_2_values</span><span class="p">]</span>
+
+        <span class="c1"># Create a num by num DataFrame from occupation data information as entries</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">occupation</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">occupation</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">v_1_values</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">v_2_values</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CIMCSD.calculate_energy"><a class="viewcode-back" href="../../../qudipy.chargestability.html#qudipy.chargestability.csd_cim.CIMCSD.calculate_energy">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_energy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_1</span><span class="p">,</span> <span class="n">n_2</span><span class="p">,</span> <span class="n">v_g1</span><span class="p">,</span> <span class="n">v_g2</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Returns energy of dot with occupation n_1, n_2 with applied </span>
+<span class="sd">        voltages v_g1, v_g2. Dependent on c_l, c_r, c_m, c_g1 and c_g2 </span>
+<span class="sd">        defined when object is initialized.</span>
+
+<span class="sd">        ----------</span>
+<span class="sd">        n_1: int</span>
+<span class="sd">            Occupation on dot 1</span>
+<span class="sd">        n_2: int</span>
+<span class="sd">            Occupation on dot 2</span>
+<span class="sd">        v_g1: float</span>
+<span class="sd">            voltage on plunger gate 1</span>
+<span class="sd">        v_g2: float</span>
+<span class="sd">            voltage on plunger gate 2</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Energy of system in joules</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="c1"># This is formula A12 from Appendix 3 of the paper references at the top of the file</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="o">-</span> <span class="mi">1</span><span class="o">/</span><span class="n">consts</span><span class="o">.</span><span class="n">e</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">c_g1</span> <span class="o">*</span> <span class="n">v_g1</span> <span class="o">*</span> <span class="p">(</span><span class="n">n_1</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">e_c1</span> <span class="o">+</span> <span class="n">n_2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">e_cm</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">c_g2</span> 
+                <span class="o">*</span> <span class="n">v_g2</span> <span class="o">*</span> <span class="p">(</span><span class="n">n_1</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">e_cm</span> <span class="o">+</span> <span class="n">n_2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">e_c2</span><span class="p">))</span> <span class="o">+</span> <span class="mi">1</span><span class="o">/</span><span class="n">consts</span><span class="o">.</span><span class="n">e</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">c_g1</span><span class="o">**</span><span class="mi">2</span> 
+                <span class="o">*</span> <span class="n">v_g1</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">e_c1</span> <span class="o">+</span> <span class="mi">1</span><span class="o">/</span><span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">c_g2</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">v_g2</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">e_c2</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">c_g1</span> <span class="o">*</span> <span class="n">v_g1</span> 
+                <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">c_g2</span> <span class="o">*</span> <span class="n">v_g2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">e_cm</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="mi">1</span><span class="o">/</span><span class="mi">2</span> <span class="o">*</span> <span class="n">n_1</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">e_c1</span> <span class="o">+</span> <span class="mi">1</span><span class="o">/</span><span class="mi">2</span> <span class="o">*</span> <span class="n">n_2</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">e_c2</span> <span class="o">+</span> <span class="n">n_1</span> <span class="o">*</span> <span class="n">n_2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">e_cm</span> <span class="o">+</span> <span class="n">f</span></div>
+
+    <span class="k">def</span> <span class="nf">_lowest_energy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v_g1</span><span class="p">,</span> <span class="n">v_g2</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Returns occupation (n_1, n_2) with lowest energy for applied</span>
+<span class="sd">        gate voltages v_g1, v_g2. Dependent on c_l, c_r, c_m, c_g1</span>
+<span class="sd">        and c_g2 defined when object is initialized.</span>
+
+<span class="sd">        ----------</span>
+<span class="sd">        v_g1: float</span>
+<span class="sd">            voltage on plunger gate 1</span>
+<span class="sd">        v_g2: float</span>
+<span class="sd">            voltage on plunger gate 2</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        state: list with occupation in dot 1 and 2</span>
+
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="c1"># get occupation giving lowest energy assuming a continuous variable</span>
+        <span class="c1"># function (i.e derivative of 0)</span>
+        <span class="n">n_1</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">e_cm</span> <span class="o">**</span> <span class="mi">2</span><span class="o">/</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">e_c1</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">e_c2</span><span class="p">))</span> <span class="o">*</span> <span class="mi">1</span><span class="o">/</span><span class="n">consts</span><span class="o">.</span><span class="n">e</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">c_g1</span> <span class="o">*</span> <span class="n">v_g1</span> 
+                <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">e_cm</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">e_c1</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">e_c2</span><span class="p">))</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">c_g2</span> <span class="o">*</span> <span class="n">v_g2</span> 
+                <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">e_cm</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">e_c2</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">e_cm</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">e_c1</span><span class="p">))</span>
+        <span class="n">n_2</span> <span class="o">=</span> <span class="o">-</span><span class="n">n_1</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">e_cm</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">e_c2</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">consts</span><span class="o">.</span><span class="n">e</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">c_g1</span> <span class="o">*</span> <span class="n">v_g1</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">e_cm</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">e_c2</span> 
+                <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">c_g2</span> <span class="o">*</span> <span class="n">v_g2</span><span class="p">)</span>
+
+        <span class="c1"># goes over 4 closest integer lattice points to find integer solution with lowest energy</span>
+        <span class="n">trial_occupations</span> <span class="o">=</span> <span class="p">[(</span><span class="n">floor</span><span class="p">(</span><span class="n">n_1</span><span class="p">),</span> <span class="n">floor</span><span class="p">(</span><span class="n">n_2</span><span class="p">)),</span> <span class="p">(</span><span class="n">floor</span><span class="p">(</span><span class="n">n_1</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">floor</span><span class="p">(</span><span class="n">n_2</span><span class="p">)),</span>
+                    <span class="p">(</span><span class="n">floor</span><span class="p">(</span><span class="n">n_1</span><span class="p">),</span> <span class="n">floor</span><span class="p">(</span><span class="n">n_2</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="n">floor</span><span class="p">(</span><span class="n">n_1</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">floor</span><span class="p">(</span><span class="n">n_2</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span>
+        <span class="n">n_energies</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">calculate_energy</span><span class="p">(</span>
+            <span class="o">*</span><span class="n">trial</span><span class="p">,</span> <span class="n">v_g1</span><span class="p">,</span> <span class="n">v_g2</span><span class="p">)</span> <span class="k">for</span> <span class="n">trial</span> <span class="ow">in</span> <span class="n">trial_occupations</span><span class="p">]</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="n">trial_occupations</span><span class="p">[</span><span class="n">n_energies</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">n_energies</span><span class="p">))]</span>
+        <span class="k">if</span> <span class="n">state</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">state</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">state</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">state</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">state</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">state</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">state</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Zach D. Merino.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

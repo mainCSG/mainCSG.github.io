@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>qudipy.spinsimulator package &mdash; QuDiPy Documentation 1.0.0 documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> QuDiPy Documentation
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">qudipy.spinsimulator package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-qudipy.spinsimulator.pulse_generators">qudipy.spinsimulator.pulse_generators module</a></li>
+<li><a class="reference internal" href="#qudipy-spinsimulator-spin-simulator-module">qudipy.spinsimulator.spin_simulator module</a></li>
+<li><a class="reference internal" href="#module-qudipy.spinsimulator">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">QuDiPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a></li>
+      <li class="breadcrumb-item active">qudipy.spinsimulator package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/qudipy.spinsimulator.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="qudipy-spinsimulator-package">
+<h1>qudipy.spinsimulator package<a class="headerlink" href="#qudipy-spinsimulator-package" title="Permalink to this headline">¶</a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="module-qudipy.spinsimulator.pulse_generators">
+<span id="qudipy-spinsimulator-pulse-generators-module"></span><h2>qudipy.spinsimulator.pulse_generators module<a class="headerlink" href="#module-qudipy.spinsimulator.pulse_generators" title="Permalink to this headline">¶</a></h2>
+<p>Created on Wed Oct 21 11:20:47 2020</p>
+<p>The script contains functions that generate simple constant pulses 
+in spin space.</p>
+<p>&#64;author: bkhromet</p>
+<dl class="function">
+<dt id="qudipy.spinsimulator.pulse_generators.rot_square">
+<code class="sig-prename descclassname">qudipy.spinsimulator.pulse_generators.</code><code class="sig-name descname">rot_square</code><span class="sig-paren">(</span><em class="sig-param">qubits</em>, <em class="sig-param">N</em>, <em class="sig-param">axis</em>, <em class="sig-param">theta</em>, <em class="sig-param">B_0</em>, <em class="sig-param">B_rf</em>, <em class="sig-param">f_rf=None</em>, <em class="sig-param">delta_g=0.0</em>, <em class="sig-param">num_val=300</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qudipy/spinsimulator/pulse_generators.html#rot_square"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qudipy.spinsimulator.pulse_generators.rot_square" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function that creates a constant (square) ROTX, ROTY or ROTZ pulse 
+for a given RF field.</p>
+<dl class="simple">
+<dt>qubits: int / iterable of ints</dt><dd><p>The qubit(s) to be exposed to the rotation pulse.</p>
+</dd>
+<dt>N: int</dt><dd><p>Number of qubits in the system.</p>
+</dd>
+<dt>axis: string</dt><dd><p>Specifies the axis of rotation: “X”, “Y” or “Z”.</p>
+</dd>
+<dt>theta: float</dt><dd><p>Specifies the angle of rotation (in degrees).</p>
+</dd>
+<dt>B_0: float</dt><dd><p>Zeeman field.</p>
+</dd>
+<dt>B_rf: float</dt><dd><p>constant ESR field magnitude during the pulse</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>f_rf: float, optional</dt><dd><dl class="simple">
+<dt>The frequency of the ESR field. By default, it is equated to</dt><dd><p>the Larmor frequency calculated from B_0.</p>
+</dd>
+</dl>
+</dd>
+<dt>delta_g: float, optional</dt><dd><p>Approximate value of deviation g-factor used to cancel the effect 
+of global RF field on the unspecified qubits.</p>
+</dd>
+<dt>num_val: int, optional</dt><dd><p>number of data points</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>rotpulse: ControlPulse object / tuple of such objects </dt><dd><p>Pulse / tuple of pulses corresponding to the requested rotation 
+on the Bloch sphere</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="qudipy.spinsimulator.pulse_generators.rswap">
+<code class="sig-prename descclassname">qudipy.spinsimulator.pulse_generators.</code><code class="sig-name descname">rswap</code><span class="sig-paren">(</span><em class="sig-param">qubits</em>, <em class="sig-param">N</em>, <em class="sig-param">J</em>, <em class="sig-param">B_0=0</em>, <em class="sig-param">f_rf=None</em>, <em class="sig-param">num_val=300</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qudipy/spinsimulator/pulse_generators.html#rswap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qudipy.spinsimulator.pulse_generators.rswap" title="Permalink to this definition">¶</a></dt>
+<dd><p>A function that builds a simple √SWAP gate.</p>
+<dl class="simple">
+<dt>qubits: tuple of 2 ints</dt><dd><p>Pair of indices of the two interacting qubits. Temporarily, only the 
+case of two neighboring qubits is supported.</p>
+</dd>
+<dt>N: int</dt><dd><p>Number of qubits in the system.</p>
+</dd>
+<dt>J: float</dt><dd><p>Exchange coupling between the specified qubits.</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>B_0: float</dt><dd><p>Zeeman field. Default is zero.</p>
+</dd>
+<dt>f_rf: float, optional</dt><dd><p>The frequency of the ESR field specified for the system.By default, 
+it is equated to the Larmor frequency calculated from B_0.</p>
+</dd>
+<dt>num_val: int, optional</dt><dd><p>number of data points</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>rswappulse: ControlPulse object</dt><dd><p>Pulse corresponding to the SWAP between the two specified neighboring 
+qubits</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="qudipy.spinsimulator.pulse_generators.swap">
+<code class="sig-prename descclassname">qudipy.spinsimulator.pulse_generators.</code><code class="sig-name descname">swap</code><span class="sig-paren">(</span><em class="sig-param">qubits</em>, <em class="sig-param">N</em>, <em class="sig-param">J</em>, <em class="sig-param">B_0=0</em>, <em class="sig-param">f_rf=None</em>, <em class="sig-param">num_val=300</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qudipy/spinsimulator/pulse_generators.html#swap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qudipy.spinsimulator.pulse_generators.swap" title="Permalink to this definition">¶</a></dt>
+<dd><p>A function that builds a simple SWAP gate.</p>
+<dl class="simple">
+<dt>qubits: tuple of 2 ints</dt><dd><p>Pair of indices of the two interacting qubits. Temporarily, only the 
+case of two neighboring qubits is supported.</p>
+</dd>
+<dt>N: int</dt><dd><p>Number of qubits in the system.</p>
+</dd>
+<dt>J: float</dt><dd><p>Exchange coupling between the specified qubits</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>B_0: float</dt><dd><p>Zeeman field. Default is zero.</p>
+</dd>
+<dt>f_rf: float, optional</dt><dd><p>The frequency of the ESR field specified for the system. By default, 
+it is equated to the Larmor frequency calculated from B_0.</p>
+</dd>
+<dt>num_val: int, optional</dt><dd><p>number of data points</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>swappulse: ControlPulse object</dt><dd><p>Pulse corresponding to the SWAP between the two specified neighboring 
+qubits</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="qudipy-spinsimulator-spin-simulator-module">
+<h2>qudipy.spinsimulator.spin_simulator module<a class="headerlink" href="#qudipy-spinsimulator-spin-simulator-module" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="module-qudipy.spinsimulator">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-qudipy.spinsimulator" title="Permalink to this headline">¶</a></h2>
+<p>Spin simulation module</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Zach D. Merino.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>qudipy.starkshift.starkshift &mdash; QuDiPy Documentation 1.0.0 documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/language_data.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> QuDiPy Documentation
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">QuDiPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">qudipy.starkshift.starkshift</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for qudipy.starkshift.starkshift</h1><div class="highlight"><pre>
+<span></span><span class="c1"># From module</span>
+<span class="kn">from</span> <span class="nn">..qutils.math</span> <span class="kn">import</span> <span class="n">inner_prod</span>
+<span class="kn">from</span> <span class="nn">..qutils.solvers</span> <span class="kn">import</span> <span class="n">solve_schrodinger_eq</span>
+
+
+<span class="c1"># From external libraries</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+<div class="viewcode-block" id="StarkShift"><a class="viewcode-back" href="../../../qudipy.starkshift.html#qudipy.starkshift.starkshift.StarkShift">[docs]</a><span class="k">class</span> <span class="nc">StarkShift</span><span class="p">:</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Initialize the Stark shift class which can calculate the Stark Shift of an</span>
+<span class="sd">    electron in a given electric field and/or potential landscape</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gparams</span><span class="p">,</span> <span class="n">consts</span><span class="p">,</span> <span class="n">temp</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+
+<span class="sd">       Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        gparams : GridParameters class</span>
+<span class="sd">            Contains grid and potential information</span>
+<span class="sd">        consts : Constants class</span>
+<span class="sd">            Contains constants value for material system.</span>
+<span class="sd">        temp : Float</span>
+<span class="sd">            Requires - temp &gt;= 0 </span>
+<span class="sd">            The temperature of the system in Kelvins. Default is 0K unless specified.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gparams</span> <span class="o">=</span> <span class="n">gparams</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">consts</span> <span class="o">=</span> <span class="n">consts</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">temp</span> <span class="o">=</span> <span class="n">temp</span>
+
+
+
+<div class="viewcode-block" id="StarkShift.change_temperature"><a class="viewcode-back" href="../../../qudipy.starkshift.html#qudipy.starkshift.starkshift.StarkShift.change_temperature">[docs]</a>    <span class="k">def</span> <span class="nf">change_temperature</span> <span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">T_new</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Changes the temperature to the new desired temperature in Kelvins</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">        ------------</span>
+<span class="sd">        T_new: Float</span>
+<span class="sd">            Requires - T_new &gt;= 0</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gparams</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">consts</span><span class="p">,</span> <span class="n">T_new</span><span class="p">)</span></div>
+
+
+
+
+<div class="viewcode-block" id="StarkShift.delta_g"><a class="viewcode-back" href="../../../qudipy.starkshift.html#qudipy.starkshift.starkshift.StarkShift.delta_g">[docs]</a>    <span class="k">def</span> <span class="nf">delta_g</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">e_interp</span><span class="p">,</span> <span class="n">c_vals</span><span class="p">,</span> <span class="n">c_val_names</span><span class="p">,</span> <span class="n">wavefuncs</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        e_interp: PotentialInterpolator object</span>
+<span class="sd">            Object which contains the information about the electric field</span>
+<span class="sd">            experienced by the quantum dot(s)</span>
+<span class="sd">        c_vals: list of lists</span>
+<span class="sd">            List of list where each inner list of consists of control values</span>
+<span class="sd">            for the control variables named in c_val_names.</span>
+<span class="sd">        c_val_names: list of strings</span>
+<span class="sd">            Names for the control variables in c_val. Must have the same length</span>
+<span class="sd">            as each inner list in c_vals</span>
+
+<span class="sd">        Keyword Arguments</span>
+<span class="sd">        -----------------</span>
+<span class="sd">        wavefuncs: wavefunction(s) for which the Stark shift should be</span>
+<span class="sd">            calculated. If none provided, the potential provided in the gparams</span>
+<span class="sd">            will be used in the Schrodinger equation solver and the Stark shift</span>
+<span class="sd">            will be calcualted for the ground state (default None)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        df: pandas DataFrame</span>
+<span class="sd">            Pandas DataFrame where each column is a control variable or a</span>
+<span class="sd">            g-factor deviation. Each row contains a combination of control</span>
+<span class="sd">            voltage values and the associated g-factor deviation for each</span>
+<span class="sd">            wavefunction. </span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">if</span> <span class="n">wavefuncs</span><span class="o">==</span><span class="kc">None</span><span class="p">:</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">wavefuncs</span> <span class="o">=</span> <span class="n">solve_schrodinger_eq</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">consts</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">gparams</span><span class="p">,</span> <span class="n">n_sols</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">c_vals_delta_g</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">consts</span><span class="o">.</span><span class="n">mu_2</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">mu_2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">consts</span><span class="o">.</span><span class="n">mu_2</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;The quadratic Stark shift coefficient in this material </span><span class="se">\</span>
+<span class="s2">                                       has not been specified in the constants class&quot;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">c_val</span> <span class="ow">in</span> <span class="n">c_vals</span><span class="p">:</span>
+        <span class="c1"># Return the potential interpolated (or calculated) at that particular value</span>
+            <span class="n">v_vec</span> <span class="o">=</span> <span class="n">c_val</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">c_val</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="k">else</span> <span class="nb">list</span><span class="p">(</span><span class="n">c_val</span><span class="p">)</span>
+            <span class="n">new_e</span> <span class="o">=</span> <span class="n">e_interp</span><span class="p">(</span><span class="n">v_vec</span><span class="p">)</span>
+
+            <span class="n">delta_g_list</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">wavefunc</span> <span class="ow">in</span> <span class="n">wavefuncs</span><span class="p">:</span>
+
+                <span class="c1">#Calcualte the weighted average of the electric field over the wavefunction</span>
+                <span class="n">avg_e</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_weighted_average</span><span class="p">(</span><span class="n">wavefunc</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">new_e</span><span class="p">))</span>
+            
+                <span class="n">delta_g</span> <span class="o">=</span> <span class="n">mu_2</span> <span class="o">*</span> <span class="n">avg_e</span>
+                <span class="n">delta_g_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">delta_g</span><span class="p">))</span>
+
+            
+            <span class="n">c_vals_delta_g</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">v_vec</span> <span class="o">+</span> <span class="n">delta_g_list</span><span class="p">)</span>
+
+        <span class="c1"># Return the calculated value of delta_g</span>
+        <span class="n">delta_gs</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;delta_g_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">wavefuncs</span><span class="p">))]</span>
+        <span class="n">coulmns</span> <span class="o">=</span> <span class="n">c_val_names</span> <span class="o">+</span> <span class="n">delta_gs</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">c_vals_delta_g</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">coulmns</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">df</span></div>
+
+
+
+    <span class="k">def</span> <span class="nf">_weighted_average</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wavefunc</span><span class="p">,</span> <span class="n">observable</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Calculates the average of an observable, weighted by the probability density of a wavefunction</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        wavefunc : complex array</span>
+<span class="sd">            &#39;Bra&#39; wavefunction for the inner product. If grid is 2D, then the </span>
+<span class="sd">            array should be in meshgrid format.</span>
+<span class="sd">        observable : complex array</span>
+<span class="sd">            Should have the same dimensions  </span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        exp_val : complex float</span>
+<span class="sd">            The expectation value calculated </span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">weighted_wavefunc</span> <span class="o">=</span> <span class="n">observable</span> <span class="o">*</span> <span class="n">wavefunc</span>
+        <span class="n">exp_val</span> <span class="o">=</span> <span class="n">inner_prod</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gparams</span><span class="p">,</span> <span class="n">wavefunc</span><span class="p">,</span> <span class="n">weighted_wavefunc</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">exp_val</span>
+
+
+
+<div class="viewcode-block" id="StarkShift.temp_g_factor"><a class="viewcode-back" href="../../../qudipy.starkshift.html#qudipy.starkshift.starkshift.StarkShift.temp_g_factor">[docs]</a>    <span class="k">def</span> <span class="nf">temp_g_factor</span> <span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">material</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>  
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Returns the T dependent deviation g-factor for an electron via linear interpolation</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">        -----------------</span>
+
+<span class="sd">        Keyword Arguments:</span>
+<span class="sd">        -----------------</span>
+<span class="sd">        material: Anyof(String, None)</span>
+<span class="sd">            The material that the Temperature Dependent g-factor is calculated in. If None Provided</span>
+<span class="sd">            the temperature dependent g-factor for Si will be calculated </span>
+<span class="sd">            #TODO add more materials</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -----------------</span>
+<span class="sd">        Temperature deviation g-factor approximation</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">T</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">temp</span>
+
+        <span class="k">if</span> <span class="n">material</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;Si&#39;</span><span class="p">,</span> <span class="s1">&#39;silicon&#39;</span><span class="p">,</span> <span class="s1">&#39;Silicon&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+        
+            <span class="c1">## make lists of points to interpolate over</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">30</span><span class="p">,</span><span class="mi">50</span><span class="p">,</span><span class="mi">70</span><span class="p">,</span><span class="mi">100</span><span class="p">,</span><span class="mi">150</span><span class="p">,</span><span class="mi">200</span><span class="p">,</span><span class="mi">250</span><span class="p">]</span> <span class="c1">#make list of temperature points</span>
+            <span class="n">g</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.99875</span><span class="p">,</span><span class="mf">1.99874</span><span class="p">,</span><span class="mf">1.99872</span><span class="p">,</span> <span class="mf">1.99870</span><span class="p">,</span><span class="mf">1.99865</span><span class="p">,</span><span class="mf">1.99860</span><span class="p">,</span><span class="mf">1.99850</span><span class="p">,</span><span class="mf">1.99840</span><span class="p">]</span> <span class="c1">#make list of g-factor points</span>
+        
+            <span class="c1"># find the index of the interval T lies within</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">T</span> <span class="o">&gt;=</span> <span class="mi">250</span><span class="p">:</span>
+                <span class="n">i</span> <span class="o">=</span> <span class="mi">6</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">temperature</span> <span class="ow">in</span> <span class="n">t</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">T</span> <span class="o">&lt;</span> <span class="n">temperature</span><span class="p">:</span>
+                        <span class="k">while</span> <span class="n">i</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+                            <span class="n">i</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">temperature</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+        
+            <span class="c1">## linearly interpolate and return the g-factor value </span>
+            <span class="n">dt</span><span class="o">=</span> <span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-</span><span class="n">t</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">])</span> 
+            <span class="n">interp</span> <span class="o">=</span> <span class="p">(</span><span class="n">g</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">g</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">])</span><span class="o">/</span><span class="n">dt</span> <span class="o">*</span> <span class="n">T</span> <span class="o">+</span> <span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">g</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">t</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">g</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">/</span><span class="n">dt</span> <span class="c1">#linear interpolation </span>
+        
+            <span class="k">return</span> <span class="n">interp</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Only available for Silicon in current version, do not enter any keyword here&quot;</span><span class="p">)</span></div></div>
+
+
+
+
+
+            
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Zach D. Merino.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

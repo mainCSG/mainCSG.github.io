@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>qudipy.qutils.solvers &mdash; QuDiPy Documentation 1.0.0 documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/language_data.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> QuDiPy Documentation
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">QuDiPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">qudipy.qutils.solvers</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for qudipy.qutils.solvers</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Quantum utility solver functions</span>
+
+<span class="sd">@author: simba</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">sparse</span>
+<span class="kn">from</span> <span class="nn">scipy.sparse.linalg</span> <span class="kn">import</span> <span class="n">eigs</span>
+<span class="kn">from</span> <span class="nn">qudipy.qutils.math</span> <span class="kn">import</span> <span class="n">inner_prod</span>
+
+<div class="viewcode-block" id="build_1DSE_hamiltonian"><a class="viewcode-back" href="../../../qudipy.qutils.html#qudipy.qutils.solvers.build_1DSE_hamiltonian">[docs]</a><span class="k">def</span> <span class="nf">build_1DSE_hamiltonian</span><span class="p">(</span><span class="n">consts</span><span class="p">,</span> <span class="n">gparams</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39; </span>
+<span class="sd">    Build a single electron Hamilonian for the 1-dimensional potential </span>
+<span class="sd">    specified in the gparams class. The laplacian operator is approximated by</span>
+<span class="sd">    using a 1D 3-point stencil. The Hamilonian assumes a natural ordering </span>
+<span class="sd">    format along the main diagonal.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    consts : Constants class</span>
+<span class="sd">        Contains constants value for material system.</span>
+<span class="sd">    gparams : GridParameters class</span>
+<span class="sd">        Contains grid and potential information</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    ham_1D : sparse 2D array</span>
+<span class="sd">        1-dimensional Hamtilonian. The diagonal elements are in natural</span>
+<span class="sd">        ordering format</span>
+
+<span class="sd">    &#39;&#39;&#39;</span>
+    
+    <span class="c1"># Build potential energy hamiltonian term</span>
+    <span class="n">PE_1D</span> <span class="o">=</span> <span class="n">sparse</span><span class="o">.</span><span class="n">diags</span><span class="p">(</span><span class="n">gparams</span><span class="o">.</span><span class="n">potential</span><span class="p">)</span>
+    
+    <span class="c1"># Build the kinetic energy hamiltonian term</span>
+    
+    <span class="c1"># Construct dummy block matrix B</span>
+    <span class="n">KE_1D</span> <span class="o">=</span> <span class="n">sparse</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">gparams</span><span class="o">.</span><span class="n">nx</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="o">/</span><span class="p">(</span><span class="n">gparams</span><span class="o">.</span><span class="n">dx</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+    <span class="c1"># Add the +/-1 off diagonal entries for the 1/dx^2 elements</span>
+    <span class="n">KE_1D</span> <span class="o">=</span> <span class="n">KE_1D</span> <span class="o">+</span> <span class="n">sparse</span><span class="o">.</span><span class="n">diags</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">gparams</span><span class="o">.</span><span class="n">nx</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">gparams</span><span class="o">.</span><span class="n">dx</span><span class="o">**</span><span class="mi">2</span><span class="p">),</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">KE_1D</span> <span class="o">=</span> <span class="n">KE_1D</span> <span class="o">+</span> <span class="n">sparse</span><span class="o">.</span><span class="n">diags</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">gparams</span><span class="o">.</span><span class="n">nx</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">gparams</span><span class="o">.</span><span class="n">dx</span><span class="o">**</span><span class="mi">2</span><span class="p">),</span><span class="mi">1</span><span class="p">)</span>
+    
+    <span class="c1"># Multiply by unit coefficients</span>
+    <span class="k">if</span> <span class="n">consts</span><span class="o">.</span><span class="n">units</span> <span class="o">==</span> <span class="s1">&#39;Ry&#39;</span><span class="p">:</span>
+        <span class="n">KE_1D</span> <span class="o">=</span> <span class="o">-</span><span class="n">KE_1D</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">KE_1D</span> <span class="o">=</span> <span class="o">-</span><span class="n">consts</span><span class="o">.</span><span class="n">hbar</span><span class="o">**</span><span class="mi">2</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">consts</span><span class="o">.</span><span class="n">me</span><span class="p">)</span><span class="o">*</span><span class="n">KE_1D</span>    
+        
+    <span class="c1"># Assemble the full Hamiltonian with potential and kinetic terms</span>
+    <span class="n">ham_1D</span> <span class="o">=</span> <span class="n">PE_1D</span> <span class="o">+</span> <span class="n">KE_1D</span>
+    
+    <span class="k">return</span> <span class="n">ham_1D</span></div>
+
+<div class="viewcode-block" id="build_2DSE_hamiltonian"><a class="viewcode-back" href="../../../qudipy.qutils.html#qudipy.qutils.solvers.build_2DSE_hamiltonian">[docs]</a><span class="k">def</span> <span class="nf">build_2DSE_hamiltonian</span><span class="p">(</span><span class="n">consts</span><span class="p">,</span> <span class="n">gparams</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Build a single electron Hamilonian for the 2-dimensional potential </span>
+<span class="sd">    specified in the gparams class. The laplacian operator is approximated by </span>
+<span class="sd">    using a 2D 5-point stencil. The Hamiltonian assumes a natural ordering</span>
+<span class="sd">    format along the main diagonal.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    consts : Constants class</span>
+<span class="sd">        Contains constants value for material system.</span>
+<span class="sd">    gparams : GridParameters class</span>
+<span class="sd">        Contains grid and potential information</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    ham_2D : sparse 2D array</span>
+<span class="sd">        2-dimensional Hamtilonian. The diagonal elements are in natural</span>
+<span class="sd">        ordering format.</span>
+
+<span class="sd">    &#39;&#39;&#39;</span>
+    
+    <span class="c1"># Build potential energy hamiltonian term</span>
+    <span class="n">PE_2D</span> <span class="o">=</span> <span class="n">sparse</span><span class="o">.</span><span class="n">diags</span><span class="p">(</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">gparams</span><span class="o">.</span><span class="n">convert_MG_to_NO</span><span class="p">(</span><span class="n">gparams</span><span class="o">.</span><span class="n">potential</span><span class="p">)))</span>
+    
+    <span class="c1"># Build the kinetic energy hamiltonian term</span>
+    
+    <span class="c1"># Construct B matrix</span>
+    <span class="n">B</span> <span class="o">=</span> <span class="n">sparse</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">gparams</span><span class="o">.</span><span class="n">nx</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="o">/</span><span class="p">(</span><span class="n">gparams</span><span class="o">.</span><span class="n">dx</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="mi">2</span><span class="o">/</span><span class="p">(</span><span class="n">gparams</span><span class="o">.</span><span class="n">dy</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+    <span class="c1"># Add the +/-1 off diagonal entries for the 1/dx^2 elements</span>
+    <span class="n">B</span> <span class="o">=</span> <span class="n">B</span> <span class="o">+</span> <span class="n">sparse</span><span class="o">.</span><span class="n">diags</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">gparams</span><span class="o">.</span><span class="n">nx</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">gparams</span><span class="o">.</span><span class="n">dx</span><span class="o">**</span><span class="mi">2</span><span class="p">),</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">B</span> <span class="o">=</span> <span class="n">B</span> <span class="o">+</span> <span class="n">sparse</span><span class="o">.</span><span class="n">diags</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">gparams</span><span class="o">.</span><span class="n">nx</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">gparams</span><span class="o">.</span><span class="n">dx</span><span class="o">**</span><span class="mi">2</span><span class="p">),</span><span class="mi">1</span><span class="p">)</span>
+    
+    <span class="c1"># Now create a block diagonal matrix of Bs</span>
+    <span class="n">KE_2D</span> <span class="o">=</span> <span class="n">sparse</span><span class="o">.</span><span class="n">kron</span><span class="p">(</span><span class="n">sparse</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">gparams</span><span class="o">.</span><span class="n">ny</span><span class="p">),</span> <span class="n">B</span><span class="p">)</span>
+    <span class="c1"># Now set the off diagonal entries for the 1/dy^2 elements</span>
+    <span class="n">KE_2D</span> <span class="o">=</span> <span class="n">KE_2D</span> <span class="o">+</span> <span class="n">sparse</span><span class="o">.</span><span class="n">kron</span><span class="p">(</span><span class="n">sparse</span><span class="o">.</span><span class="n">diags</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">gparams</span><span class="o">.</span><span class="n">ny</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+                                <span class="n">sparse</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">gparams</span><span class="o">.</span><span class="n">nx</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">gparams</span><span class="o">.</span><span class="n">dy</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+    <span class="n">KE_2D</span> <span class="o">=</span> <span class="n">KE_2D</span> <span class="o">+</span> <span class="n">sparse</span><span class="o">.</span><span class="n">kron</span><span class="p">(</span><span class="n">sparse</span><span class="o">.</span><span class="n">diags</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">gparams</span><span class="o">.</span><span class="n">ny</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span><span class="mi">1</span><span class="p">),</span>
+                                <span class="n">sparse</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">gparams</span><span class="o">.</span><span class="n">nx</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">gparams</span><span class="o">.</span><span class="n">dy</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+    
+    <span class="c1"># Multiply by appropriate unit coefficients</span>
+    <span class="k">if</span> <span class="n">consts</span><span class="o">.</span><span class="n">units</span> <span class="o">==</span> <span class="s1">&#39;Ry&#39;</span><span class="p">:</span>
+        <span class="n">KE_2D</span> <span class="o">=</span> <span class="o">-</span><span class="n">KE_2D</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">KE_2D</span> <span class="o">=</span> <span class="o">-</span><span class="n">consts</span><span class="o">.</span><span class="n">hbar</span><span class="o">**</span><span class="mi">2</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">consts</span><span class="o">.</span><span class="n">me</span><span class="p">)</span><span class="o">*</span><span class="n">KE_2D</span>    
+        
+    <span class="c1"># Assemble the full Hamiltonian with potential and kinetic terms</span>
+    <span class="n">ham_2D</span> <span class="o">=</span> <span class="n">PE_2D</span> <span class="o">+</span> <span class="n">KE_2D</span>
+    
+    <span class="k">return</span> <span class="n">ham_2D</span></div>
+
+<div class="viewcode-block" id="solve_schrodinger_eq"><a class="viewcode-back" href="../../../qudipy.qutils.html#qudipy.qutils.solvers.solve_schrodinger_eq">[docs]</a><span class="k">def</span> <span class="nf">solve_schrodinger_eq</span><span class="p">(</span><span class="n">consts</span><span class="p">,</span> <span class="n">gparams</span><span class="p">,</span> <span class="n">n_sols</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Solve the time-independent Schrodinger-Equation H|Y&gt; = E|Y&gt; where H is</span>
+<span class="sd">    the single-electron 1 (or 2)-dimensional Hamiltonian.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    consts : Constants class</span>
+<span class="sd">        Contains constants value for material system.</span>
+<span class="sd">    gparams : GridParameters class</span>
+<span class="sd">        Contains grid and potential information.   </span>
+<span class="sd">        </span>
+<span class="sd">    Keyword Arguments</span>
+<span class="sd">    -----------------</span>
+<span class="sd">    n_sols: int, optional</span>
+<span class="sd">        Number of eigenvectors and eigenenergies to return. The default is 1.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    eig_ens : complex 1D array</span>
+<span class="sd">        Lowest eigenenergies sorted in ascending order.</span>
+<span class="sd">    eig_vecs : complex 2D array</span>
+<span class="sd">        Corresponding eigenvectors in natural order format. eig_vecs[:,i] is </span>
+<span class="sd">        the eigenvector for eigenvalue eig_ens[i].</span>
+<span class="sd">        </span>
+
+<span class="sd">    &#39;&#39;&#39;</span>
+    
+    <span class="c1"># Determine if a 1D or 2D grid and build the respective Hamiltonian</span>
+    <span class="k">if</span> <span class="n">gparams</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s1">&#39;1D&#39;</span><span class="p">:</span>
+        <span class="n">hamiltonian</span> <span class="o">=</span> <span class="n">build_1DSE_hamiltonian</span><span class="p">(</span><span class="n">consts</span><span class="p">,</span> <span class="n">gparams</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">gparams</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s1">&#39;2D&#39;</span><span class="p">:</span>
+        <span class="n">hamiltonian</span> <span class="o">=</span> <span class="n">build_2DSE_hamiltonian</span><span class="p">(</span><span class="n">consts</span><span class="p">,</span> <span class="n">gparams</span><span class="p">)</span>   
+        
+    <span class="c1"># Solve the schrodinger equation (eigenvalue problem)</span>
+    <span class="n">eig_ens</span><span class="p">,</span> <span class="n">eig_vecs</span> <span class="o">=</span> <span class="n">eigs</span><span class="p">(</span><span class="n">hamiltonian</span><span class="o">.</span><span class="n">tocsc</span><span class="p">(),</span> <span class="n">k</span><span class="o">=</span><span class="n">n_sols</span><span class="p">,</span> <span class="n">M</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                           <span class="n">sigma</span><span class="o">=</span><span class="n">gparams</span><span class="o">.</span><span class="n">potential</span><span class="o">.</span><span class="n">min</span><span class="p">())</span>
+    
+    <span class="c1"># Sort the eigenvalues in ascending order (if not already)</span>
+    <span class="n">idx</span> <span class="o">=</span> <span class="n">eig_ens</span><span class="o">.</span><span class="n">argsort</span><span class="p">()</span>   
+    <span class="n">eig_ens</span> <span class="o">=</span> <span class="n">eig_ens</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+    <span class="n">eig_vecs</span> <span class="o">=</span> <span class="n">eig_vecs</span><span class="p">[:,</span><span class="n">idx</span><span class="p">]</span>
+    
+    <span class="c1"># Normalize the wavefunctions and convert to meshgrid format if it&#39;s a 2D</span>
+    <span class="c1"># grid system</span>
+    <span class="k">if</span> <span class="n">gparams</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s1">&#39;2D&#39;</span><span class="p">:</span>
+        <span class="n">eig_vecs_mesh</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">gparams</span><span class="o">.</span><span class="n">ny</span><span class="p">,</span> <span class="n">gparams</span><span class="o">.</span><span class="n">nx</span><span class="p">,</span> <span class="n">n_sols</span><span class="p">),</span>
+                                 <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_sols</span><span class="p">):</span>
+        <span class="n">curr_wf</span> <span class="o">=</span> <span class="n">eig_vecs</span><span class="p">[:,</span><span class="n">idx</span><span class="p">]</span>
+        
+        <span class="k">if</span> <span class="n">gparams</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s1">&#39;1D&#39;</span><span class="p">:</span>
+            <span class="n">norm_val</span> <span class="o">=</span> <span class="n">inner_prod</span><span class="p">(</span><span class="n">gparams</span><span class="p">,</span> <span class="n">curr_wf</span><span class="p">,</span> <span class="n">curr_wf</span><span class="p">)</span>
+        
+            <span class="n">eig_vecs</span><span class="p">[:,</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">curr_wf</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">norm_val</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">gparams</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s1">&#39;2D&#39;</span><span class="p">:</span>
+            <span class="n">norm_val</span> <span class="o">=</span> <span class="n">inner_prod</span><span class="p">(</span><span class="n">gparams</span><span class="p">,</span> <span class="n">gparams</span><span class="o">.</span><span class="n">convert_NO_to_MG</span><span class="p">(</span>
+                <span class="n">curr_wf</span><span class="p">),</span> <span class="n">gparams</span><span class="o">.</span><span class="n">convert_NO_to_MG</span><span class="p">(</span><span class="n">curr_wf</span><span class="p">))</span>
+        
+            <span class="n">curr_wf</span> <span class="o">=</span> <span class="n">curr_wf</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">norm_val</span><span class="p">)</span>
+            
+            <span class="n">eig_vecs_mesh</span><span class="p">[:,:,</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">gparams</span><span class="o">.</span><span class="n">convert_NO_to_MG</span><span class="p">(</span><span class="n">curr_wf</span><span class="p">)</span>
+            
+    <span class="k">if</span> <span class="n">gparams</span><span class="o">.</span><span class="n">grid_type</span> <span class="o">==</span> <span class="s2">&quot;2D&quot;</span><span class="p">:</span>
+        <span class="n">eig_vecs</span> <span class="o">=</span> <span class="n">eig_vecs_mesh</span>
+    
+    <span class="k">return</span> <span class="n">eig_ens</span><span class="p">,</span> <span class="n">eig_vecs</span></div>
+
+
+        
+
+    
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Zach D. Merino.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

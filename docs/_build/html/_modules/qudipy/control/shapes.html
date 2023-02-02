@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>qudipy.control.shapes &mdash; QuDiPy Documentation 1.0.0 documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/language_data.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> QuDiPy Documentation
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">QuDiPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">qudipy.control.shapes</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for qudipy.control.shapes</h1><div class="highlight"><pre>
+<span></span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Module with a library of functions that define pulse shapes. </span>
+<span class="sd">    Each of them returns a shape function that gives the pulse value(s)</span>
+<span class="sd">    when applied on the desired value(s) of time.</span>
+<span class="sd">&#39;&#39;&#39;</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">scipy.special</span> <span class="kn">import</span> <span class="n">erf</span>
+
+<div class="viewcode-block" id="square"><a class="viewcode-back" href="../../../qudipy.control.html#qudipy.control.shapes.square">[docs]</a><span class="k">def</span> <span class="nf">square</span><span class="p">(</span><span class="n">t_start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">t_end</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">amp</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Creates a square pulse of amplitude amp and that continues</span>
+<span class="sd">        from t_start until t_end. The offset value before and after the pulse </span>
+<span class="sd">        can be also specified.</span>
+<span class="sd">        Convenient for defining pulses in terms of </span>
+<span class="sd">        normalized time tau = (t-t_start) / (t_end - t_start), as 0&lt;=tau&lt;=1, </span>
+<span class="sd">        which corresponds to the default values.</span>
+
+<span class="sd">        Keyword Arguments</span>
+<span class="sd">        -----------------</span>
+<span class="sd">        t_start: float</span>
+<span class="sd">            Time point at which the pulse begins. Default is 0.</span>
+<span class="sd">        t_end: float</span>
+<span class="sd">            Time point at which the pulse ends. Default is 1. </span>
+<span class="sd">        amp: float</span>
+<span class="sd">            Amplitude of the pulse. Default is 1.</span>
+<span class="sd">        offset: float</span>
+<span class="sd">            Default value of a control variable before and after the pulse.</span>
+<span class="sd">            Default is 0. </span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        square_pulse: function</span>
+<span class="sd">            Function that defines a square pulse when applied to the desired</span>
+<span class="sd">            time values</span>
+<span class="sd">            </span>
+<span class="sd">        &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">square_pulse</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>    
+        <span class="c1"># making the time input a float array</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Unable to convert </span><span class="si">{type}</span><span class="s2"> object to float array&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">t</span><span class="p">)))</span>
+
+        <span class="c1"># creating a pulse with offset values at all times first</span>
+        <span class="n">pulse_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">offset</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+
+        <span class="c1"># selecting the time points that lie within the pulse</span>
+        <span class="n">pulse_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">greater_equal</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">t_start</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">np</span><span class="o">.</span><span class="n">less_equal</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">t_end</span><span class="p">)</span>
+        <span class="n">pulse_arr</span><span class="p">[</span><span class="n">pulse_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">amp</span>
+        <span class="k">return</span> <span class="n">pulse_arr</span>
+
+    <span class="k">return</span> <span class="n">square_pulse</span></div>
+
+<div class="viewcode-block" id="triangle"><a class="viewcode-back" href="../../../qudipy.control.html#qudipy.control.shapes.triangle">[docs]</a><span class="k">def</span> <span class="nf">triangle</span><span class="p">(</span><span class="n">t_start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">t_end</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">amp</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Creates a symmetric triangular pulse of amplitude amp and that continues</span>
+<span class="sd">        from t_start until t_end. The pulse starts and ends at a constant value</span>
+<span class="sd">        of offset.</span>
+<span class="sd">        Convenient for defining pulses in terms of </span>
+<span class="sd">        normalized time tau = (t-t_start) / (t_end - t_start), as 0&lt;=tau&lt;=1, </span>
+<span class="sd">        which corresponds to the default values.</span>
+
+<span class="sd">        Keyword Arguments</span>
+<span class="sd">        -----------------</span>
+<span class="sd">        t_start: float</span>
+<span class="sd">            Time point at which the pulse begins. Default is 0.</span>
+<span class="sd">        t_end: float</span>
+<span class="sd">            Time point at which the pulse ends. Default is 1. </span>
+<span class="sd">        amp: float</span>
+<span class="sd">            Amplitude of the pulse. Default is 1.</span>
+<span class="sd">        offset: float</span>
+<span class="sd">            Default value of a control variable before and after the pulse.</span>
+<span class="sd">            Default is 0. </span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        square_pulse: function</span>
+<span class="sd">            Function that defines a triangular pulse when applied to the desired</span>
+<span class="sd">            time values.</span>
+<span class="sd"> </span>
+<span class="sd">        &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">triangular_pulse</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>    
+        <span class="c1"># making the time input a float array</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Unable to convert </span><span class="si">{type}</span><span class="s2"> object to float array&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">t</span><span class="p">)))</span>
+
+        <span class="c1"># creating a pulse with offset values at all times first</span>
+        <span class="n">pulse_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">offset</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+
+        <span class="c1"># selecting the time points that lie within the rising and falling edges</span>
+        <span class="n">t_center</span> <span class="o">=</span> <span class="p">(</span><span class="n">t_start</span> <span class="o">+</span> <span class="n">t_end</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="n">rising_edge_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">greater_equal</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">t_start</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">np</span><span class="o">.</span><span class="n">less_equal</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">t_center</span><span class="p">)</span>
+        <span class="n">falling_edge_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">greater</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">t_center</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">np</span><span class="o">.</span><span class="n">less_equal</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">t_end</span><span class="p">)</span>
+
+        <span class="n">t_rising</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="n">rising_edge_mask</span><span class="p">]</span>
+        <span class="n">t_falling</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="n">falling_edge_mask</span><span class="p">]</span>
+        <span class="n">pulse_arr</span><span class="p">[</span><span class="n">rising_edge_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">offset</span> <span class="o">+</span> <span class="p">((</span><span class="n">amp</span> <span class="o">-</span> <span class="n">offset</span><span class="p">)</span> <span class="o">*</span> 
+                                <span class="p">(</span><span class="n">t_rising</span> <span class="o">-</span> <span class="n">t_start</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">t_center</span> <span class="o">-</span> <span class="n">t_start</span><span class="p">))</span>
+
+        <span class="n">pulse_arr</span><span class="p">[</span><span class="n">falling_edge_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">offset</span> <span class="o">+</span> <span class="p">((</span><span class="n">amp</span> <span class="o">-</span> <span class="n">offset</span><span class="p">)</span> <span class="o">*</span>  
+                               <span class="p">(</span><span class="n">t_end</span> <span class="o">-</span> <span class="n">t_falling</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">t_end</span> <span class="o">-</span> <span class="n">t_center</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">pulse_arr</span>
+
+    <span class="k">return</span> <span class="n">triangular_pulse</span></div>
+
+
+<div class="viewcode-block" id="shifted_gauss"><a class="viewcode-back" href="../../../qudipy.control.html#qudipy.control.shapes.shifted_gauss">[docs]</a><span class="k">def</span> <span class="nf">shifted_gauss</span><span class="p">(</span><span class="n">t_start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">t_end</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">amp</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="mf">0.1</span> <span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Creates a Gaussian pulse of amplitude amp and relative width</span>
+<span class="sd">        sigma that lasts from t_start until t_end. The pulse is shifted and </span>
+<span class="sd">        scaled vertically so that the pulse values at the beginning and </span>
+<span class="sd">        at the end are equal to offset. </span>
+
+<span class="sd">        Convenient for defining pulses in terms of </span>
+<span class="sd">        normalized time tau = (t-t_start) / (t_end - t_start), as 0&lt;=tau&lt;=1, </span>
+<span class="sd">        which corresponds to the default values.</span>
+
+<span class="sd">        Keyword Arguments</span>
+<span class="sd">        -----------------</span>
+<span class="sd">        t_start: float</span>
+<span class="sd">            Time point at which the pulse begins. Default is 0.</span>
+<span class="sd">        t_send: float</span>
+<span class="sd">            Time point at which the pulse ends. Default is 1. </span>
+<span class="sd">        amp: float</span>
+<span class="sd">            Amplitude of the pulse. Default is 1. </span>
+<span class="sd">        offset: float</span>
+<span class="sd">            The shift of the Gaussian function vertically; corresponds to the</span>
+<span class="sd">            value of the pulse at t_start and t_end. Assumed to be constant</span>
+<span class="sd">            before and after the pulse. Default is 0.</span>
+<span class="sd">        sigma: float</span>
+<span class="sd">            Half-width of the pulse (in units of time). Default is 0.1.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        shifted_gauss_pulse: function</span>
+<span class="sd">            Function that defines a shifted Gaussian pulse when applied </span>
+<span class="sd">            to the desired time value(s)</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">shifted_gauss_pulse</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
+
+        <span class="c1"># making the time input a float array</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span><span class="nb">float</span><span class="p">,</span><span class="nb">list</span><span class="p">,</span><span class="nb">tuple</span><span class="p">,</span><span class="nb">range</span><span class="p">)):</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="c1"># switching to dimensionless units for convenience</span>
+        <span class="n">tau</span> <span class="o">=</span> <span class="p">(</span><span class="n">t</span> <span class="o">-</span> <span class="n">t_start</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">t_end</span> <span class="o">-</span> <span class="n">t_start</span><span class="p">)</span>
+        <span class="n">sig</span> <span class="o">=</span> <span class="n">sigma</span> <span class="o">/</span> <span class="p">(</span><span class="n">t_end</span> <span class="o">-</span> <span class="n">t_start</span><span class="p">)</span>
+
+        <span class="c1"># creating a pulse with offset values at all times first</span>
+        <span class="n">pulse_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">offset</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="c1"># selecting the time points that lie within the pulse</span>
+        <span class="n">pulse_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">greater_equal</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">t_start</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">np</span><span class="o">.</span><span class="n">less_equal</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">t_end</span><span class="p">)</span>
+        <span class="n">tau_masked</span> <span class="o">=</span> <span class="n">tau</span><span class="p">[</span><span class="n">pulse_mask</span><span class="p">]</span>
+
+        <span class="c1"># calculating and setting the correct values during the pulse</span>
+        <span class="n">num</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span> <span class="o">-</span><span class="p">(</span><span class="n">tau_masked</span><span class="o">-</span><span class="mf">0.5</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">sig</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span>
+                        <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mi">8</span> <span class="o">*</span> <span class="n">sig</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)))</span>
+        <span class="n">denom</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span> <span class="o">/</span><span class="p">(</span><span class="mi">8</span> <span class="o">*</span> <span class="n">sig</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span>
+
+        <span class="n">pulse_arr</span><span class="p">[</span><span class="n">pulse_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">offset</span> <span class="o">+</span> <span class="p">(</span><span class="n">amp</span> <span class="o">-</span> <span class="n">offset</span><span class="p">)</span> <span class="o">*</span> <span class="n">num</span> <span class="o">/</span> <span class="n">denom</span>
+
+        <span class="k">return</span> <span class="n">pulse_arr</span>
+    <span class="k">return</span> <span class="n">shifted_gauss_pulse</span></div>
+
+<span class="c1">############# Normalized shape functions</span>
+
+<div class="viewcode-block" id="gauss_normalized"><a class="viewcode-back" href="../../../qudipy.control.html#qudipy.control.shapes.gauss_normalized">[docs]</a><span class="k">def</span> <span class="nf">gauss_normalized</span><span class="p">(</span><span class="n">t_start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">t_end</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="mf">0.1</span> <span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Creates a Gaussian pulse of relative width</span>
+<span class="sd">    sigma that lasts from t_start until t_end. The pulse is shifted and </span>
+<span class="sd">    scaled vertically so that the pulse values at the beginning and </span>
+<span class="sd">    at the end are equal to zero. Pulse is normalized so that its average value</span>
+<span class="sd">    is equal to 1.  </span>
+
+<span class="sd">    Convenient for defining pulses in terms of </span>
+<span class="sd">    normalized time tau = (t-t_start) / (t_end - t_start), as 0&lt;=tau&lt;=1, </span>
+<span class="sd">    which corresponds to the default values.</span>
+<span class="sd">    </span>
+
+<span class="sd">    Keyword Arguments</span>
+<span class="sd">    -----------------</span>
+<span class="sd">    t_start: float</span>
+<span class="sd">        Time point at which the pulse begins. Default is 0.</span>
+<span class="sd">    t_send: float</span>
+<span class="sd">        Time point at which the pulse ends. Default is 1. </span>
+<span class="sd">    sigma: float</span>
+<span class="sd">        Half-width of the pulse (in units of time). Default is 0.1.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    shifted_gauss_pulse: function</span>
+<span class="sd">        Function that defines a shifted Gaussian pulse when applied </span>
+<span class="sd">        to the desired time value(s)</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">norm_gauss_pulse</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
+
+        <span class="c1"># making the time input a float array</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span><span class="nb">float</span><span class="p">,</span><span class="nb">list</span><span class="p">,</span><span class="nb">tuple</span><span class="p">,</span><span class="nb">range</span><span class="p">)):</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="c1"># switching to dimensionless units for convenience</span>
+        <span class="n">tau</span> <span class="o">=</span> <span class="p">(</span><span class="n">t</span> <span class="o">-</span> <span class="n">t_start</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">t_end</span> <span class="o">-</span> <span class="n">t_start</span><span class="p">)</span>
+        <span class="n">sig</span> <span class="o">=</span> <span class="n">sigma</span> 
+
+        <span class="c1"># creating a pulse with offset values at all times first</span>
+        <span class="n">pulse_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="c1"># selecting the time points that lie within the pulse</span>
+        <span class="n">pulse_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">greater_equal</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">t_start</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">np</span><span class="o">.</span><span class="n">less_equal</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">t_end</span><span class="p">)</span>
+        <span class="n">tau_masked</span> <span class="o">=</span> <span class="n">tau</span><span class="p">[</span><span class="n">pulse_mask</span><span class="p">]</span>
+
+        <span class="c1"># calculating and setting the correct values during the pulse</span>
+        <span class="n">pulse</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span> <span class="o">-</span><span class="p">(</span><span class="n">tau_masked</span><span class="o">-</span><span class="mf">0.5</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">sig</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span>
+                        <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mi">8</span> <span class="o">*</span> <span class="n">sig</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)))</span>
+        <span class="n">norm</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="o">*</span> <span class="n">sig</span> <span class="o">*</span> <span class="n">erf</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">sig</span><span class="p">))</span>
+                                                   <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span> <span class="o">/</span><span class="p">(</span><span class="mi">8</span> <span class="o">*</span> <span class="n">sig</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)))</span>
+
+        <span class="n">pulse_arr</span><span class="p">[</span><span class="n">pulse_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">pulse</span> <span class="o">/</span> <span class="n">norm</span>
+
+        <span class="k">return</span> <span class="n">pulse_arr</span>
+    <span class="k">return</span> <span class="n">norm_gauss_pulse</span></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span><span class="o">==</span><span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Creating a Gaussian pulse:&#39;</span><span class="p">)</span>
+    <span class="n">gauss_pulse</span> <span class="o">=</span> <span class="n">shifted_gauss</span><span class="p">(</span><span class="n">t_start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">t_end</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">amp</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">times</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">20</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Pulse: &#39;</span><span class="p">,</span> <span class="n">gauss_pulse</span><span class="p">(</span><span class="n">times</span><span class="p">))</span>
+    <span class="c1"># import matplotlib.pyplot as plt</span>
+    <span class="c1"># plt.plot(times, gauss_pulse(times))</span>
+    
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Zach D. Merino.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>qudipy.dot_array.dots &mdash; QuDiPy Documentation 1.0.0 documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/language_data.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> QuDiPy Documentation
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">QuDiPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">qudipy.dot_array.dots</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for qudipy.dot_array.dots</h1><div class="highlight"><pre>
+<span></span>
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">itertools</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">pickle</span> <span class="k">as</span> <span class="nn">pk</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">compress</span>
+
+<span class="c1"># python modules</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">IPython.core.pylabtools</span> <span class="kn">import</span> <span class="n">figsize</span>
+<span class="kn">from</span> <span class="nn">scipy.interpolate</span> <span class="kn">import</span> <span class="n">LinearNDInterpolator</span>
+<span class="kn">from</span> <span class="nn">scipy.signal</span> <span class="kn">import</span> <span class="n">find_peaks</span>
+<span class="kn">from</span> <span class="nn">tqdm</span> <span class="kn">import</span> <span class="n">tqdm</span>
+
+<span class="kn">import</span> <span class="nn">qudipy.exchange</span> <span class="k">as</span> <span class="nn">ex</span>
+<span class="kn">import</span> <span class="nn">qudipy.potential</span> <span class="k">as</span> <span class="nn">pot</span>
+<span class="kn">import</span> <span class="nn">qudipy.qutils</span> <span class="k">as</span> <span class="nn">qt</span>
+<span class="kn">import</span> <span class="nn">qudipy.starkshift</span> <span class="k">as</span> <span class="nn">ss</span>
+<span class="c1"># QuDiPy modules</span>
+<span class="kn">import</span> <span class="nn">qudipy.utils.helpers</span> <span class="k">as</span> <span class="nn">hp</span>
+<span class="kn">from</span> <span class="nn">qudipy.utils.constants</span> <span class="kn">import</span> <span class="n">Constants</span>
+
+
+<div class="viewcode-block" id="DotArray"><a class="viewcode-back" href="../../../qudipy.dot_array.html#qudipy.dot_array.dots.DotArray">[docs]</a><span class="k">class</span> <span class="nc">DotArray</span><span class="p">:</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    </span>
+<span class="sd">    This class is designed to process the potential landscape data set for a </span>
+<span class="sd">    given device dot geometry to exctract various meta data or effective </span>
+<span class="sd">    parameters.</span>
+
+<span class="sd">    Example: find the the number of dots for the potential lanscape dataset and </span>
+<span class="sd">    then calculate the g-factor deviation for each dot and exchange for all</span>
+<span class="sd">    pars of adjacent dots.</span>
+
+<span class="sd">    Atributes</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    &#39;&#39;&#39;</span>
+<div class="viewcode-block" id="DotArray.singleton"><a class="viewcode-back" href="../../../qudipy.dot_array.html#qudipy.dot_array.dots.DotArray.singleton">[docs]</a>    <span class="k">def</span> <span class="nf">singleton</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctrl_vals</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Identify singleton dimensions and return boolean mask</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">ctrl_vals</span><span class="p">)))</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">dim</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">ctrl_vals</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">dim</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">mask</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+
+        <span class="n">mask</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">bool</span><span class="p">,</span><span class="n">mask</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">mask</span></div>
+
+<div class="viewcode-block" id="DotArray.nosingleton"><a class="viewcode-back" href="../../../qudipy.dot_array.html#qudipy.dot_array.dots.DotArray.nosingleton">[docs]</a>    <span class="k">def</span> <span class="nf">nosingleton</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctrl_vals</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Remove single dimensional data</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">singleton</span><span class="p">(</span><span class="n">ctrl_vals</span><span class="p">)</span>
+
+        <span class="n">new_coords</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">compress</span><span class="p">(</span><span class="n">ctrl_vals</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">))</span>
+        <span class="n">new_names</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">compress</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ctrl_names</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">))</span>
+
+        <span class="c1"># return new_response, new_coords, self.mask</span>
+        <span class="k">return</span> <span class="n">new_coords</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">new_names</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">precalculated_dir</span><span class="p">,</span> <span class="n">data_dir</span><span class="p">,</span> <span class="n">preprocessed_dir</span><span class="p">,</span> <span class="n">n_dots</span><span class="p">,</span>
+                    <span class="n">ctrl_names</span><span class="p">,</span> <span class="n">ctrl_vals</span><span class="p">,</span> <span class="n">file_prefix</span><span class="o">=</span><span class="s1">&#39;dots_data&#39;</span><span class="p">,</span> 
+                        <span class="n">calc_eff</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">pts</span><span class="o">=</span><span class="p">[</span><span class="mi">6</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">6</span><span class="p">]):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Initializes the Dots class object.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        precalculated_dir: string</span>
+<span class="sd">            Data directory where pre-calculated data is stored/saved.</span>
+<span class="sd">        data_dir: string</span>
+<span class="sd">            Directory where nextnano raw data is save</span>
+<span class="sd">        preprocessed_dir: string</span>
+<span class="sd">            Directory where 2D slices are loaded from or saved too.</span>
+<span class="sd">        n_dots: int</span>
+<span class="sd">            Expected number of dots in the system</span>
+<span class="sd">        ctrl_names: list</span>
+<span class="sd">            list of all control names from nextnano input script.</span>
+<span class="sd">        ctrl_vals: list of 1d arrays</span>
+<span class="sd">            list of control values for all control names</span>
+<span class="sd">        </span>
+<span class="sd">        Keyword Arguments</span>
+<span class="sd">        -----------------</span>
+<span class="sd">        file_prefix: string</span>
+<span class="sd">            Prefix added to saved/loaded files </span>
+<span class="sd">        calc_eff: bool</span>
+<span class="sd">            Trigger the calculation of effective parameters.</span>
+<span class="sd">        save: bool</span>
+<span class="sd">            Save 2D potential slices to Pre-processed directory.</span>
+<span class="sd">        pts: list</span>
+<span class="sd">            Number of interpolation points per control name.</span>
+<span class="sd">   </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">precalculated_dir</span> <span class="o">=</span> <span class="n">precalculated_dir</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_dir</span> <span class="o">=</span> <span class="n">data_dir</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">preprocessed_dir</span> <span class="o">=</span> <span class="n">preprocessed_dir</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_dots</span> <span class="o">=</span> <span class="n">n_dots</span>        
+        <span class="c1"># indices of accessible dots: will change when the object </span>
+        <span class="c1"># is split or sliced</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">visible_dots</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_dots</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_names</span> <span class="o">=</span> <span class="n">ctrl_names</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_vals</span> <span class="o">=</span> <span class="n">ctrl_vals</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">file_prefix</span> <span class="o">=</span> <span class="n">file_prefix</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">calc_eff</span> <span class="o">=</span>  <span class="n">calc_eff</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save</span> <span class="o">=</span> <span class="n">save</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pts</span> <span class="o">=</span> <span class="n">pts</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">csts</span> <span class="o">=</span> <span class="n">Constants</span><span class="p">(</span><span class="s1">&#39;Si/SiO2&#39;</span><span class="p">)</span>
+
+        <span class="c1"># getting potential information </span>
+        <span class="c1"># create file path for potential precalculated data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eff_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">precalculated_dir</span><span class="p">,</span>
+                                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">file_prefix</span><span class="si">}</span><span class="s2">_eff_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">pts</span><span class="si">}</span><span class="s2">.pkl&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">pot_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">precalculated_dir</span><span class="p">,</span>
+                                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">file_prefix</span><span class="si">}</span><span class="s2">_pot_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">pts</span><span class="si">}</span><span class="s2">.pkl&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pot_int_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">precalculated_dir</span><span class="p">,</span>
+                                                    <span class="sa">f</span><span class="s2">&quot;pot_dict_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">pts</span><span class="si">}</span><span class="s2">.pkl&quot;</span><span class="p">)</span>
+        
+        <span class="c1">#create pickle file if it doesn&#39;t exist already</span>
+        <span class="c1"># Importing potential data or pre-calculated potential variable</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pot_file</span><span class="p">):</span>
+            <span class="n">potential</span> <span class="o">=</span> <span class="n">pot</span><span class="o">.</span><span class="n">process_nextnano</span><span class="o">.</span><span class="n">import_dir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_dir</span><span class="p">,</span> <span class="n">show_files</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Done&#39;</span><span class="p">)</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pot_file</span><span class="p">,</span><span class="s2">&quot;wb&quot;</span><span class="p">)</span>
+            <span class="c1"># write the python object (dict) to pickle file</span>
+            <span class="n">pk</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">potential</span><span class="p">,</span><span class="n">f</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">file_to_read</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pot_file</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span>
+            <span class="n">potential</span> <span class="o">=</span> <span class="n">pk</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">file_to_read</span><span class="p">)</span>
+
+        <span class="c1"># Desired Slice</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.2</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">nearest_slice</span> <span class="o">=</span> <span class="n">hp</span><span class="o">.</span><span class="n">find_nearest</span><span class="p">(</span><span class="n">potential</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;coord&#39;</span><span class="p">][</span><span class="s1">&#39;z&#39;</span><span class="p">],</span> <span class="n">z</span><span class="p">)</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;The nearest slice for z = </span><span class="si">{</span><span class="n">z</span><span class="si">}</span><span class="s1"> is: </span><span class="si">{</span><span class="n">nearest_slice</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="c1"># Specifying control values and names</span>
+        <span class="n">pot_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">preprocessed_dir</span> <span class="o">+</span> \
+                    <span class="s1">&#39;_for_nearest_slice</span><span class="si">{:.3e}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">nearest_slice</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;/&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_vals_nn</span> <span class="o">=</span> <span class="n">pot</span><span class="o">.</span><span class="n">process_nextnano</span><span class="o">.</span><span class="n">get_ctrl_vals</span><span class="p">(</span><span class="n">potential</span><span class="p">)</span> 
+                                <span class="c1"># Must make sure that ctrl_vals are sorted</span>
+        
+        <span class="c1"># Now we define the field types we wish to write 2D slices for: </span>
+        <span class="c1"># either potential or the electric field.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">save</span><span class="p">:</span>
+            <span class="n">pot</span><span class="o">.</span><span class="n">process_nextnano</span><span class="o">.</span><span class="n">write_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_dir</span><span class="p">,</span> 
+                <span class="bp">self</span><span class="o">.</span><span class="n">preprocessed_dir</span><span class="p">,</span> <span class="nb">slice</span><span class="o">=</span><span class="n">z</span><span class="p">,</span> <span class="n">f_type</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;potential&#39;</span><span class="p">,</span><span class="s1">&#39;field&#39;</span><span class="p">])</span>
+
+        <span class="n">loaded_data_pot</span> <span class="o">=</span> <span class="n">pot</span><span class="o">.</span><span class="n">load_potentials</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ctrl_vals_nn</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_names</span><span class="p">,</span>
+                                        <span class="n">f_type</span><span class="o">=</span><span class="s1">&#39;pot&#39;</span><span class="p">,</span> <span class="n">f_dir</span><span class="o">=</span><span class="n">pot_dir</span><span class="p">,</span>
+                                        <span class="n">f_dis_units</span><span class="o">=</span><span class="s1">&#39;nm&#39;</span><span class="p">,</span> <span class="n">f_pot_units</span><span class="o">=</span><span class="s1">&#39;V&#39;</span><span class="p">)</span>
+
+        <span class="n">loaded_data_field</span> <span class="o">=</span> <span class="n">pot</span><span class="o">.</span><span class="n">load_potentials</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ctrl_vals_nn</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_names</span><span class="p">,</span>
+                                        <span class="n">f_type</span><span class="o">=</span><span class="s1">&#39;electric&#39;</span><span class="p">,</span> <span class="n">f_dir</span><span class="o">=</span><span class="n">pot_dir</span><span class="p">,</span>
+                                        <span class="n">f_dis_units</span><span class="o">=</span><span class="s1">&#39;nm&#39;</span><span class="p">,</span> <span class="n">f_pot_units</span><span class="o">=</span><span class="s1">&#39;V/nm&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">potential_data</span> <span class="o">=</span> <span class="n">loaded_data_pot</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">e_field_data</span> <span class="o">=</span> <span class="n">loaded_data_field</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">potential</span> <span class="o">=</span> <span class="n">pot</span><span class="o">.</span><span class="n">build_interpolator</span><span class="p">(</span><span class="n">loaded_data_pot</span><span class="p">,</span> 
+                                                        <span class="n">constants</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">csts</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">e_field</span> <span class="o">=</span> <span class="n">pot</span><span class="o">.</span><span class="n">build_interpolator</span><span class="p">(</span><span class="n">loaded_data_field</span><span class="p">,</span> 
+                                                        <span class="n">constants</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">csts</span><span class="p">)</span>
+
+        <span class="c1"># potential interpolator of the unmasked system: never gets modified</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">potential_unmasked</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">potential</span><span class="p">)</span>
+        <span class="c1"># self.e_field_unmasked = copy.deepcopy(self.e_field)</span>
+
+        <span class="c1"># coordinate values</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">potential</span><span class="p">)</span><span class="o">.</span><span class="n">x_coords</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">potential</span><span class="p">)</span><span class="o">.</span><span class="n">y_coords</span>
+
+        <span class="c1"># remove any singleton dimensions</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_vals</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nosingleton</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ctrl_vals</span><span class="p">)</span>
+
+<div class="viewcode-block" id="DotArray.split"><a class="viewcode-back" href="../../../qudipy.dot_array.html#qudipy.dot_array.dots.DotArray.split">[docs]</a>    <span class="k">def</span> <span class="nf">split</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="s1">&#39;single&#39;</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Method that defines new Dots objects where potentials of quantum dots </span>
+<span class="sd">        are separated either individually or as pairs.</span>
+<span class="sd">    </span>
+<span class="sd">        Each of the new Dots object inherits the potential and </span>
+<span class="sd">        electric field data from the parent object, </span>
+<span class="sd">        but the interpolating function changes: when called, the potential </span>
+<span class="sd">        landscape appears to have only one dot (or one pair)</span>
+<span class="sd">        </span>
+<span class="sd">        Keyword Arguments</span>
+<span class="sd">        -----------------</span>
+<span class="sd">        group: string</span>
+<span class="sd">            Whether to get a list of individual dots (&#39;single&#39;/&#39;singles&#39;), </span>
+<span class="sd">            or a list of adjacent dot pairs (&#39;pair&#39;/&#39;pairs&#39;)</span>
+<span class="sd">           </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        split_dots: list </span>
+<span class="sd">            list of Dots objects corresponding to individual dots or their pairs</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="c1"># below, updating interpolator functionality for each subgroup of dots</span>
+        <span class="k">if</span> <span class="n">group</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;single&#39;</span><span class="p">,</span> <span class="s1">&#39;singles&#39;</span><span class="p">):</span>
+                
+            <span class="c1"># determine the number of dot subgroups</span>
+            <span class="n">n_subgroups</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">visible_dots</span><span class="p">)</span>
+
+            <span class="c1"># i=i is needed because it&#39;s essentially a nested </span>
+            <span class="c1"># list comprehension: with i=i, lambda uses the variable from</span>
+            <span class="c1"># the local scope</span>
+            <span class="n">dot_interps</span> <span class="o">=</span> <span class="p">[(</span><span class="k">lambda</span> <span class="n">ctrl_vals</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="n">i</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_separator</span><span class="p">(</span><span class="n">ctrl_vals</span><span class="p">)[</span><span class="n">i</span><span class="p">])</span>
+                                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_subgroups</span><span class="p">)]</span>
+            <span class="n">visible_dots</span> <span class="o">=</span> <span class="p">[[</span><span class="n">n</span><span class="p">]</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_subgroups</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span>
+
+        <span class="k">elif</span> <span class="n">group</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;pair&#39;</span><span class="p">,</span> <span class="s1">&#39;pairs&#39;</span><span class="p">):</span>
+            
+            <span class="n">n_subgroups</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">visible_dots</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+            <span class="c1"># individual dot potentials are overlayed by taking element-wise </span>
+            <span class="c1"># minima of the arrays</span>
+            <span class="n">dot_interps</span> <span class="o">=</span> <span class="p">[(</span><span class="k">lambda</span> <span class="n">ctrl_vals</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="n">i</span><span class="p">:</span> 
+                    <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_separator</span><span class="p">(</span><span class="n">ctrl_vals</span><span class="p">)[</span><span class="n">i</span><span class="p">],</span> 
+                                    <span class="bp">self</span><span class="o">.</span><span class="n">_separator</span><span class="p">(</span><span class="n">ctrl_vals</span><span class="p">)[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]))</span>
+                                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_subgroups</span><span class="p">)]</span>
+            <span class="n">visible_dots</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_subgroups</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> 
+                                    <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">n_subgroups</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)))</span>
+        
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Please specify a correct key for splitting &#39;</span>
+                                <span class="s1">&#39;type: single(s) or pair(s)&#39;</span><span class="p">)</span>
+
+        <span class="c1"># creating new identical Dots objects corresponding to </span>
+        <span class="c1"># the subgroups of dots</span>
+        <span class="n">split_dots</span> <span class="o">=</span> <span class="p">[</span><span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_subgroups</span><span class="p">)]</span>
+
+        <span class="c1"># updating self.potential.__call__() function, and self.visible_dots</span>
+        <span class="c1"># for each subgroup</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">dot</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">split_dots</span><span class="p">):</span>
+            <span class="n">dot</span><span class="o">.</span><span class="n">potential</span><span class="o">.</span><span class="n">call_method</span> <span class="o">=</span> <span class="n">dot_interps</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+            <span class="n">dot</span><span class="o">.</span><span class="n">visible_dots</span> <span class="o">=</span> <span class="n">visible_dots</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+        
+        <span class="k">return</span> <span class="n">split_dots</span></div>
+ 
+    <span class="k">def</span> <span class="nf">_separator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctrl_vals</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Function that calculates potential landscape for a given </span>
+<span class="sd">        list of voltage configurations, and outputs the landscapes of each </span>
+<span class="sd">        individual dot</span>
+<span class="sd">         </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        -----------------</span>
+<span class="sd">        ctrl_vals: list     #TODO add functionality for list of lists</span>
+<span class="sd">            Voltage configuration to calculate dot subgroup potentials at</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dot_pots: list of 2D float arrays</span>
+<span class="sd">            List of potential landscapes that corresponds to each individual dot</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        
+        <span class="c1"># Potential landscape of the entire dot array</span>
+        <span class="n">array_pot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">potential</span><span class="p">(</span><span class="n">ctrl_vals</span><span class="p">)</span>
+        <span class="c1"># finding maxima along each  horizontal (y=y_i) slice</span>
+        <span class="n">pot_max</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">array_pot</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># Finding local minima and maxima</span>
+        <span class="c1"># find indices of absolute minimum</span>
+        <span class="n">min_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unravel_index</span><span class="p">(</span><span class="n">array_pot</span><span class="o">.</span><span class="n">argmin</span><span class="p">(),</span> <span class="n">array_pot</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="n">y_min_idx</span><span class="p">,</span> <span class="n">x_min_idx</span> <span class="o">=</span> <span class="n">min_idx</span>
+
+        <span class="c1"># 1D slice along y=y_min_idx, where minima/maxima are to be searched for</span>
+        <span class="n">pot_slice</span> <span class="o">=</span>  <span class="n">array_pot</span><span class="p">[</span><span class="n">y_min_idx</span><span class="p">]</span>
+
+        <span class="c1"># minima and maxima</span>
+        <span class="n">maxima</span> <span class="o">=</span> <span class="n">find_peaks</span><span class="p">(</span><span class="n">pot_slice</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">minima</span> <span class="o">=</span> <span class="n">find_peaks</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">pot_slice</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># remove edge maxima if there are any</span>
+        <span class="k">if</span> <span class="n">maxima</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">minima</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+            <span class="n">maxima</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">maxima</span><span class="p">,</span> <span class="mi">0</span> <span class="p">)</span>
+        <span class="k">if</span> <span class="n">maxima</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">minima</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="n">maxima</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">maxima</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># If #(local minima) != n_dots, or #(local maxima) != n_dots -1, </span>
+        <span class="c1"># then quantum dots are not well defined,</span>
+        <span class="c1"># and arrays with np.nans are outputted</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">maxima</span><span class="p">)</span> <span class="o">!=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">visible_dots</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> 
+                            <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">minima</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">visible_dots</span><span class="p">)):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Number of actual dots is&#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">minima</span><span class="p">),</span> 
+            <span class="s1">&#39;-&gt; different from user-specified value&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_dots</span><span class="p">)</span>
+            <span class="n">nan_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">array_pot</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+            <span class="n">dot_pots</span> <span class="o">=</span> <span class="p">[</span><span class="n">nan_array</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">visible_dots</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">dot_pots</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># filling each single dot potential with the maximum values</span>
+            <span class="c1"># along each y-slice</span>
+            <span class="n">single_dot_pot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">pot_max</span><span class="p">,</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">),</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">T</span>
+
+            <span class="c1"># *defining boolean masks that correspond to individual dots*</span>
+            <span class="c1"># mesh of indices along horizontal (x) axis</span>
+            <span class="n">x_idx_mesh</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">))]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">))</span>
+
+            <span class="c1"># index positions of dot boundaries</span>
+            <span class="n">dot_bounds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(([</span><span class="mi">0</span><span class="p">],</span> <span class="n">maxima</span><span class="p">,</span> <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">)]))</span>
+
+            <span class="c1"># building masks of type bound_1 &lt;= index_along_x &lt; bound_2</span>
+            <span class="n">dot_masks</span> <span class="o">=</span> <span class="p">[(</span><span class="n">np</span><span class="o">.</span><span class="n">greater_equal</span><span class="p">(</span><span class="n">x_idx_mesh</span><span class="p">,</span> <span class="n">dot_bounds</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">&amp;</span> 
+                            <span class="n">np</span><span class="o">.</span><span class="n">less_equal</span><span class="p">(</span><span class="n">x_idx_mesh</span><span class="p">,</span> <span class="n">dot_bounds</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]))</span> 
+                                        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dot_bounds</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)]</span>
+            
+            <span class="c1"># make potentials the same as self.potential where dots are localized, </span>
+            <span class="c1"># and keep the rest of the values at value of pot_max</span>
+
+            <span class="n">dot_pots</span> <span class="o">=</span> <span class="p">[</span><span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">single_dot_pot</span><span class="p">)</span> <span class="k">for</span> <span class="n">dot</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">visible_dots</span><span class="p">))]</span> 
+            <span class="k">for</span> <span class="n">dot_pot</span><span class="p">,</span> <span class="n">mask</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">dot_pots</span><span class="p">,</span> <span class="n">dot_masks</span><span class="p">):</span>
+                <span class="n">dot_pot</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">array_pot</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+
+            <span class="k">return</span> <span class="n">dot_pots</span>
+            
+<div class="viewcode-block" id="DotArray.g_factors"><a class="viewcode-back" href="../../../qudipy.dot_array.html#qudipy.dot_array.dots.DotArray.g_factors">[docs]</a>    <span class="k">def</span> <span class="nf">g_factors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctrl_vecs</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Determines g-factors for each dot in the Dots object.</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        -------</span>
+<span class="sd">        ctrl_vals: list of lists</span>
+<span class="sd">            Configuration of control voltages for various voltage vectors in </span>
+<span class="sd">            the voltage state space</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        g_factor_path: 2D float array</span>
+<span class="sd">            Array of the g-factors of each dot for various voltage vectors in </span>
+<span class="sd">            the voltage state space</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="c1"># check if ctrl_vecs is a single voltage state space vector or multiple</span>
+        <span class="n">dim</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">ctrl_vecs</span><span class="p">))</span> 
+        <span class="k">if</span> <span class="n">dim</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># multiple voltage vectors</span>
+            <span class="n">num_vecs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">ctrl_vecs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">g_factor_path</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_vecs</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">visible_dots</span><span class="p">)),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># one voltage vector</span>
+            <span class="n">ctrl_vecs</span> <span class="o">=</span> <span class="p">[</span><span class="n">ctrl_vecs</span><span class="p">]</span>
+            <span class="n">g_factor_path</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">visible_dots</span><span class="p">)),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+            
+
+        <span class="c1"># loop through all list elements containing points in voltage state</span>
+        <span class="c1"># space</span>
+        <span class="k">for</span> <span class="n">vec_idx</span><span class="p">,</span> <span class="n">ctrl_vals</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">ctrl_vecs</span><span class="p">):</span>
+
+            <span class="c1"># number of g-factors is the same as the number of visible dots</span>
+            <span class="n">g_factors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">visible_dots</span><span class="p">),),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+            <span class="n">gparams</span> <span class="o">=</span> <span class="n">pot</span><span class="o">.</span><span class="n">GridParameters</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">)</span>
+
+            <span class="c1"># create Dots objects for individual dots</span>
+            <span class="n">single_dots</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">group</span><span class="o">=</span><span class="s1">&#39;single&#39;</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">dot</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">single_dots</span><span class="p">):</span>
+                <span class="n">gparams</span><span class="o">.</span><span class="n">update_potential</span><span class="p">(</span><span class="n">dot</span><span class="o">.</span><span class="n">potential</span><span class="p">(</span><span class="n">ctrl_vals</span><span class="p">))</span>
+                <span class="c1"># evaluating ground state wavefunction</span>
+                <span class="n">_</span><span class="p">,</span> <span class="n">e_vecsr</span> <span class="o">=</span> <span class="n">qt</span><span class="o">.</span><span class="n">solvers</span><span class="o">.</span><span class="n">solve_schrodinger_eq</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">csts</span><span class="p">,</span> <span class="n">gparams</span><span class="p">,</span> <span class="n">n_sols</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">wfr</span> <span class="o">=</span> <span class="n">e_vecsr</span><span class="p">[:,:,</span><span class="mi">0</span><span class="p">]</span>
+
+                <span class="c1"># g-factor calculation</span>
+                <span class="n">stark_shiftr</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">starkshift</span><span class="o">.</span><span class="n">StarkShift</span><span class="p">(</span><span class="n">gparams</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">csts</span><span class="p">)</span>
+                <span class="n">dg</span> <span class="o">=</span> <span class="n">stark_shiftr</span><span class="o">.</span><span class="n">delta_g</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">e_field</span><span class="p">,</span> <span class="p">[</span><span class="n">ctrl_vals</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_names</span><span class="p">,</span>
+                                                    <span class="n">wavefuncs</span><span class="o">=</span><span class="p">[</span><span class="n">wfr</span><span class="p">])[</span><span class="s1">&#39;delta_g_1&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+                
+                <span class="c1"># assign g-factor deviation per dot to dictionary</span>
+                <span class="n">g_factors</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">dg</span>
+
+            <span class="k">if</span> <span class="n">dim</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">g_factor_path</span><span class="p">[</span><span class="n">vec_idx</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">g_factors</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">g_factor_path</span> <span class="o">=</span> <span class="n">g_factors</span>
+
+
+        <span class="k">return</span> <span class="n">g_factor_path</span></div>
+
+<div class="viewcode-block" id="DotArray.exchanges"><a class="viewcode-back" href="../../../qudipy.dot_array.html#qudipy.dot_array.dots.DotArray.exchanges">[docs]</a>    <span class="k">def</span> <span class="nf">exchanges</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctrl_vecs</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;HM&#39;</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Determines exchange couplings between adjacent pairs of dots.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        -------</span>
+<span class="sd">        ctrl_vals: list of lists</span>
+<span class="sd">            Configuration of control voltages for various voltage vectors in </span>
+<span class="sd">            the voltage state space</span>
+
+<span class="sd">        Keyword Arguments</span>
+<span class="sd">        -----------------</span>
+<span class="sd">        method: string</span>
+<span class="sd">            Choice of &#39;HL&#39;, &#39;HM&#39;, or &#39;LCHO&#39; method for exchange calculations</span>
+<span class="sd">            (strings are case insensitive)</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ex_path: 2D float array</span>
+<span class="sd">            Array of the exchange couplings between each adjacent pair of dots</span>
+<span class="sd">            for various voltage vectors in the voltage state space</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="c1"># check if ctrl_vecs is a single voltage state space vector or multiple</span>
+        <span class="n">dim</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">ctrl_vecs</span><span class="p">))</span> 
+        <span class="k">if</span> <span class="n">dim</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># multiple voltage vectors</span>
+            <span class="n">num_vecs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">ctrl_vecs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">ex_path</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_vecs</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">visible_dots</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># one voltage vector</span>
+            <span class="n">ctrl_vecs</span> <span class="o">=</span> <span class="p">[</span><span class="n">ctrl_vecs</span><span class="p">]</span>
+            <span class="n">ex_path</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">visible_dots</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+
+        <span class="c1"># loop through all list elements containing points in voltage state</span>
+        <span class="c1"># space</span>
+        <span class="k">for</span> <span class="n">vec_idx</span><span class="p">,</span> <span class="n">ctrl_vals</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">ctrl_vecs</span><span class="p">):</span>
+
+            <span class="c1"># number of exchange parameters is less by 1 than the number of visible dots</span>
+            <span class="n">exchanges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">visible_dots</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+            
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">visible_dots</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Only one dot detected, exchange is not evaluated&#39;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">gparams</span> <span class="o">=</span> <span class="n">pot</span><span class="o">.</span><span class="n">GridParameters</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">)</span>
+
+                <span class="c1"># create Dots objects for adjacent pairs</span>
+                <span class="n">dot_pairs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">group</span><span class="o">=</span><span class="s1">&#39;pairs&#39;</span><span class="p">)</span>
+
+                <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">pair</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">dot_pairs</span><span class="p">):</span>
+                    <span class="n">gparams</span><span class="o">.</span><span class="n">update_potential</span><span class="p">(</span><span class="n">pair</span><span class="o">.</span><span class="n">potential</span><span class="p">(</span><span class="n">ctrl_vals</span><span class="p">))</span>
+                    <span class="k">if</span> <span class="n">method</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;hl&#39;</span><span class="p">:</span>
+                        <span class="n">exchanges</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">ex</span><span class="o">.</span><span class="n">hl_quartic</span><span class="p">(</span><span class="n">gparams</span><span class="p">,</span> <span class="n">material</span><span class="o">=</span><span class="s1">&#39;Si/SiO2&#39;</span><span class="p">)</span>
+                    <span class="k">elif</span> <span class="n">method</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;hm&#39;</span><span class="p">:</span>
+                        <span class="n">exchanges</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">ex</span><span class="o">.</span><span class="n">hm_quartic</span><span class="p">(</span><span class="n">gparams</span><span class="p">,</span> <span class="n">material</span><span class="o">=</span><span class="s1">&#39;Si/SiO2&#39;</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Specify correct key for exchange calculation method.&#39;</span>
+                        <span class="s1">&#39;LCHO is temporarily unavailable&#39;</span><span class="p">)</span>
+                        <span class="n">exchanges</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+                <span class="k">if</span> <span class="n">dim</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">ex_path</span><span class="p">[</span><span class="n">vec_idx</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">exchanges</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">ex_path</span> <span class="o">=</span> <span class="n">exchanges</span>
+
+        <span class="k">return</span> <span class="n">ex_path</span></div>
+
+
+<div class="viewcode-block" id="DotArray.plot"><a class="viewcode-back" href="../../../qudipy.dot_array.html#qudipy.dot_array.dots.DotArray.plot">[docs]</a>    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctrl_vecs</span><span class="p">,</span> <span class="n">param</span><span class="o">=</span><span class="s1">&#39;gfactor&#39;</span><span class="p">,</span> <span class="n">ex_units</span><span class="o">=</span><span class="s1">&#39;J&#39;</span><span class="p">,</span> <span class="n">yscale</span><span class="o">=</span><span class="s1">&#39;linear&#39;</span><span class="p">):</span>
+
+        <span class="c1"># convert exchange into proper units</span>
+        <span class="n">csts</span> <span class="o">=</span> <span class="n">Constants</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">ex_units</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;j&#39;</span><span class="p">:</span>
+            <span class="n">units</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">unit_label</span> <span class="o">=</span> <span class="s1">&#39;J&#39;</span>
+        <span class="k">elif</span> <span class="n">ex_units</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;ev&#39;</span><span class="p">:</span>
+            <span class="n">units</span> <span class="o">=</span> <span class="n">csts</span><span class="o">.</span><span class="n">e</span>
+            <span class="n">unit_label</span> <span class="o">=</span> <span class="s1">&#39;eV&#39;</span>
+        <span class="k">elif</span> <span class="n">ex_units</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;mev&#39;</span><span class="p">:</span>
+            <span class="n">units</span> <span class="o">=</span> <span class="n">csts</span><span class="o">.</span><span class="n">e</span> <span class="o">*</span> <span class="mf">1e-3</span>
+            <span class="n">unit_label</span> <span class="o">=</span> <span class="s1">&#39;meV&#39;</span>
+        <span class="k">elif</span> <span class="n">ex_units</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;uev&#39;</span><span class="p">:</span>
+            <span class="n">units</span> <span class="o">=</span> <span class="n">csts</span><span class="o">.</span><span class="n">e</span> <span class="o">*</span> <span class="mf">1e-6</span>
+            <span class="n">unit_label</span> <span class="o">=</span> <span class="s1">&#39;$\mu$eV&#39;</span>
+        <span class="k">elif</span> <span class="n">ex_units</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;nev&#39;</span><span class="p">:</span>
+            <span class="n">units</span> <span class="o">=</span> <span class="n">csts</span><span class="o">.</span><span class="n">e</span> <span class="o">*</span> <span class="mf">1e-9</span>
+            <span class="n">unit_label</span> <span class="o">=</span> <span class="s1">&#39;neV&#39;</span>
+        
+        <span class="c1"># y-scale</span>
+        <span class="k">if</span> <span class="n">yscale</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;linear&#39;</span><span class="p">,</span> <span class="s1">&#39;log&#39;</span><span class="p">]:</span>
+            <span class="ne">Warning</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;y-scale: </span><span class="si">{</span><span class="n">yscale</span><span class="si">}</span><span class="s1"> is not a valid scale for y-axis.&#39;</span>
+                        <span class="s1">&#39;Linear is used by default&#39;</span><span class="p">)</span>
+
+        <span class="c1"># collect all varying controls, keep a singe value for the static ones</span>
+        <span class="c1"># (preserving their indices)</span>
+
+        <span class="n">all_ctrls</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">ctrl_vecs</span><span class="p">)))</span>
+        <span class="n">var_ctrls</span> <span class="o">=</span> <span class="p">[(</span><span class="n">idx</span><span class="p">,</span> <span class="n">ctrl</span><span class="p">)</span> <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">ctrl</span> <span class="ow">in</span> <span class="n">all_ctrls</span>
+                                     <span class="k">if</span> <span class="n">ctrl</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">ctrl</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ctrl</span><span class="p">)]</span>
+        <span class="n">static_ctrls</span> <span class="o">=</span> <span class="p">[(</span><span class="n">idx</span><span class="p">,</span> <span class="n">ctrl</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>  <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">ctrl</span> <span class="ow">in</span> <span class="n">all_ctrls</span>
+                                     <span class="k">if</span> <span class="n">ctrl</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">ctrl</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">ctrl</span><span class="p">)]</span>
+        <span class="c1"># grouping index positions and values separately</span>
+        <span class="n">var_ids</span><span class="p">,</span> <span class="n">var_vals</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">var_ctrls</span><span class="p">)</span> 
+        <span class="n">static_ids</span><span class="p">,</span> <span class="n">static_vals</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">static_ctrls</span><span class="p">)</span>
+        <span class="c1"># names of variable and constant voltage controls</span>
+        <span class="n">var_names</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ctrl_names</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">var_ids</span><span class="p">]</span>
+        <span class="n">static_names</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ctrl_names</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">static_ids</span><span class="p">]</span>
+
+        <span class="c1"># constructing annotation with the values of static parameters</span>
+        <span class="n">annot_text</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1"> = </span><span class="si">{</span><span class="n">val</span><span class="si">}</span><span class="s1"> V</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">val</span>
+                                <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">static_names</span><span class="p">,</span> <span class="n">static_vals</span><span class="p">)))[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                                        <span class="c1"># [:-2] removes the extra \n at the end</span>
+
+        <span class="c1"># 1D plot in case *only one* control parameter is varied</span>
+        <span class="c1"># otherwise, 2D (3D, ...) plot must be implemented (TBD) </span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">var_ctrls</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">120</span><span class="p">)</span>
+
+            <span class="c1"># g-factor</span>
+            <span class="k">if</span> <span class="n">param</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;gfactor&#39;</span><span class="p">,</span> <span class="s1">&#39;g_factor&#39;</span><span class="p">,</span> <span class="s1">&#39;g-factor&#39;</span><span class="p">):</span>
+                <span class="n">g_factor_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">g_factors</span><span class="p">(</span><span class="n">ctrl_vecs</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">g_factor_path</span><span class="p">)[</span><span class="mi">1</span><span class="p">]):</span>
+                    <span class="c1"># the only varied control on the horizontal axis</span>
+                    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">var_vals</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">g_factor_path</span><span class="p">[:,</span> <span class="n">g</span><span class="p">],</span> <span class="s1">&#39;-&#39;</span><span class="p">,</span> 
+                                                <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s1">&#39;Dot </span><span class="si">{</span><span class="n">g</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;$\delta g$ deviation&#39;</span><span class="p">)</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;$g-$factor deviation per dot&#39;</span><span class="p">)</span>
+
+            <span class="c1"># exchange</span>
+            <span class="k">elif</span> <span class="n">param</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;hl&#39;</span><span class="p">,</span> <span class="s1">&#39;hl-exchange&#39;</span><span class="p">,</span> <span class="s1">&#39;hl_exchange&#39;</span><span class="p">,</span> 
+                                                            <span class="s1">&#39;hl-ex&#39;</span><span class="p">,</span><span class="s1">&#39;hl_ex&#39;</span><span class="p">):</span>
+                <span class="n">ex_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">exchanges</span><span class="p">(</span><span class="n">ctrl_vecs</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;hl&#39;</span><span class="p">)</span>
+
+                <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">ex_path</span><span class="p">)[</span><span class="mi">1</span><span class="p">]):</span>
+                    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">var_vals</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">ex_path</span><span class="p">[:,</span> <span class="n">j</span><span class="p">]</span> <span class="o">/</span> <span class="n">units</span><span class="p">,</span> <span class="s1">&#39;-&#39;</span><span class="p">,</span> 
+                                                <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s1">&#39;Dot pair </span><span class="si">{</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s1"> &amp; </span><span class="si">{</span><span class="n">j</span><span class="o">+</span><span class="mi">2</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;J [</span><span class="si">{</span><span class="n">unit_label</span><span class="si">}</span><span class="s1">]&#39;</span><span class="p">)</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;Heitler-London Exchange&#39;</span><span class="p">)</span>
+
+            <span class="k">elif</span> <span class="n">param</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;hm&#39;</span><span class="p">,</span> <span class="s1">&#39;hm-exchange&#39;</span><span class="p">,</span> <span class="s1">&#39;hm_exchange&#39;</span><span class="p">,</span> 
+                                                                <span class="s1">&#39;hm-ex&#39;</span><span class="p">,</span><span class="s1">&#39;hm_ex&#39;</span><span class="p">):</span>
+                <span class="n">ex_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">exchanges</span><span class="p">(</span><span class="n">ctrl_vecs</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;hm&#39;</span><span class="p">)</span>
+
+                <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">ex_path</span><span class="p">)[</span><span class="mi">1</span><span class="p">]):</span>
+                    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">var_vals</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">ex_path</span><span class="p">[:,</span><span class="n">j</span><span class="p">]</span> <span class="o">/</span> <span class="n">units</span><span class="p">,</span> <span class="s1">&#39;-&#39;</span><span class="p">,</span> 
+                                                <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s1">&#39;Dot pair </span><span class="si">{</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s1"> &amp; </span><span class="si">{</span><span class="n">j</span><span class="o">+</span><span class="mi">2</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;J [</span><span class="si">{</span><span class="n">unit_label</span><span class="si">}</span><span class="s1">]&#39;</span><span class="p">)</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;Hund-Mulliken Exchange&#39;</span><span class="p">)</span>
+
+            <span class="n">ax</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="n">annot_text</span><span class="p">,</span> <span class="p">(</span><span class="mf">0.07</span><span class="p">,</span> <span class="mf">0.6</span><span class="p">),</span> <span class="n">xycoords</span><span class="o">=</span><span class="s1">&#39;axes fraction&#39;</span><span class="p">,</span>
+                                 <span class="n">fontsize</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">var_names</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s1"> [V]&#39;</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_yscale</span><span class="p">(</span><span class="n">yscale</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;upper left&#39;</span><span class="p">)</span></div>
+
+
+            
+
+
+<div class="viewcode-block" id="DotArray.get_eff_params"><a class="viewcode-back" href="../../../qudipy.dot_array.html#qudipy.dot_array.dots.DotArray.get_eff_params">[docs]</a>    <span class="k">def</span> <span class="nf">get_eff_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exchange_method</span><span class="o">=</span><span class="s1">&#39;HM&#39;</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Method that calculates the masked potentials and effective parameters</span>
+<span class="sd">        for all simulation data. Then interpolation objects are computed.</span>
+<span class="sd">        </span>
+<span class="sd">        Keyword Arguments</span>
+<span class="sd">        -----------------</span>
+<span class="sd">        exchange_method: string</span>
+<span class="sd">            Choice of HL, HM, or LCHO method for exchange calculations</span>
+<span class="sd">           </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pot_int_file</span><span class="p">)</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">calc_eff</span><span class="p">:</span>
+            <span class="n">param_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">ctrl_vals</span><span class="p">))</span>
+
+            <span class="c1"># Determine data set size for array initialization</span>
+            <span class="n">tup</span> <span class="o">=</span> <span class="p">()</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_vals</span><span class="p">:</span>
+                <span class="n">tup</span> <span class="o">+=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">i</span><span class="p">),)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">gl_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">tup</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gr_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">tup</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">exchange</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">tup</span><span class="p">)</span>
+
+            <span class="c1"># temporary assignment to be assigned to each dot that is addressed</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">tup</span><span class="p">)</span>
+
+            <span class="c1"># Define gridparameters for dot array and subdot array</span>
+            <span class="c1"># _2d_coords = loaded_data_pot[&#39;coords&#39;]</span>
+
+            <span class="n">x</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">potential</span><span class="p">)</span><span class="o">.</span><span class="n">x_coords</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">potential</span><span class="p">)</span><span class="o">.</span><span class="n">y_coords</span>
+
+            <span class="n">gparams</span> <span class="o">=</span> <span class="n">pot</span><span class="o">.</span><span class="n">GridParameters</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">)</span>
+
+            <span class="c1"># initialize delta-g, exchange dictionaries and mask potential -----</span>
+            <span class="c1">#  dictionary </span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">eff_dict_vals</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">dg_keys</span><span class="p">,</span> <span class="n">J_keys</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+            <span class="n">ctrl_coord</span> <span class="o">=</span> <span class="p">[]</span>
+
+            <span class="c1"># initialize dictionary to store 2d potentials per</span>
+            <span class="c1"># control coordinate</span>
+            <span class="n">pot_dict</span> <span class="o">=</span> <span class="p">{</span>
+                            
+                            <span class="s1">&#39;coords&#39;</span><span class="p">:</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span> <span class="n">y</span><span class="p">},</span>
+                            <span class="s1">&#39;potentials&#39;</span> <span class="p">:</span> <span class="p">[],</span>
+                            <span class="s1">&#39;ctrl_vals&#39;</span> <span class="p">:</span> <span class="p">[],</span>
+                            <span class="s1">&#39;ctrl_names&#39;</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_names</span>
+                        <span class="p">}</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pot_int_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;unmasked&#39;</span><span class="p">:</span> <span class="n">pot_dict</span><span class="p">}</span>
+
+            <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">param</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">tqdm</span><span class="p">(</span><span class="n">param_list</span><span class="p">)):</span>
+
+                <span class="c1"># TODO: update the above code</span>
+                <span class="c1"># make each tuple of values a list for later computations</span>
+                <span class="n">param</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">param</span><span class="p">)</span>
+
+                <span class="c1"># Copy potential data for later use</span>
+                <span class="n">array_pot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">potential</span><span class="p">(</span><span class="n">param</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="n">pot_min</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">potential</span><span class="p">(</span><span class="n">param</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+                <span class="c1"># store 2d potential for given control coordinate</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">pot_int_dict</span><span class="p">[</span><span class="s1">&#39;unmasked&#39;</span><span class="p">][</span><span class="s1">&#39;potentials&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">array_pot</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">pot_int_dict</span><span class="p">[</span><span class="s1">&#39;unmasked&#39;</span><span class="p">][</span><span class="s1">&#39;ctrl_vals&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">param</span><span class="p">)</span>
+
+                <span class="c1"># save ctrl values</span>
+                <span class="n">ctrl_coord</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">param</span><span class="p">)</span>
+                
+                <span class="c1"># ** find the maximum **</span>
+                <span class="c1"># find absolute minimum</span>
+                <span class="n">min_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unravel_index</span><span class="p">(</span><span class="n">array_pot</span><span class="o">.</span><span class="n">argmin</span><span class="p">(),</span> <span class="n">array_pot</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+                <span class="c1"># draw a y_0 through the minimum</span>
+                <span class="n">y_0</span> <span class="o">=</span> <span class="n">y</span><span class="p">[</span><span class="n">min_idx</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>     
+                <span class="n">U_data_slice</span> <span class="o">=</span>  <span class="n">array_pot</span><span class="p">[</span><span class="n">min_idx</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+                <span class="c1"># maxima</span>
+                <span class="n">maximas</span> <span class="o">=</span> <span class="n">find_peaks</span><span class="p">(</span><span class="n">U_data_slice</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+                <span class="c1"># ** find the minima **            </span>
+                <span class="n">U_data_slice</span> <span class="o">=</span>  <span class="n">pot_min</span><span class="p">[</span><span class="n">min_idx</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+                <span class="c1"># maxima</span>
+                <span class="n">minimas</span> <span class="o">=</span> <span class="n">find_peaks</span><span class="p">(</span><span class="n">U_data_slice</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+                <span class="c1"># TODO: track largest number of dots observed over entire param set</span>
+                <span class="c1"># number of dots</span>
+                <span class="n">n_dots</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">minimas</span><span class="p">)</span>
+
+                <span class="c1"># ignore erroneous maximas at the ends of dot arrays</span>
+                <span class="n">maximas</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">maximas</span> <span class="k">if</span> <span class="n">minimas</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">x</span> <span class="ow">and</span> <span class="n">minimas</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">x</span><span class="p">]</span>
+
+                <span class="c1"># initialization of empty dictionaries for delta-g, exchange,</span>
+                <span class="c1"># masked potentials</span>
+                <span class="k">if</span> <span class="n">idx</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_dots</span><span class="p">):</span>
+                        <span class="c1"># delta-g value</span>
+                        <span class="n">key</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;delta_g</span><span class="si">{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s1">&#39;</span>
+                        <span class="n">dg_keys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">eff_dict_vals</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+                        <span class="c1"># single dot masked potential</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">pot_int_dict</span><span class="p">[</span><span class="sa">f</span><span class="s1">&#39;masked_</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                                        
+                                        <span class="s1">&#39;coords&#39;</span><span class="p">:</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span> <span class="n">y</span><span class="p">},</span>
+                                        <span class="s1">&#39;potentials&#39;</span> <span class="p">:</span> <span class="p">[],</span>
+                                        <span class="s1">&#39;ctrl_vals&#39;</span> <span class="p">:</span> <span class="p">[],</span>
+                                        <span class="s1">&#39;ctrl_names&#39;</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_names</span>
+                                    <span class="p">}</span>
+
+                    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_dots</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span>                        
+                        <span class="c1"># exchange value</span>
+                        <span class="n">key</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;J_</span><span class="si">{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">}{</span><span class="n">i</span><span class="o">+</span><span class="mi">2</span><span class="si">}</span><span class="s1">&#39;</span>
+                        <span class="n">J_keys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">eff_dict_vals</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+                        <span class="c1"># double dot masked potentials</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">pot_int_dict</span><span class="p">[</span><span class="sa">f</span><span class="s1">&#39;masked_</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                                        
+                                        <span class="s1">&#39;coords&#39;</span><span class="p">:</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span> <span class="n">y</span><span class="p">},</span>
+                                        <span class="s1">&#39;potentials&#39;</span> <span class="p">:</span> <span class="p">[],</span>
+                                        <span class="s1">&#39;ctrl_vals&#39;</span> <span class="p">:</span> <span class="p">[],</span>
+                                        <span class="s1">&#39;ctrl_names&#39;</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_names</span>
+                                    <span class="p">}</span>
+
+                <span class="c1"># calculate masked potentials and effective parameters ---------</span>
+                <span class="k">if</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">maximas</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">):</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;NaNs outputted by g-factor and exchange&quot;</span><span class="p">)</span>
+
+                    <span class="c1"># build 2D nan array to store for potential interpolators</span>
+                    <span class="n">nan_pot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">),</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)))</span>
+                    <span class="n">nan_pot</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+
+                    <span class="c1"># TODO: make sure to assign nans for maximum number of </span>
+                    <span class="c1"># dots previously observed </span>
+                    <span class="c1"># (HANDLE IF FIRST PARAM CAUSES LESS THAN EXPECTED TOTAL DOTS)</span>
+                    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">dg_keys</span><span class="p">:</span>
+                        <span class="c1"># store nans for dot masked potentials</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">pot_int_dict</span><span class="p">[</span><span class="sa">f</span><span class="s1">&#39;masked_</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">][</span><span class="s1">&#39;potentials&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nan_pot</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">pot_int_dict</span><span class="p">[</span><span class="sa">f</span><span class="s1">&#39;masked_</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">][</span><span class="s1">&#39;ctrl_vals&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">param</span><span class="p">)</span>
+                        <span class="c1"># store nans for g-factor deviation</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">eff_dict_vals</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+
+                    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">J_keys</span><span class="p">:</span>
+                        <span class="c1"># store nans for dot masked potentials</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">pot_int_dict</span><span class="p">[</span><span class="sa">f</span><span class="s1">&#39;masked_</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">][</span><span class="s1">&#39;potentials&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nan_pot</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">pot_int_dict</span><span class="p">[</span><span class="sa">f</span><span class="s1">&#39;masked_</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">][</span><span class="s1">&#39;ctrl_vals&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">param</span><span class="p">)</span>
+                        <span class="c1"># store nans for exchange</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">eff_dict_vals</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># calculated single dot masked potentials and g-factor</span>
+                    <span class="c1"># deviation</span>
+                    <span class="k">for</span> <span class="n">dg_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_dots</span><span class="p">):</span>
+                            <span class="c1"># copy unmasked potential</span>
+                            <span class="n">gparams</span> <span class="o">=</span> <span class="n">pot</span><span class="o">.</span><span class="n">GridParameters</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">)</span>
+                            <span class="n">dot_pot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">potential</span><span class="p">(</span><span class="n">param</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                            <span class="c1"># masked single dot potentials</span>
+                            <span class="n">base</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">amax</span><span class="p">(</span><span class="n">dot_pot</span><span class="p">)</span>
+                            <span class="k">if</span> <span class="n">dg_idx</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                                <span class="c1"># define left dot ------------------</span>
+                                <span class="n">dot_pot</span><span class="p">[:,</span><span class="n">maximas</span><span class="p">[</span><span class="n">dg_idx</span><span class="p">]:]</span> <span class="o">=</span> <span class="n">base</span>
+                            <span class="k">elif</span> <span class="n">dg_idx</span> <span class="o">==</span> <span class="n">n_dots</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                                <span class="c1"># define right dot -----------------</span>
+                                <span class="n">dot_pot</span><span class="p">[:,:</span><span class="n">maximas</span><span class="p">[</span><span class="n">dg_idx</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="n">base</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="c1"># define middle dots ---------------</span>
+                                <span class="n">dot_pot</span><span class="p">[:,:</span><span class="n">maximas</span><span class="p">[</span><span class="n">dg_idx</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="n">base</span>
+                                <span class="n">dot_pot</span><span class="p">[:,</span><span class="n">maximas</span><span class="p">[</span><span class="n">dg_idx</span><span class="p">]:]</span> <span class="o">=</span> <span class="n">base</span>
+
+                            <span class="c1"># store single dot masked potentials</span>
+                            <span class="n">gparams</span><span class="o">.</span><span class="n">update_potential</span><span class="p">(</span><span class="n">dot_pot</span><span class="p">)</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">pot_int_dict</span><span class="p">[</span><span class="sa">f</span><span class="s1">&#39;masked_</span><span class="si">{</span><span class="n">dg_keys</span><span class="p">[</span><span class="n">dg_idx</span><span class="p">]</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">][</span><span class="s1">&#39;potentials&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dot_pot</span><span class="p">)</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">pot_int_dict</span><span class="p">[</span><span class="sa">f</span><span class="s1">&#39;masked_</span><span class="si">{</span><span class="n">dg_keys</span><span class="p">[</span><span class="n">dg_idx</span><span class="p">]</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">][</span><span class="s1">&#39;ctrl_vals&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">param</span><span class="p">)</span>
+
+                            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">calc_eff</span><span class="p">:</span>
+                                
+                                <span class="n">_</span><span class="p">,</span> <span class="n">e_vecsr</span> <span class="o">=</span> <span class="n">qt</span><span class="o">.</span><span class="n">solvers</span><span class="o">.</span><span class="n">solve_schrodinger_eq</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">csts</span><span class="p">,</span> <span class="n">gparams</span><span class="p">,</span> <span class="n">n_sols</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                                <span class="n">wfr</span> <span class="o">=</span> <span class="n">e_vecsr</span><span class="p">[:,:,</span><span class="mi">0</span><span class="p">]</span>
+
+                                <span class="c1"># g-factor</span>
+                                <span class="n">stark_shiftr</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">starkshift</span><span class="o">.</span><span class="n">StarkShift</span><span class="p">(</span><span class="n">gparams</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">csts</span><span class="p">)</span>
+                                <span class="n">dg</span> <span class="o">=</span> <span class="n">stark_shiftr</span><span class="o">.</span><span class="n">delta_g</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">e_field</span><span class="p">,</span> <span class="p">[</span><span class="n">param</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_names</span><span class="p">,</span>
+                                                                                <span class="n">wavefuncs</span><span class="o">=</span><span class="p">[</span><span class="n">wfr</span><span class="p">])[</span><span class="s1">&#39;delta_g_1&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+                                
+                                <span class="c1"># assign g-factor deviation per dot to dictionary</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">eff_dict_vals</span><span class="p">[</span><span class="n">dg_keys</span><span class="p">[</span><span class="n">dg_idx</span><span class="p">]]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dg</span><span class="p">)</span>
+
+                    <span class="c1"># calculate masked potentials for adjacent pair of dots and</span>
+                    <span class="c1"># exchange</span>
+                    <span class="k">for</span> <span class="n">j_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_dots</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+                            <span class="c1"># copy unmasked potential</span>
+                            <span class="n">gparams</span> <span class="o">=</span> <span class="n">pot</span><span class="o">.</span><span class="n">GridParameters</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">)</span>
+                            <span class="n">dot_pot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">potential</span><span class="p">(</span><span class="n">param</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+                            <span class="c1"># must not be a single dot</span>
+                            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">maximas</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                                <span class="c1"># masked double dot potentials</span>
+                                <span class="n">base</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">amax</span><span class="p">(</span><span class="n">dot_pot</span><span class="p">)</span>
+                                <span class="k">if</span> <span class="n">j_idx</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                                    <span class="c1"># define left dot ------------------</span>
+                                    <span class="n">dot_pot</span><span class="p">[:,</span><span class="n">maximas</span><span class="p">[</span><span class="n">j_idx</span><span class="o">+</span><span class="mi">1</span><span class="p">]:]</span> <span class="o">=</span> <span class="n">base</span>
+                                <span class="k">elif</span> <span class="n">j_idx</span> <span class="o">==</span> <span class="n">n_dots</span><span class="o">-</span><span class="mi">2</span><span class="p">:</span>
+                                    <span class="c1"># define right dot -----------------</span>
+                                    <span class="n">dot_pot</span><span class="p">[:,:</span><span class="n">maximas</span><span class="p">[</span><span class="n">j_idx</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="n">base</span>
+                                <span class="k">else</span><span class="p">:</span>
+                                    <span class="c1"># define middle dots ---------------</span>
+                                    <span class="n">dot_pot</span><span class="p">[:,:</span><span class="n">maximas</span><span class="p">[</span><span class="n">j_idx</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="n">base</span>
+                                    <span class="n">dot_pot</span><span class="p">[:,</span><span class="n">maximas</span><span class="p">[</span><span class="n">j_idx</span><span class="o">+</span><span class="mi">1</span><span class="p">]:]</span> <span class="o">=</span> <span class="n">base</span>
+
+                            <span class="c1"># store double dot masked potentials</span>
+                            <span class="n">gparams</span><span class="o">.</span><span class="n">update_potential</span><span class="p">(</span><span class="n">dot_pot</span><span class="p">)</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">pot_int_dict</span><span class="p">[</span><span class="sa">f</span><span class="s1">&#39;masked_</span><span class="si">{</span><span class="n">J_keys</span><span class="p">[</span><span class="n">j_idx</span><span class="p">]</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">][</span><span class="s1">&#39;potentials&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dot_pot</span><span class="p">)</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">pot_int_dict</span><span class="p">[</span><span class="sa">f</span><span class="s1">&#39;masked_</span><span class="si">{</span><span class="n">J_keys</span><span class="p">[</span><span class="n">j_idx</span><span class="p">]</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">][</span><span class="s1">&#39;ctrl_vals&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">param</span><span class="p">)</span>
+
+                            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">calc_eff</span><span class="p">:</span>
+                                <span class="c1"># assign exchange per double dot pair to dictionary</span>
+                                <span class="k">if</span> <span class="n">exchange_method</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;hl&#39;</span><span class="p">:</span>
+                                    <span class="bp">self</span><span class="o">.</span><span class="n">eff_dict_vals</span><span class="p">[</span><span class="n">J_keys</span><span class="p">[</span><span class="n">j_idx</span><span class="p">]]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ex</span><span class="o">.</span><span class="n">hl_quartic</span><span class="p">(</span><span class="n">gparams</span><span class="p">,</span> <span class="n">material</span><span class="o">=</span><span class="s1">&#39;Si/SiO2&#39;</span><span class="p">))</span>
+                                <span class="k">elif</span> <span class="n">exchange_method</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;hm&#39;</span><span class="p">:</span>
+                                    <span class="bp">self</span><span class="o">.</span><span class="n">eff_dict_vals</span><span class="p">[</span><span class="n">J_keys</span><span class="p">[</span><span class="n">j_idx</span><span class="p">]]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ex</span><span class="o">.</span><span class="n">hm_quartic</span><span class="p">(</span><span class="n">gparams</span><span class="p">,</span> <span class="n">material</span><span class="o">=</span><span class="s1">&#39;Si/SiO2&#39;</span><span class="p">))</span>
+
+            <span class="c1"># Create dictionary of masked potential interpolation objects</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pot_interp_dict</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">pot_int_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">pot_interp_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">pot</span><span class="o">.</span><span class="n">build_interpolator</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pot_int_dict</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pot_int_file</span><span class="p">,</span><span class="s2">&quot;wb&quot;</span><span class="p">)</span>
+            <span class="c1"># write the python object (dict) to pickle file</span>
+            <span class="n">pk</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pot_interp_dict</span><span class="p">,</span><span class="n">f</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">calc_eff</span><span class="p">:</span>
+                <span class="c1"># Create dictionary of interpolation objects for exchange and </span>
+                <span class="c1"># delta-g</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">eff_interp_dict</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">eff_dict_vals</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">eff_interp_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">LinearNDInterpolator</span><span class="p">(</span><span class="n">ctrl_coord</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">eff_dict_vals</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+                    
+                <span class="bp">self</span><span class="o">.</span><span class="n">eff_interp_dict</span><span class="p">[</span><span class="s1">&#39;ctrl_vals&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_vals</span>
+
+                <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eff_file</span><span class="p">,</span><span class="s2">&quot;wb&quot;</span><span class="p">)</span>
+                <span class="c1"># write the python object (dict) to pickle file</span>
+                <span class="n">pk</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eff_interp_dict</span><span class="p">,</span><span class="n">f</span><span class="p">)</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="k">else</span><span class="p">:</span>
+
+            <span class="n">file_to_read</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pot_int_file</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pot_interp_dict</span> <span class="o">=</span> <span class="n">pk</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">file_to_read</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eff_file</span><span class="p">):</span>
+                <span class="n">file_to_read</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eff_file</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">eff_interp_dict</span> <span class="o">=</span> <span class="n">pk</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">file_to_read</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Zach D. Merino.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

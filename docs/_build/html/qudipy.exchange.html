@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>qudipy.exchange package &mdash; QuDiPy Documentation 1.0.0 documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> QuDiPy Documentation
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">qudipy.exchange package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-qudipy.exchange.exchange">qudipy.exchange.exchange module</a></li>
+<li><a class="reference internal" href="#module-qudipy.exchange.exchange_hm_hl">qudipy.exchange.exchange_hm_hl module</a></li>
+<li><a class="reference internal" href="#module-qudipy.exchange">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">QuDiPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a></li>
+      <li class="breadcrumb-item active">qudipy.exchange package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/qudipy.exchange.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="qudipy-exchange-package">
+<h1>qudipy.exchange package<a class="headerlink" href="#qudipy-exchange-package" title="Permalink to this headline">¶</a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="module-qudipy.exchange.exchange">
+<span id="qudipy-exchange-exchange-module"></span><h2>qudipy.exchange.exchange module<a class="headerlink" href="#module-qudipy.exchange.exchange" title="Permalink to this headline">¶</a></h2>
+<p>Exchange calculation for a potential</p>
+<dl class="function">
+<dt id="qudipy.exchange.exchange.hl_quartic">
+<code class="sig-prename descclassname">qudipy.exchange.exchange.</code><code class="sig-name descname">hl_quartic</code><span class="sig-paren">(</span><em class="sig-param">gparams</em>, <em class="sig-param">material='vacuum'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qudipy/exchange/exchange.html#hl_quartic"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qudipy.exchange.exchange.hl_quartic" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function calculates exchange values in Heitler-London approximation
+for an array of dots. Each pair is fitted to a quartic function for the
+calculation.
+y-slice is determined based on the positions of the dot minima.
+Formula borrowed from Burkard &amp; Loss, PRB 89 (3), 1999, pgs. 2073-2074</p>
+<dl class="simple">
+<dt>gparams: GridParameters Object</dt><dd><p>Must contain 2D potential, and x and y coordinates as a meshgrid object</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>material: String, optional</dt><dd><p>The string defining the material that the dots are
+in. Default is ‘vacuum’.</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>J: float or tuple of floats</dt><dd><p>Exchange value(s) for the array of dots</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="qudipy.exchange.exchange.hm_quartic">
+<code class="sig-prename descclassname">qudipy.exchange.exchange.</code><code class="sig-name descname">hm_quartic</code><span class="sig-paren">(</span><em class="sig-param">gparams</em>, <em class="sig-param">material='vacuum'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qudipy/exchange/exchange.html#hm_quartic"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qudipy.exchange.exchange.hm_quartic" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function calculates exchange values in Hund-Mulliken approximation
+for an array of dots. Each pair is fitted to a quartic function for the
+calculation.
+y-slice is determined based on the positions of the dot minima.
+Formulas borrowed from Burkard &amp; Loss, PRB 89 (3), 1999, pgs. 2073-2074</p>
+<dl class="simple">
+<dt>gparams: GridParameters Object</dt><dd><p>Must contain 2D potential, and x and y coordinates as a meshgrid object</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>material: String, optional</dt><dd><p>The string defining the material that the dots are
+in. Default is ‘vacuum’.</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>J: float or tuple of floats</dt><dd><p>Exchange value(s) for the array of dots</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-qudipy.exchange.exchange_hm_hl">
+<span id="qudipy-exchange-exchange-hm-hl-module"></span><h2>qudipy.exchange.exchange_hm_hl module<a class="headerlink" href="#module-qudipy.exchange.exchange_hm_hl" title="Permalink to this headline">¶</a></h2>
+<p>Exchange calculation for a potential</p>
+<dl class="function">
+<dt id="qudipy.exchange.exchange_hm_hl.hl_quartic">
+<code class="sig-prename descclassname">qudipy.exchange.exchange_hm_hl.</code><code class="sig-name descname">hl_quartic</code><span class="sig-paren">(</span><em class="sig-param">gparams</em>, <em class="sig-param">material='vacuum'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qudipy/exchange/exchange_hm_hl.html#hl_quartic"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qudipy.exchange.exchange_hm_hl.hl_quartic" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function calculates exchange values in Heitler-London approximation
+for an array of dots. Each pair is fitted to a quartic function for the
+calculation.
+y-slice is determined based on the positions of the dot minima.
+Formula borrowed from Burkard &amp; Loss, PRB 89 (3), 1999, pgs. 2073-2074</p>
+<dl class="simple">
+<dt>gparams: GridParameters Object</dt><dd><p>Must contain 2D potential, and x and y coordinates as a meshgrid object</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>material: String, optional</dt><dd><p>The string defining the material that the dots are
+in. Default is ‘vacuum’.</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>J: float or tuple of floats</dt><dd><p>Exchange value(s) for the array of dots</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="qudipy.exchange.exchange_hm_hl.hm_quartic">
+<code class="sig-prename descclassname">qudipy.exchange.exchange_hm_hl.</code><code class="sig-name descname">hm_quartic</code><span class="sig-paren">(</span><em class="sig-param">gparams</em>, <em class="sig-param">material='vacuum'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qudipy/exchange/exchange_hm_hl.html#hm_quartic"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qudipy.exchange.exchange_hm_hl.hm_quartic" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function calculates exchange values in Hund-Mulliken approximation
+for an array of dots. Each pair is fitted to a quartic function for the
+calculation.
+y-slice is determined based on the positions of the dot minima.
+Formulas borrowed from Burkard &amp; Loss, PRB 89 (3), 1999, pgs. 2073-2074</p>
+<dl class="simple">
+<dt>gparams: GridParameters Object</dt><dd><p>Must contain 2D potential, and x and y coordinates as a meshgrid object</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>material: String, optional</dt><dd><p>The string defining the material that the dots are
+in. Default is ‘vacuum’.</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>J: float or tuple of floats</dt><dd><p>Exchange value(s) for the array of dots</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-qudipy.exchange">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-qudipy.exchange" title="Permalink to this headline">¶</a></h2>
+<p>Exchange calulation modules</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Zach D. Merino.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

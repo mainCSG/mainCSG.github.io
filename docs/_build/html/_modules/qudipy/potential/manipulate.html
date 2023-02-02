@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>qudipy.potential.manipulate &mdash; QuDiPy Documentation 1.0.0 documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/language_data.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> QuDiPy Documentation
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">QuDiPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">qudipy.potential.manipulate</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for qudipy.potential.manipulate</h1><div class="highlight"><pre>
+<span></span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">Functions for the manipulation of potential data</span>
+
+<span class="sd">@authors: Madi Schuetze, Bohdan Khromets</span>
+<span class="sd">&#39;&#39;&#39;</span>
+
+<span class="kn">from</span> <span class="nn">scipy.signal</span> <span class="kn">import</span> <span class="n">find_peaks</span>
+<span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="kn">import</span> <span class="n">minimize</span>
+<span class="kn">from</span> <span class="nn">scipy.interpolate</span> <span class="kn">import</span> <span class="n">interp1d</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">qudipy.utils.constants</span> <span class="kn">import</span> <span class="n">Constants</span>
+
+<div class="viewcode-block" id="fit_quartic"><a class="viewcode-back" href="../../../qudipy.potential.html#qudipy.potential.manipulate.fit_quartic">[docs]</a><span class="k">def</span> <span class="nf">fit_quartic</span><span class="p">(</span><span class="n">gparams</span><span class="p">,</span> <span class="n">material</span><span class="o">=</span><span class="s1">&#39;vacuum&#39;</span><span class="p">,</span>
+                                        <span class="n">return_params</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Returns the potential data of best fit to a quartic potential. </span>
+<span class="sd">    The data will be a two dot system  fitted </span>
+<span class="sd">    to a quartic well based on the positions of local maxima/minima and the</span>
+<span class="sd">    potential energy values there.</span>
+
+<span class="sd">    Note: RMS fitting of the potential landscape to a quartic function potential</span>
+<span class="sd">    was used previously but was deprecated as it introduces very large fitting </span>
+<span class="sd">    error. Code can be found in qudipy/archive/rms_fit_quartic.py</span>
+
+<span class="sd">    #TODO #64 update to the case of many dots</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">    -------------</span>
+
+<span class="sd">    gparams: GridParameters Object</span>
+<span class="sd">        Must contain 2D potential, and x and y coordinates as a meshgrid object</span>
+
+<span class="sd">    Keyword Arguments:</span>
+<span class="sd">    -------------------</span>
+<span class="sd">    </span>
+<span class="sd">    material: String, optional</span>
+<span class="sd">        The string defining the material that the dots are</span>
+<span class="sd">        in. Default is &#39;vacuum&#39;.</span>
+
+<span class="sd">    return_params: Bool</span>
+<span class="sd">        The option to return all of the fitting parameters</span>
+<span class="sd">        as a dictionary with keys:</span>
+<span class="sd">        * U_fit</span>
+<span class="sd">        * dot_sep</span>
+<span class="sd">        * e_field_x</span>
+<span class="sd">        * omega_0</span>
+<span class="sd">        * x_centre</span>
+<span class="sd">        * U_0</span>
+<span class="sd">        If False, only the potential landscape U_fit of best fit is returned</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">    --------------</span>
+<span class="sd">    U_fit: 2D Arrayof(Float) </span>
+<span class="sd">    *or* result_dict: dictionary</span>
+<span class="sd">        Contains Float values that map out the 1-D potential energy quartic fit</span>
+<span class="sd">        of a two dot system.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="c1"># Get x and y parameters</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">gparams</span><span class="o">.</span><span class="n">x</span>
+    <span class="n">x_mesh</span> <span class="o">=</span> <span class="n">gparams</span><span class="o">.</span><span class="n">x_mesh</span>
+
+    <span class="n">y</span> <span class="o">=</span> <span class="n">gparams</span><span class="o">.</span><span class="n">y</span>
+    <span class="n">y_mesh</span> <span class="o">=</span> <span class="n">gparams</span><span class="o">.</span><span class="n">y_mesh</span>
+    
+    <span class="n">U_data</span> <span class="o">=</span> <span class="n">gparams</span><span class="o">.</span><span class="n">potential</span>
+
+    <span class="c1"># ** Find the maximum and minima **</span>
+    <span class="c1"># find absolute minimum</span>
+
+    <span class="n">min_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unravel_index</span><span class="p">(</span><span class="n">U_data</span><span class="o">.</span><span class="n">argmin</span><span class="p">(),</span> <span class="n">U_data</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+    <span class="c1">#draw a y_0 through the minimum</span>
+    <span class="n">y_0</span> <span class="o">=</span> <span class="n">y</span><span class="p">[</span><span class="n">min_idx</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>     <span class="c1"># initial guess</span>
+
+    <span class="c1"># Find U_data_values of y_0 used</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">abs_val_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">y</span> <span class="o">-</span> <span class="n">y_0</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;y_0 must be the constant y-value at which the</span><span class="se">\</span>
+<span class="s1">         wells are lined up on. Currently, y_0 = </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">y_0</span><span class="p">))</span>
+    <span class="n">index</span> <span class="o">=</span> <span class="n">abs_val_array</span><span class="o">.</span><span class="n">argmin</span><span class="p">()</span>
+    <span class="n">U_data_slice</span> <span class="o">=</span>  <span class="n">U_data</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+
+    <span class="c1"># Maxima</span>
+    <span class="n">maxima</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">find_peaks</span><span class="p">(</span><span class="n">U_data_slice</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="c1"># Minima</span>
+    <span class="n">minima</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">find_peaks</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="n">U_data_slice</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+
+
+    <span class="c1"># ** Determine Inital Guesses of Values **</span>
+    <span class="c1"># Constants</span>
+    <span class="n">consts</span> <span class="o">=</span> <span class="n">Constants</span><span class="p">(</span><span class="n">material</span><span class="p">)</span>
+    <span class="n">e</span> <span class="o">=</span> <span class="n">consts</span><span class="o">.</span><span class="n">e</span> <span class="c1"># electron charge</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">consts</span><span class="o">.</span><span class="n">me</span> <span class="c1"># mass of free electron</span>
+    
+    <span class="c1"># If the number of minima is less than 2, and/or </span>
+    <span class="c1"># number of maxima is less than 1, exchange cannot be calculated</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">minima</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">maxima</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span>  <span class="ow">or</span> <span class="n">x</span><span class="p">[</span><span class="n">minima</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">&gt;=</span> <span class="n">x</span><span class="p">[</span><span class="n">maxima</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+                                               <span class="ow">or</span> <span class="n">x</span><span class="p">[</span><span class="n">maxima</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">&gt;=</span> <span class="n">x</span><span class="p">[</span><span class="n">minima</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]):</span>
+        <span class="n">x_max</span> <span class="o">=</span> <span class="n">x_1</span> <span class="o">=</span> <span class="n">x_2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+        <span class="n">E_max</span> <span class="o">=</span> <span class="n">E1</span> <span class="o">=</span> <span class="n">E2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Indicies</span>
+        <span class="n">i0</span> <span class="o">=</span> <span class="n">maxima</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">i1</span> <span class="o">=</span> <span class="n">minima</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">i2</span> <span class="o">=</span> <span class="n">minima</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        
+        <span class="c1"># discrete positions of extrema</span>
+        <span class="n">x_max_discrete</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">i0</span><span class="p">]</span> <span class="c1"># x-value of local maximum (initial guess)</span>
+        <span class="n">x_1_discrete</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">i1</span><span class="p">]</span> <span class="c1"># x-value of first minimum</span>
+        <span class="n">x_2_discrete</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">i2</span><span class="p">]</span> <span class="c1"># x-value of second minimum</span>
+
+        <span class="c1"># find precise value of positions by interpolation + minimization</span>
+        <span class="c1"># the potential </span>
+        <span class="n">x_max</span><span class="p">,</span> <span class="n">E_max</span> <span class="o">=</span> <span class="n">_precise_min</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="o">*</span> <span class="n">U_data_slice</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">x_max_discrete</span><span class="p">,</span> 
+                        <span class="p">[</span><span class="n">x_max_discrete</span> <span class="o">-</span> <span class="mf">0.3</span><span class="o">*</span> <span class="p">(</span><span class="n">x_max_discrete</span> <span class="o">-</span><span class="n">x_1_discrete</span><span class="p">),</span> 
+                        <span class="n">x_max_discrete</span> <span class="o">+</span> <span class="mf">0.3</span><span class="o">*</span> <span class="p">(</span><span class="n">x_2_discrete</span><span class="o">-</span> <span class="n">x_max_discrete</span><span class="p">)])</span>
+        <span class="n">E_max</span> <span class="o">*=</span> <span class="o">-</span><span class="mi">1</span>
+
+
+        <span class="n">x_1</span><span class="p">,</span> <span class="n">E1</span> <span class="o">=</span> <span class="n">_precise_min</span><span class="p">(</span><span class="n">U_data_slice</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">x_1_discrete</span><span class="p">,</span> 
+                <span class="p">[</span><span class="n">x_1_discrete</span> <span class="o">-</span> <span class="mf">0.3</span><span class="o">*</span> <span class="p">(</span><span class="n">x_max_discrete</span> <span class="o">-</span> <span class="n">x_1_discrete</span><span class="p">),</span> 
+                    <span class="n">x_1_discrete</span> <span class="o">+</span> <span class="mf">0.3</span><span class="o">*</span> <span class="p">(</span><span class="n">x_max_discrete</span> <span class="o">-</span> <span class="n">x_1_discrete</span><span class="p">)])</span>
+        
+        <span class="n">x_2</span><span class="p">,</span> <span class="n">E2</span> <span class="o">=</span> <span class="n">_precise_min</span><span class="p">(</span><span class="n">U_data_slice</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">x_2_discrete</span><span class="p">,</span> 
+                <span class="p">[</span><span class="n">x_2_discrete</span> <span class="o">-</span> <span class="mf">0.3</span> <span class="o">*</span> <span class="p">(</span><span class="n">x_2_discrete</span> <span class="o">-</span> <span class="n">x_max_discrete</span><span class="p">),</span>
+                     <span class="n">x_2_discrete</span> <span class="o">+</span> <span class="mf">0.3</span> <span class="o">*</span> <span class="p">(</span><span class="n">x_2_discrete</span> <span class="o">-</span> <span class="n">x_max_discrete</span><span class="p">)])</span>
+
+
+    <span class="n">d</span> <span class="o">=</span> <span class="p">(</span><span class="n">x_2</span><span class="o">-</span><span class="n">x_1</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span> <span class="c1"># half dot seperation (initial guess)</span>
+    
+    <span class="n">e_field_x</span> <span class="o">=</span> <span class="p">((</span><span class="n">E2</span> <span class="o">-</span> <span class="n">E1</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">e</span> <span class="o">*</span> <span class="n">d</span><span class="p">)</span> <span class="p">)</span> <span class="c1"># Electric field (initial guess)</span>
+
+    <span class="n">x_0</span> <span class="o">=</span> <span class="p">(</span><span class="n">x_max</span> <span class="o">+</span> <span class="n">x_1</span> <span class="o">+</span> <span class="n">x_2</span><span class="p">)</span><span class="o">/</span><span class="mi">3</span>             <span class="c1"># Center of symmetry shifted </span>
+                                                <span class="c1"># due to electric field </span>
+
+    <span class="n">k</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">/</span> <span class="n">d</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">E_max</span> <span class="o">-</span> <span class="p">(</span><span class="n">E1</span> <span class="o">+</span> <span class="n">E2</span><span class="p">)</span> <span class="p">)</span>
+    <span class="n">omega_0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">k</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">k</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="mi">6</span> <span class="o">*</span> <span class="p">(</span><span class="n">e_field_x</span> <span class="o">*</span><span class="n">e</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="p">))</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">m</span><span class="p">))</span>
+                                            <span class="c1"># well width parameter </span>
+                                                <span class="c1"># (initial guess)</span>
+
+    <span class="n">U_0</span> <span class="o">=</span> <span class="p">(</span><span class="n">E1</span> <span class="o">+</span> <span class="n">E2</span> <span class="o">+</span> <span class="n">E_max</span><span class="p">)</span> <span class="o">/</span><span class="mi">3</span> <span class="o">-</span> <span class="p">(</span><span class="n">m</span> <span class="o">*</span> <span class="n">omega_0</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">d</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">/</span><span class="mi">24</span>
+                                            <span class="c1"># potential at x_0 </span>
+                                                <span class="c1"># (initial guess)</span>
+
+    <span class="c1"># grouping all initial guesses</span>
+    <span class="n">min_params</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">e_field_x</span><span class="p">,</span> <span class="n">omega_0</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">x_0</span><span class="p">,</span> <span class="n">y_0</span><span class="p">,</span> <span class="n">U_0</span><span class="p">])</span>
+    
+    
+    <span class="c1"># Create function for best fit</span>
+    <span class="k">def</span> <span class="nf">quartic_function</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span> <span class="n">x_grid</span><span class="p">,</span> <span class="n">y_grid</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Creates a 2D Array of fit data</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">        ------------</span>
+<span class="sd">        parameters: 1D Arrayof(Float)</span>
+<span class="sd">            Array containing values that define the well (in proper order)</span>
+<span class="sd">            normalized by initial guesses:</span>
+
+<span class="sd">            np.array([e_field_x, omega_0, d, x_0, U_0]) / guess </span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">        ------------</span>
+<span class="sd">        U_fit: 2D Arrayof(Float)</span>
+<span class="sd">            Contains the quartic potential of best fit</span>
+<span class="sd">            depending on x and y </span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="n">e_field_x</span><span class="p">,</span> <span class="n">omega_0</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">x_0</span><span class="p">,</span> <span class="n">y_0</span><span class="p">,</span> <span class="n">U_0</span> <span class="o">=</span> <span class="n">parameters</span> 
+        <span class="n">U_fit</span> <span class="o">=</span> <span class="p">(</span><span class="n">m</span> <span class="o">*</span> <span class="n">omega_0</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">*</span>\
+                <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">x_grid</span> <span class="o">-</span> <span class="n">x_0</span><span class="p">)</span> <span class="o">-</span> <span class="n">d</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">4</span> <span class="o">*</span> <span class="n">d</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+                                <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">y_grid</span> <span class="o">-</span> <span class="n">y_0</span><span class="p">))</span> <span class="o">+</span>\
+                                        <span class="n">e_field_x</span> <span class="o">*</span> <span class="n">e</span> <span class="o">*</span> <span class="n">x_grid</span> <span class="o">+</span> <span class="n">U_0</span>
+        <span class="k">return</span> <span class="n">U_fit</span>
+    
+    <span class="c1">#___________________</span>
+    <span class="c1"># HERE, a minimization routine used to be (see archive)</span>
+    <span class="c1">#____________________</span>
+
+    <span class="n">min_e_field_x</span><span class="p">,</span> <span class="n">min_omega_0</span><span class="p">,</span> <span class="n">min_d</span><span class="p">,</span> <span class="n">min_x_0</span><span class="p">,</span> <span class="n">min_y_0</span><span class="p">,</span> <span class="n">min_U_0</span> <span class="o">=</span> <span class="n">min_params</span>
+
+    <span class="n">U_best_fit</span> <span class="o">=</span> <span class="n">quartic_function</span><span class="p">(</span><span class="n">min_params</span><span class="p">,</span> <span class="n">x_mesh</span><span class="p">,</span> <span class="n">y_mesh</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="n">return_params</span><span class="p">:</span>
+        <span class="n">result_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;U_fit&#39;</span><span class="p">:</span> <span class="n">U_best_fit</span><span class="p">,</span> \
+                        <span class="s1">&#39;dot_sep&#39;</span><span class="p">:</span> <span class="mi">2</span><span class="o">*</span> <span class="n">min_d</span><span class="p">,</span> <span class="s1">&#39;e_field_x&#39;</span><span class="p">:</span> <span class="n">min_e_field_x</span><span class="p">,</span>\
+                            <span class="s1">&#39;omega_0&#39;</span><span class="p">:</span> <span class="n">min_omega_0</span><span class="p">,</span> <span class="s1">&#39;x_centre&#39;</span><span class="p">:</span> <span class="n">min_x_0</span><span class="p">,</span> \
+                                <span class="s1">&#39;y_centre&#39;</span><span class="p">:</span> <span class="n">min_y_0</span><span class="p">,</span> <span class="s1">&#39;U_0&#39;</span><span class="p">:</span> <span class="n">min_U_0</span>
+                        <span class="p">}</span>
+        <span class="k">return</span> <span class="n">result_dict</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">U_best_fit</span></div>
+
+
+
+<span class="k">def</span> <span class="nf">_precise_min</span><span class="p">(</span><span class="n">fun_array</span><span class="p">,</span> <span class="n">arg_array</span><span class="p">,</span> <span class="n">guess</span><span class="p">,</span> <span class="n">bounds</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Finds minimum of a function precisely by interpolating data array and minimizing it</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        fun_array (1d float array): array of function values</span>
+<span class="sd">        arg_array (1d float array): [description]</span>
+<span class="sd">        guess (float): guess of an argument, near which the minimum is located</span>
+<span class="sd">        bounds (list): 2-element list/tuple with lower and upper bound of </span>
+<span class="sd">        minimization</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">bound_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">greater_equal</span><span class="p">(</span><span class="n">arg_array</span><span class="p">,</span> <span class="n">bounds</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> 
+                                            <span class="n">np</span><span class="o">.</span><span class="n">less_equal</span><span class="p">(</span><span class="n">arg_array</span><span class="p">,</span> <span class="n">bounds</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+
+    <span class="c1"># converting potential landscape in eV, and distance in nanometer</span>
+    <span class="c1"># for more precise minimization</span>
+    <span class="n">fun</span> <span class="o">=</span> <span class="n">interp1d</span><span class="p">(</span><span class="mf">1e9</span> <span class="o">*</span> <span class="n">arg_array</span><span class="p">[</span><span class="n">bound_mask</span><span class="p">],</span> 
+                        <span class="mf">1.6e19</span><span class="o">*</span> <span class="n">fun_array</span><span class="p">[</span><span class="n">bound_mask</span><span class="p">],</span> <span class="n">kind</span><span class="o">=</span><span class="s1">&#39;cubic&#39;</span><span class="p">)</span>
+
+    <span class="n">arg_min</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span><span class="n">fun</span><span class="p">,</span> <span class="mf">1e9</span><span class="o">*</span> <span class="n">guess</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">[</span><span class="mf">1e9</span><span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">bounds</span><span class="p">)],</span> 
+                                    <span class="n">method</span><span class="o">=</span><span class="s1">&#39;L-BFGS-B&#39;</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;ftol&#39;</span><span class="p">:</span><span class="mf">1e-12</span><span class="p">})</span>
+                     
+    <span class="n">result</span> <span class="o">=</span> <span class="p">(</span><span class="n">arg_min</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="mf">1e9</span><span class="p">,</span> <span class="n">fun</span><span class="p">(</span><span class="n">arg_min</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="p">)</span><span class="o">/</span><span class="mf">1.6e19</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">result</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Zach D. Merino.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

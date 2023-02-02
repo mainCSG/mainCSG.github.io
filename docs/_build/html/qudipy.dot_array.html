@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>qudipy.dot_array package &mdash; QuDiPy Documentation 1.0.0 documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> QuDiPy Documentation
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">qudipy.dot_array package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-qudipy.dot_array.dots">qudipy.dot_array.dots module</a></li>
+<li><a class="reference internal" href="#module-qudipy.dot_array">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">QuDiPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a></li>
+      <li class="breadcrumb-item active">qudipy.dot_array package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/qudipy.dot_array.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="qudipy-dot-array-package">
+<h1>qudipy.dot_array package<a class="headerlink" href="#qudipy-dot-array-package" title="Permalink to this headline">¶</a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="module-qudipy.dot_array.dots">
+<span id="qudipy-dot-array-dots-module"></span><h2>qudipy.dot_array.dots module<a class="headerlink" href="#module-qudipy.dot_array.dots" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="qudipy.dot_array.dots.DotArray">
+<em class="property">class </em><code class="sig-prename descclassname">qudipy.dot_array.dots.</code><code class="sig-name descname">DotArray</code><span class="sig-paren">(</span><em class="sig-param">precalculated_dir, data_dir, preprocessed_dir, n_dots, ctrl_names, ctrl_vals, file_prefix='dots_data', calc_eff=False, save=False, pts=[6, 6, 6]</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qudipy/dot_array/dots.html#DotArray"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qudipy.dot_array.dots.DotArray" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>This class is designed to process the potential landscape data set for a 
+given device dot geometry to exctract various meta data or effective 
+parameters.</p>
+<p>Example: find the the number of dots for the potential lanscape dataset and 
+then calculate the g-factor deviation for each dot and exchange for all
+pars of adjacent dots.</p>
+<dl class="method">
+<dt id="qudipy.dot_array.dots.DotArray.exchanges">
+<code class="sig-name descname">exchanges</code><span class="sig-paren">(</span><em class="sig-param">ctrl_vecs</em>, <em class="sig-param">method='HM'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qudipy/dot_array/dots.html#DotArray.exchanges"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qudipy.dot_array.dots.DotArray.exchanges" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determines exchange couplings between adjacent pairs of dots.</p>
+<dl class="simple">
+<dt>ctrl_vals: list of lists</dt><dd><p>Configuration of control voltages for various voltage vectors in 
+the voltage state space</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>method: string</dt><dd><p>Choice of ‘HL’, ‘HM’, or ‘LCHO’ method for exchange calculations
+(strings are case insensitive)</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>ex_path: 2D float array</dt><dd><p>Array of the exchange couplings between each adjacent pair of dots
+for various voltage vectors in the voltage state space</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="qudipy.dot_array.dots.DotArray.g_factors">
+<code class="sig-name descname">g_factors</code><span class="sig-paren">(</span><em class="sig-param">ctrl_vecs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qudipy/dot_array/dots.html#DotArray.g_factors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qudipy.dot_array.dots.DotArray.g_factors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determines g-factors for each dot in the Dots object.
+Parameters
+——-
+ctrl_vals: list of lists</p>
+<blockquote>
+<div><p>Configuration of control voltages for various voltage vectors in 
+the voltage state space</p>
+</div></blockquote>
+<dl class="simple">
+<dt>g_factor_path: 2D float array</dt><dd><p>Array of the g-factors of each dot for various voltage vectors in 
+the voltage state space</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="qudipy.dot_array.dots.DotArray.get_eff_params">
+<code class="sig-name descname">get_eff_params</code><span class="sig-paren">(</span><em class="sig-param">exchange_method='HM'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qudipy/dot_array/dots.html#DotArray.get_eff_params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qudipy.dot_array.dots.DotArray.get_eff_params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Method that calculates the masked potentials and effective parameters
+for all simulation data. Then interpolation objects are computed.</p>
+<dl class="simple">
+<dt>exchange_method: string</dt><dd><p>Choice of HL, HM, or LCHO method for exchange calculations</p>
+</dd>
+</dl>
+<p>None.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="qudipy.dot_array.dots.DotArray.nosingleton">
+<code class="sig-name descname">nosingleton</code><span class="sig-paren">(</span><em class="sig-param">ctrl_vals</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qudipy/dot_array/dots.html#DotArray.nosingleton"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qudipy.dot_array.dots.DotArray.nosingleton" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove single dimensional data</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="qudipy.dot_array.dots.DotArray.plot">
+<code class="sig-name descname">plot</code><span class="sig-paren">(</span><em class="sig-param">ctrl_vecs</em>, <em class="sig-param">param='gfactor'</em>, <em class="sig-param">ex_units='J'</em>, <em class="sig-param">yscale='linear'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qudipy/dot_array/dots.html#DotArray.plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qudipy.dot_array.dots.DotArray.plot" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qudipy.dot_array.dots.DotArray.singleton">
+<code class="sig-name descname">singleton</code><span class="sig-paren">(</span><em class="sig-param">ctrl_vals</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qudipy/dot_array/dots.html#DotArray.singleton"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qudipy.dot_array.dots.DotArray.singleton" title="Permalink to this definition">¶</a></dt>
+<dd><p>Identify singleton dimensions and return boolean mask</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="qudipy.dot_array.dots.DotArray.split">
+<code class="sig-name descname">split</code><span class="sig-paren">(</span><em class="sig-param">group='single'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qudipy/dot_array/dots.html#DotArray.split"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qudipy.dot_array.dots.DotArray.split" title="Permalink to this definition">¶</a></dt>
+<dd><p>Method that defines new Dots objects where potentials of quantum dots 
+are separated either individually or as pairs.</p>
+<p>Each of the new Dots object inherits the potential and 
+electric field data from the parent object, 
+but the interpolating function changes: when called, the potential 
+landscape appears to have only one dot (or one pair)</p>
+<dl class="simple">
+<dt>group: string</dt><dd><p>Whether to get a list of individual dots (‘single’/’singles’), 
+or a list of adjacent dot pairs (‘pair’/’pairs’)</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>split_dots: list </dt><dd><p>list of Dots objects corresponding to individual dots or their pairs</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-qudipy.dot_array">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-qudipy.dot_array" title="Permalink to this headline">¶</a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Zach D. Merino.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

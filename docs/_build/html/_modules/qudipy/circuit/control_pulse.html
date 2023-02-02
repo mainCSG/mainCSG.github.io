@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>qudipy.circuit.control_pulse &mdash; QuDiPy Documentation 1.0.0 documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/language_data.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> QuDiPy Documentation
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">QuDiPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">qudipy.circuit.control_pulse</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for qudipy.circuit.control_pulse</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Class for a control pulse</span>
+
+<span class="sd">@author: simba</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">scipy.interpolate</span> <span class="kn">import</span> <span class="n">interp1d</span>
+<span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">deepcopy</span>
+<span class="kn">from</span> <span class="nn">qudipy.circuit.quantum_circuit</span> <span class="kn">import</span> <span class="n">QuantumCircuit</span>
+
+<div class="viewcode-block" id="ControlPulse"><a class="viewcode-back" href="../../../qudipy.circuit.html#qudipy.circuit.control_pulse.ControlPulse">[docs]</a><span class="k">class</span> <span class="nc">ControlPulse</span><span class="p">:</span>
+    
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pulse_name</span><span class="p">,</span> <span class="n">pulse_type</span><span class="p">,</span> <span class="n">pulse_length</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">ideal_gate</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">gates</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Initialize a ControlPulse object.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        pulse_name : string</span>
+<span class="sd">            Name of pulse.</span>
+<span class="sd">        pulse_type : string</span>
+<span class="sd">            Specify whether pulse is described with &quot;experimental&quot; or </span>
+<span class="sd">            &quot;effective&quot; control variables.</span>
+<span class="sd">            </span>
+<span class="sd">        Keyword Arguments</span>
+<span class="sd">        -----------------</span>
+<span class="sd">        pulse_length : int, optional</span>
+<span class="sd">            Total length of pulse in [s]. The default is -1.</span>
+<span class="sd">            This is an optional keyword because </span>
+<span class="sd">            sometimes you may wish to vary the pulse length across</span>
+<span class="sd">            different simulations for a given pulse. Pulse length </span>
+<span class="sd">            can be set later using the set_pulse_length() method.</span>
+<span class="sd">        ideal_gate : string, optional</span>
+<span class="sd">            The ideal gate keyword for this control pulse. The default</span>
+<span class="sd">            is None.</span>
+<span class="sd">        gates: QuantumCircuit, optional</span>
+<span class="sd">            The QuantumCircuit object that defines the simultaneity more</span>
+<span class="sd">            than one different gate in the pulse. Default is None.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None.</span>
+
+<span class="sd">        &#39;&#39;&#39;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">pulse_type</span> <span class="o">=</span> <span class="n">pulse_type</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">pulse_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">length</span> <span class="o">=</span> <span class="n">pulse_length</span> <span class="c1"># Units are s</span>
+        
+        <span class="c1"># Number of points in pulse (default 0), </span>
+        <span class="c1"># must be same among control variables</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_pts</span> <span class="o">=</span> <span class="mi">0</span> 
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_pulses</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_names</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_ctrls</span> <span class="o">=</span> <span class="mi">0</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">ideal_gate</span> <span class="o">=</span> <span class="n">ideal_gate</span>
+       
+        <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_time</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># Attribute to be initialized later in </span>
+        <span class="c1"># _generate_ctrl_interpolators</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_interps</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="c1"># Attribute specifying if there are different gates</span>
+        <span class="c1"># happening simultaneously in the pulse.</span>
+        <span class="c1"># -&gt; will either be None or a QuantumCircuit</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gates</span> <span class="o">=</span> <span class="n">gates</span>
+        
+        
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">time_pts</span><span class="p">):</span>
+                
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Call method for class.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        time_pts : 1D float array</span>
+<span class="sd">            Time points where we want to obtain the interpolated pulse</span>
+<span class="sd">            values.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        interp_pulse : 2D float array</span>
+<span class="sd">            The interpolated pulse values at the inputted time points.</span>
+
+<span class="sd">        &#39;&#39;&#39;</span>
+        
+        <span class="c1"># Check that we actually have a valid pulse length set</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">length</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Cannot call control pulse object.</span><span class="se">\n</span><span class="s1">Pulse length has not been specified.&#39;</span>\
+                            <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">Please set using the .set_pulse_length() method.&#39;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        
+        <span class="c1"># Check if the interpolators have been constructed. If not, then </span>
+        <span class="c1"># make them.</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="s1">&#39;ctrl_interps&#39;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_generate_ctrl_interpolators</span><span class="p">()</span>
+        
+        <span class="c1"># Loop through each control variable and get the interpolated pulse</span>
+        <span class="c1"># for each time point.</span>
+        <span class="n">interp_pulse</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">time_pts</span><span class="p">),</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ctrl_names</span><span class="p">)))</span>
+        <span class="k">for</span> <span class="n">ctrl_idx</span><span class="p">,</span> <span class="n">ctrl</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ctrl_names</span><span class="p">):</span>
+            <span class="n">interp_pulse</span><span class="p">[:,</span><span class="n">ctrl_idx</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_interps</span><span class="p">[</span><span class="n">ctrl</span><span class="p">](</span><span class="n">time_pts</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">interp_pulse</span>    
+    
+<div class="viewcode-block" id="ControlPulse.copy"><a class="viewcode-back" href="../../../qudipy.circuit.html#qudipy.circuit.control_pulse.ControlPulse.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        This method will do a deep copy of the current class object.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ControlPulse</span>
+<span class="sd">            Deep copy of current ControlPulse object.</span>
+
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="ControlPulse.plot"><a class="viewcode-back" href="../../../qudipy.circuit.html#qudipy.circuit.control_pulse.ControlPulse.plot">[docs]</a>    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plot_ctrls</span><span class="o">=</span><span class="s1">&#39;all&#39;</span><span class="p">,</span> <span class="n">time_int</span><span class="o">=</span><span class="s1">&#39;full&#39;</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">250</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Plot the control pulse. Can plot a subset of the control</span>
+<span class="sd">        variables and within some time interval.</span>
+
+<span class="sd">        Keyword Arguments</span>
+<span class="sd">        -----------------</span>
+<span class="sd">        plot_ctrls : list of strings, optional</span>
+<span class="sd">            Specify the name of each control variable pulse you wish</span>
+<span class="sd">            to plot or plot &#39;all&#39;. The default is &#39;all&#39;.</span>
+<span class="sd">        time_int : list of floats</span>
+<span class="sd">            Specify the time interval over which to plot the pulse.</span>
+<span class="sd">            Cannot be less than 0 or greater than the current pulse</span>
+<span class="sd">            length. The default is the full time interval.</span>
+<span class="sd">        n : int, optional</span>
+<span class="sd">            Number of points to use in the pulse when plotting. The </span>
+<span class="sd">            default is 250.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None.</span>
+
+<span class="sd">        &#39;&#39;&#39;</span>
+        
+        <span class="c1"># Get the time interval and time points to plot</span>
+        <span class="k">if</span> <span class="n">time_int</span> <span class="o">==</span> <span class="s1">&#39;full&#39;</span><span class="p">:</span>
+            <span class="n">min_time</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">max_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">length</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">min_time</span> <span class="o">=</span> <span class="n">time_int</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">max_time</span> <span class="o">=</span> <span class="n">time_int</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            
+        <span class="n">t_pts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">min_time</span><span class="p">,</span><span class="n">max_time</span><span class="p">,</span><span class="n">n</span><span class="p">)</span>
+        
+        <span class="c1"># Get the actual pulse</span>
+        <span class="n">pulse</span> <span class="o">=</span> <span class="bp">self</span><span class="p">(</span><span class="n">t_pts</span><span class="p">)</span>
+        
+        <span class="c1"># Check the plot_ctrls input</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">plot_ctrls</span><span class="p">,(</span><span class="nb">list</span><span class="p">,</span><span class="nb">tuple</span><span class="p">,</span><span class="nb">set</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="n">plot_ctrls</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;all&#39;</span><span class="p">:</span>
+                <span class="n">plot_ctrls</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_names</span>
+            <span class="c1"># A single control variable was inputted but wasn&#39;t wrapped in a</span>
+            <span class="c1"># list, tuple, or set, so we will wrap it in a list</span>
+            <span class="k">elif</span> <span class="n">plot_ctrls</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_names</span><span class="p">:</span>
+                <span class="n">plot_ctrls</span> <span class="o">=</span> <span class="p">[</span><span class="n">plot_ctrls</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Unrecognized input for control variables &#39;</span><span class="o">+</span>
+                                 <span class="sa">f</span><span class="s1">&#39;to plot </span><span class="si">{</span><span class="n">plot_ctrls</span><span class="si">}</span><span class="s1">.</span><span class="se">\n</span><span class="s1">Allowed inputs are &#39;</span><span class="o">+</span>
+                                 <span class="s1">&#39;either &#39;&#39;all&#39;&#39; or a list of allowed names:</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">+</span>
+                                 <span class="sa">f</span><span class="s1">&#39; </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ctrl_names</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="c1"># If a list of names was specified, check that all are valid ctrl </span>
+        <span class="c1"># variable names</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="nb">set</span><span class="p">(</span><span class="n">plot_ctrls</span><span class="p">)</span><span class="o">.</span><span class="n">issubset</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ctrl_names</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Unrecognized input for control variables &#39;</span><span class="o">+</span>
+                             <span class="sa">f</span><span class="s1">&#39;to plot </span><span class="si">{</span><span class="n">plot_ctrls</span><span class="si">}</span><span class="s1">.</span><span class="se">\n</span><span class="s1">Allowed inputs are &#39;</span><span class="o">+</span>
+                             <span class="s1">&#39;either &#39;&#39;all&#39;&#39; or a list of allowed names:</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">+</span>
+                             <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ctrl_names</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+           
+        <span class="c1"># For each pulse specified by ctrl_vars, plot those pulses</span>
+        <span class="n">ctrl_idxs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">ctrl</span> <span class="ow">in</span> <span class="n">plot_ctrls</span><span class="p">:</span>
+            <span class="n">ctrl_idxs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ctrl_names</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">ctrl</span><span class="p">))</span>
+            
+        <span class="c1"># Figure out scale to apply (if any) on time axis to make more</span>
+        <span class="c1"># readable as default length units are ps</span>
+        <span class="k">if</span> <span class="mf">1E-15</span> <span class="o">&lt;</span> <span class="nb">max</span><span class="p">(</span><span class="n">t_pts</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mf">1E-12</span><span class="p">:</span>
+            <span class="n">scale</span> <span class="o">=</span> <span class="mf">1E15</span>
+            <span class="n">units</span> <span class="o">=</span> <span class="s1">&#39;[fs]&#39;</span>
+        <span class="k">elif</span> <span class="mf">1E-12</span> <span class="o">&lt;</span> <span class="nb">max</span><span class="p">(</span><span class="n">t_pts</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mf">1E-9</span><span class="p">:</span>
+            <span class="n">scale</span> <span class="o">=</span> <span class="mf">1E12</span>
+            <span class="n">units</span> <span class="o">=</span> <span class="s1">&#39;[ps]&#39;</span>
+        <span class="k">elif</span> <span class="mf">1E-9</span> <span class="o">&lt;</span> <span class="nb">max</span><span class="p">(</span><span class="n">t_pts</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mf">1E-6</span><span class="p">:</span>
+            <span class="n">scale</span> <span class="o">=</span> <span class="mf">1E9</span>
+            <span class="n">units</span> <span class="o">=</span> <span class="s1">&#39;[ns]&#39;</span>
+        <span class="k">elif</span> <span class="mf">1E-6</span> <span class="o">&lt;</span> <span class="nb">max</span><span class="p">(</span><span class="n">t_pts</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mf">1E-3</span><span class="p">:</span>
+            <span class="n">scale</span> <span class="o">=</span> <span class="mf">1E6</span>
+            <span class="n">units</span> <span class="o">=</span> <span class="s1">&#39;[us]&#39;</span>
+        <span class="k">elif</span> <span class="mf">1E-3</span> <span class="o">&lt;</span> <span class="nb">max</span><span class="p">(</span><span class="n">t_pts</span><span class="p">):</span>
+            <span class="n">scale</span> <span class="o">=</span> <span class="mf">1E3</span>
+            <span class="n">units</span> <span class="o">=</span> <span class="s1">&#39;[ms]&#39;</span>
+            
+        <span class="c1"># Generate figure</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">t_pts</span><span class="o">*</span><span class="n">scale</span><span class="p">,</span> <span class="n">pulse</span><span class="p">[:,</span><span class="n">ctrl_idxs</span><span class="p">])</span>   
+        <span class="n">lgd_names</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ctrl_names</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">ctrl_idxs</span><span class="p">]</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">lgd_names</span><span class="p">,</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;best&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Time &#39;</span> <span class="o">+</span> <span class="n">units</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>
+        
+        
+<div class="viewcode-block" id="ControlPulse.set_pulse_length"><a class="viewcode-back" href="../../../qudipy.circuit.html#qudipy.circuit.control_pulse.ControlPulse.set_pulse_length">[docs]</a>    <span class="k">def</span> <span class="nf">set_pulse_length</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pulse_length</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Change the pulse length by scaling the time axis of the pulse with </span>
+<span class="sd">        respect to the previously specified pulse.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        pulse_length : int</span>
+<span class="sd">            Pulse legnth for control pulse in [s].</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None.</span>
+
+<span class="sd">        &#39;&#39;&#39;</span>
+                
+        <span class="c1"># Keep track of old length</span>
+        <span class="n">old_length</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">length</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">length</span> <span class="o">=</span> <span class="n">pulse_length</span>
+        
+        <span class="c1"># If previous length is -1, then pulse length has not been specified</span>
+        <span class="c1"># yet so we can just set the attribute as we did above and then return</span>
+        <span class="k">if</span> <span class="n">old_length</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span>
+            
+        <span class="c1"># If self.ctrl_time is defined, then we need to just scale all the</span>
+        <span class="c1"># current time points</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_time</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_time</span> <span class="o">*=</span> <span class="n">pulse_length</span><span class="o">/</span><span class="n">old_length</span>
+            
+        <span class="c1"># Check if the interpolators have been constructed. If they have, </span>
+        <span class="c1"># then we need to update them with the new ctrl_time attribute</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="s1">&#39;ctrl_interps&#39;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_generate_ctrl_interpolators</span><span class="p">()</span></div>
+        
+<div class="viewcode-block" id="ControlPulse.add_control_variable"><a class="viewcode-back" href="../../../qudipy.circuit.html#qudipy.circuit.control_pulse.ControlPulse.add_control_variable">[docs]</a>    <span class="k">def</span> <span class="nf">add_control_variable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var_name</span><span class="p">,</span> <span class="n">var_pulse</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Adds a control variable to the pulse. If the variable name is</span>
+<span class="sd">        time, then it will store the time points in the ctrl_time</span>
+<span class="sd">        variable.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        var_name : string</span>
+<span class="sd">            Name of new control variable being added.</span>
+<span class="sd">        var_pulse : 1D array</span>
+<span class="sd">            DESCRIPTION.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None.</span>
+
+<span class="sd">        &#39;&#39;&#39;</span>
+        
+        <span class="c1"># Check that the new control variable pulse has the same number of </span>
+        <span class="c1"># points as all the other control variables (if this is first one, </span>
+        <span class="c1"># then save the number of points)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_pts</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">var_pulse</span><span class="p">)</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_pts</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Number of pulse points is not equal to the &#39;</span><span class="o">+</span>
+                                 <span class="s1">&#39;current</span><span class="se">\n</span><span class="s1">number of pulse points in previously &#39;</span><span class="o">+</span>
+                                 <span class="s1">&#39;loaded control variable pulses.</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">+</span>
+                                 <span class="sa">f</span><span class="s1">&#39;Expected </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_pts</span><span class="si">}</span><span class="s1">, got </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">var_pulse</span><span class="p">)</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n_pts</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">var_pulse</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">var_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;time&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_time</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">var_pulse</span><span class="p">)</span>
+            <span class="c1"># Double check that the time points start at 0.</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ctrl_time</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">0</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Cannot load time variable for </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s1">&#39;</span><span class="o">+</span>
+                                 <span class="s1">&#39; because time points do not start at 0.&#39;</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_pulse_length</span><span class="p">(</span><span class="n">var_pulse</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_pulses</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">var_pulse</span><span class="p">)</span>
+            <span class="c1"># self.ctrl_pulses.keys() should be in the order items are added </span>
+            <span class="c1"># to the dict if using python &gt;3.7. But to keep things backwards</span>
+            <span class="c1"># compatible, we will manually append our own list.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">var_name</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n_ctrls</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ctrl_names</span><span class="p">)</span></div>
+            
+    <span class="k">def</span> <span class="nf">_generate_ctrl_interpolators</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Loop through every control variable and make a 1D time </span>
+<span class="sd">        interpolation object.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None.</span>
+
+<span class="sd">        &#39;&#39;&#39;</span>
+        
+        <span class="c1"># Initialize an empty dictionary to store all the interpolators</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_interps</span> <span class="o">=</span> <span class="p">{}</span>
+        
+        <span class="c1"># Check if the time array is set, if not, then assume each point in</span>
+        <span class="c1"># the pulse is linearly spaced in time</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_time</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Build a linear time array</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_time</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">length</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_pts</span><span class="p">)</span>
+        
+        <span class="c1"># For each pulse, find the time axis points and then make the 1D</span>
+        <span class="c1"># interpolator. All ctrl pulses will be linearly interpolated.</span>
+        <span class="k">for</span> <span class="n">ctrl</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_names</span><span class="p">:</span>
+            <span class="n">curr_pulse</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_pulses</span><span class="p">[</span><span class="n">ctrl</span><span class="p">]</span>
+                
+            <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_interps</span><span class="p">[</span><span class="n">ctrl</span><span class="p">]</span> <span class="o">=</span> <span class="n">interp1d</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ctrl_time</span><span class="p">,</span> <span class="n">curr_pulse</span><span class="p">)</span>        
+            
+<div class="viewcode-block" id="ControlPulse.add_mult_gates"><a class="viewcode-back" href="../../../qudipy.circuit.html#qudipy.circuit.control_pulse.ControlPulse.add_mult_gates">[docs]</a>    <span class="k">def</span> <span class="nf">add_mult_gates</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Changes gates attribute to be a QuantumCircuit of </span>
+<span class="sd">        the correct format for the gates specified in </span>
+<span class="sd">        the parameter add_gates.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters:</span>
+<span class="sd">        ------------</span>
+<span class="sd">        add_gates: List/Tuple/Arrayof(String)</span>
+<span class="sd">            A list of pulse names that we wish to have run</span>
+<span class="sd">            simultaneously</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">        ------------</span>
+<span class="sd">        None</span>
+<span class="sd">        </span>
+<span class="sd">        Note:</span>
+<span class="sd">        -------</span>
+<span class="sd">        This function does not create the pulses necessary</span>
+<span class="sd">        for these gates, it just flags that the ControlPulse</span>
+<span class="sd">        contains a pulse with more than one type of gate acting</span>
+<span class="sd">        on multiple qubits simultaneously.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">add_gates</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;|&quot;</span><span class="p">)))</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The name of a Control Pulse containing multiple gates must</span><span class="se">\</span>
+<span class="s2">            be of the form GATE1_qubit | GATE2_qubit | ... The name of the provided</span><span class="se">\</span>
+<span class="s2">            ControlPulse is </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
+        
+        <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s2">&quot; circuit&quot;</span>
+        
+        <span class="c1"># Create list of ideal gates and find the </span>
+        <span class="c1"># number of qubits used in the circuit.</span>
+        <span class="n">ideal_gates</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">used_qubits</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">n_qubits</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># Pull out the name of the gate</span>
+        <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">add_gates</span><span class="p">:</span>
+            <span class="n">ideal_gates</span> <span class="o">=</span> <span class="n">ideal_gates</span> <span class="o">+</span> <span class="p">[</span><span class="n">g</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]]</span>
+            <span class="n">L</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># Pull out the qubits used in the gate</span>
+            <span class="n">qubits</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">ele</span> <span class="ow">in</span> <span class="n">g</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">ele</span><span class="o">.</span><span class="n">isnumeric</span><span class="p">():</span>
+                    <span class="n">q</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ele</span><span class="p">)</span>
+                    <span class="n">qubits</span> <span class="o">=</span> <span class="n">qubits</span> <span class="o">+</span> <span class="p">[</span><span class="n">q</span><span class="p">]</span>
+                    <span class="n">n_qubits</span> <span class="o">=</span> <span class="n">n_qubits</span> <span class="o">+</span> <span class="p">[</span><span class="n">q</span><span class="p">]</span>
+        <span class="c1"># For each gate, put the qubits into the used_qubit list</span>
+            <span class="n">used_qubits</span> <span class="o">=</span> <span class="n">used_qubits</span> <span class="o">+</span> <span class="p">[</span><span class="n">qubits</span><span class="p">]</span> <span class="c1"># Listof(Listof(Int))</span>
+        <span class="c1"># Find the number of qubits used</span>
+        <span class="n">n_qubits</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">n_qubits</span><span class="p">)</span>
+        <span class="c1"># Put used_qubits into a tuple (data formating)</span>
+        <span class="n">used_qubits</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">used_qubits</span><span class="p">)</span>
+                    
+        <span class="c1"># Create the QuantumCircuit object</span>
+        <span class="n">gates</span> <span class="o">=</span> <span class="n">QuantumCircuit</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">n_qubits</span><span class="p">,</span> <span class="p">{})</span>
+        
+        <span class="c1"># Add the gates to the object </span>
+        <span class="n">gates</span><span class="o">.</span><span class="n">add_gate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_gates&#39;</span><span class="p">,</span> <span class="n">ideal_gates</span><span class="p">,</span> <span class="n">used_qubits</span><span class="p">,</span> <span class="n">mult_gates</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        
+        <span class="c1"># Add gates as an attribute</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gates</span> <span class="o">=</span> <span class="n">gates</span></div>
+    
+    
+<div class="viewcode-block" id="ControlPulse.print_pulse"><a class="viewcode-back" href="../../../qudipy.circuit.html#qudipy.circuit.control_pulse.ControlPulse.print_pulse">[docs]</a>    <span class="k">def</span> <span class="nf">print_pulse</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Prints a circuit diagram of the pulse</span>
+
+<span class="sd">        Effects</span>
+<span class="sd">        ---------</span>
+<span class="sd">        * Prints to screen</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        ---------</span>
+<span class="sd">        None</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="c1"># If only a single gate is specified in the Control Pulse</span>
+        <span class="c1"># we need to create a QuantumCircuit object for it.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">gates</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+            
+            <span class="c1"># Pull out data from ControlPulse.</span>
+            <span class="n">circ_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s2">&quot; pulse circuit&quot;</span>
+            <span class="n">ideal_gate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ideal_gate</span>
+            
+            <span class="c1"># Split up the name to find the largest index </span>
+            <span class="c1"># number of qubit.</span>
+            <span class="n">L</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)</span>
+            <span class="n">n_qubits</span> <span class="o">=</span> <span class="mi">0</span> 
+            <span class="n">used_qubits</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">ele</span> <span class="ow">in</span> <span class="n">L</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">ele</span><span class="o">.</span><span class="n">isnumeric</span><span class="p">():</span>
+                    <span class="n">q</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ele</span><span class="p">)</span>
+                    <span class="n">used_qubits</span> <span class="o">=</span> <span class="n">used_qubits</span> <span class="o">+</span> <span class="p">[</span><span class="n">q</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="n">q</span> <span class="o">&gt;</span> <span class="n">n_qubits</span><span class="p">:</span>
+                        <span class="n">n_qubits</span> <span class="o">=</span> <span class="n">q</span>
+            <span class="c1"># Initialize QuantumCircuit Object</span>
+            <span class="n">gates</span> <span class="o">=</span> <span class="n">QuantumCircuit</span><span class="p">(</span><span class="n">circ_name</span><span class="p">,</span> <span class="n">n_qubits</span><span class="p">,</span> <span class="p">{})</span>
+            <span class="c1"># Add gate</span>
+            <span class="n">gates</span><span class="o">.</span><span class="n">add_gate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">ideal_gate</span><span class="p">,</span> <span class="n">used_qubits</span><span class="p">,</span> <span class="n">mult_gates</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        
+        <span class="c1"># If gates is not None then it should be a QuantumCircuit</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">gates</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gates</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">gates</span><span class="p">,</span> <span class="n">QuantumCircuit</span><span class="p">):</span>
+                <span class="n">err_mess</span> <span class="o">=</span> <span class="s1">&#39;The keyword argument gates is </span><span class="si">{}</span><span class="s1"> which is &#39;</span> <span class="o">+</span>\
+                <span class="s1">&#39;neither None or a QuantumCircuit object. Please make &#39;</span> <span class="o">+</span>\
+                <span class="s1">&#39;sure that it is a valid argument.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">gates</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">err_mess</span><span class="p">)</span>
+            
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">gates</span><span class="o">.</span><span class="n">circuit_sequence</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span> \
+                <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">gates</span><span class="o">.</span><span class="n">circuit_sequence</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">tuple</span><span class="p">):</span>
+                <span class="n">err_mess</span> <span class="o">=</span> <span class="s1">&#39;The circuit sequence </span><span class="si">{}</span><span class="s1"> is not a valid &#39;</span> <span class="o">+</span>\
+                <span class="s1">&#39;QuantumCircuit to specify multiple gates.&#39;</span>\
+                <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">gates</span><span class="o">.</span><span class="n">circuit_sequence</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">err_mess</span><span class="p">)</span>
+        
+        <span class="n">gates</span><span class="o">.</span><span class="n">print_ideal_circuit</span><span class="p">()</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Zach D. Merino.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

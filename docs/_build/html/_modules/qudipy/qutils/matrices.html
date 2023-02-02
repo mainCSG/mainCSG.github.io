@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>qudipy.qutils.matrices &mdash; QuDiPy Documentation 1.0.0 documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/language_data.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> QuDiPy Documentation
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">QuDiPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">qudipy.qutils.matrices</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for qudipy.qutils.matrices</h1><div class="highlight"><pre>
+<span></span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">Constant matrices used to define quantum gates</span>
+<span class="sd">@author: hromecB, zmerino</span>
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="kn">from</span> <span class="nn">logging</span> <span class="kn">import</span> <span class="n">warning</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">inspect</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<div class="viewcode-block" id="Operator"><a class="viewcode-back" href="../../../qudipy.qutils.html#qudipy.qutils.matrices.Operator">[docs]</a><span class="k">class</span> <span class="nc">Operator</span><span class="p">:</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+
+<span class="sd">    Initialize Operator class. Handles all things realted to</span>
+<span class="sd">    creating/loading/modifying operator object files which contain various</span>
+<span class="sd">    operators in dictionary format. The Operator class also contains hard</span>
+<span class="sd">    coded operators.</span>
+
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="c1">##### Operator Object Manipulation #####</span>
+    
+<div class="viewcode-block" id="Operator.check_name"><a class="viewcode-back" href="../../../qudipy.qutils.html#qudipy.qutils.matrices.Operator.check_name">[docs]</a>    <span class="k">def</span> <span class="nf">check_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        </span>
+<span class="sd">        Check that a file name for an object file has the correct extention,</span>
+<span class="sd">        and if not try to correct it or raise an error.</span>
+<span class="sd">        </span>
+<span class="sd">        Keyword Arguments</span>
+<span class="sd">        -----------------</span>
+<span class="sd">        filename: string</span>
+<span class="sd">            String that indicates the name of the existing object file which</span>
+<span class="sd">            contains a library of operators.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            String with &#39;.npz&#39; appended if no other file extension existed</span>
+
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="c1"># Append &#39;.npz&#39; only if filename whas no file extension provided</span>
+        <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+
+            <span class="c1"># Seperate the file name from the file extension (if it exist)</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">ext</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+
+            <span class="c1"># If file extension exists</span>
+            <span class="k">if</span> <span class="n">ext</span><span class="p">:</span>
+                <span class="c1"># If file extension is not correct file type</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">filename</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;.npz&#39;</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;File name has unexpected file extension.&#39;</span><span class="p">)</span>
+            <span class="c1"># If no file extension exists</span>
+            <span class="k">elif</span> <span class="ow">not</span> <span class="n">ext</span><span class="p">:</span>
+                <span class="n">filename</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s1">.npz&#39;</span>
+        
+        <span class="k">return</span> <span class="n">filename</span></div>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">operators</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">f_type</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+
+<span class="sd">        Keyword Arguments</span>
+<span class="sd">        -----------------</span>
+<span class="sd">        lib: Dictionary</span>
+<span class="sd">            Dictionary of operators to be used to initialize an object.</span>
+<span class="sd">            If left empty then the dictionary is going to be built from scratch</span>
+<span class="sd">            or loaded from an operator object file from the working directory.</span>
+<span class="sd">        filename: string</span>
+<span class="sd">            String that indicates the name of the existing object file which</span>
+<span class="sd">            contains a library of operators.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None.</span>
+
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="c1"># Initialize object attribute for later use</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_unitary</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># Check if the correct file type/name was given</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_name</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+
+        <span class="c1"># Set file name of object instance so multiple library objects</span>
+        <span class="c1"># can be referenced</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span>
+
+        <span class="c1"># Ensure initial operator dictionary only contains items with</span>
+        <span class="c1"># the correct data structure, then assign to object</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">operators</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># Empty dictionary</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">lib</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">elif</span> <span class="n">operators</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># Use user defined dictionary without existing object file</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">check_ops</span><span class="p">(</span><span class="n">operators</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">lib</span> <span class="o">=</span> <span class="n">operators</span>
+        <span class="k">elif</span>  <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">operators</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># Load dictionary object file with no user defined dictionary</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">lib</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_ops</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="n">f_type</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">check_ops</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lib</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">operators</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># Use user defined dictionary and append existing object file</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">lib</span> <span class="o">=</span> <span class="n">operators</span>
+                <span class="n">loaded_ops</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_ops</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="n">f_type</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">add_operators</span><span class="p">(</span><span class="n">loaded_ops</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">check_ops</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lib</span><span class="p">)</span>
+
+        <span class="c1"># Default operator dictionary</span>
+        <span class="n">default_ops</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s1">&#39;PAULI_X&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">),</span>
+                <span class="s1">&#39;PAULI_Y&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span><span class="o">-</span><span class="mf">1.0</span><span class="n">j</span><span class="p">],</span> 
+                    <span class="p">[</span><span class="mf">1.0</span><span class="n">j</span><span class="p">,</span> <span class="mi">0</span><span class="p">]],</span><span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">),</span>
+                <span class="s1">&#39;PAULI_Z&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">),</span>
+                <span class="s1">&#39;PAULI_I&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+        <span class="p">}</span>    
+        
+        <span class="c1"># Always have Pauli operators and the identity added. </span>
+        <span class="c1"># NOTE: this will overwrite dictionary values with same key name if </span>
+        <span class="c1"># loading a dictionary from an object file</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_operators</span><span class="p">(</span><span class="n">default_ops</span><span class="p">)</span>
+
+        <span class="c1"># Check if the default operators and any additional operators are </span>
+        <span class="c1"># unitary and updated the is_unitary attribute.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_unitary</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_unitary</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lib</span><span class="p">)</span>
+
+    <span class="c1"># Overrides the [] operator for the class</span>
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">lib</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+    <span class="c1"># For addeding operator libraries to existing library       </span>
+    <span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lib</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_operators</span><span class="p">(</span><span class="n">lib</span><span class="p">)</span>
+        
+    <span class="c1"># For removing operator libraries from existing library    </span>
+    <span class="k">def</span> <span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op_names</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">remove_operators</span><span class="p">[</span><span class="n">op_names</span><span class="p">]</span>
+
+    <span class="c1"># For printing human and computer readible object instance information</span>
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s1">&#39;Operator(lib_file=N/A, lib=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">lib</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="si">}</span><span class="s1">)&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s1">&#39;Operator(lib_file=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="si">}</span><span class="s1">, lib=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">lib</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="si">}</span><span class="s1">)&#39;</span>
+
+    <span class="c1"># Create key method</span>
+<div class="viewcode-block" id="Operator.keys"><a class="viewcode-back" href="../../../qudipy.qutils.html#qudipy.qutils.matrices.Operator.keys">[docs]</a>    <span class="k">def</span> <span class="nf">keys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">lib</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Operator.check_unitary"><a class="viewcode-back" href="../../../qudipy.qutils.html#qudipy.qutils.matrices.Operator.check_unitary">[docs]</a>    <span class="k">def</span> <span class="nf">check_unitary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        </span>
+<span class="sd">        Checks if a dictionary&#39;s operator items are all unitary.   </span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        dict : Dictionary</span>
+<span class="sd">            Operator dictionary</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None.</span>
+
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">if</span> <span class="nb">bool</span><span class="p">(</span><span class="nb">dict</span><span class="p">)</span> <span class="o">!=</span> <span class="kc">False</span><span class="p">:</span>
+
+            <span class="c1"># Zero correcsponds to the assumption that the operator dictionary</span>
+            <span class="c1"># under consideration consist of unitaries until proven otherwise.</span>
+            <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">is_unitary</span> <span class="o">=</span> <span class="kc">True</span>
+                
+            <span class="c1"># Check each item in the dictionary</span>
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">dict</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                
+                <span class="n">U</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+                <span class="n">Ustar</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">conjugate</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">U</span><span class="p">))</span>
+
+                <span class="c1"># Get operator array size</span>
+                <span class="n">N</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">U</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+                <span class="c1"># Create identity operator</span>
+                <span class="n">I</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">N</span><span class="p">,</span><span class="n">N</span><span class="p">,</span><span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+
+                <span class="c1"># Check if operator is not unitary</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">U</span><span class="p">,</span><span class="n">Ustar</span><span class="p">),</span><span class="n">I</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span> <span class="ow">or</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">Ustar</span><span class="p">,</span><span class="n">U</span><span class="p">),</span><span class="n">I</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">):</span>
+                    <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+
+                <span class="k">if</span> <span class="n">count</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">is_unitary</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">is_unitary</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="n">is_unitary</span></div>
+
+<div class="viewcode-block" id="Operator.check_ops"><a class="viewcode-back" href="../../../qudipy.qutils.html#qudipy.qutils.matrices.Operator.check_ops">[docs]</a>    <span class="k">def</span> <span class="nf">check_ops</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        </span>
+<span class="sd">        Checks that a dictionary&#39;s operator items are valid data structure </span>
+<span class="sd">        types.   </span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        dict : Dictionary</span>
+<span class="sd">            Operator dictionary</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None.</span>
+
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">if</span> <span class="nb">bool</span><span class="p">(</span><span class="nb">dict</span><span class="p">)</span> <span class="o">!=</span> <span class="kc">False</span><span class="p">:</span>
+
+            <span class="c1"># Check each item in the dictionary</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span><span class="n">val</span> <span class="ow">in</span> <span class="nb">dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+
+                <span class="n">U</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+                <span class="c1"># Check if array is square</span>
+                <span class="p">[</span><span class="n">N</span><span class="p">,</span><span class="n">M</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">U</span><span class="p">)</span>
+
+                <span class="c1"># Ndarray is not a square matirx</span>
+                <span class="k">if</span> <span class="n">N</span> <span class="o">!=</span> <span class="n">M</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Operator entry contains a non-square&#39;</span><span class="o">+</span>
+                        <span class="s1">&#39; array of size [</span><span class="si">{}</span><span class="s1">,</span><span class="si">{}</span><span class="s1">].&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">N</span><span class="p">,</span><span class="n">M</span><span class="p">))</span>
+
+                <span class="c1"># Check if values are ndarrays</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+
+                    <span class="c1"># Try to convert to ndarray</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Note: Data type of </span><span class="si">{}</span><span class="s1"> is not ndarray, but is: </span><span class="si">{}</span><span class="s1">.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">,</span><span class="nb">type</span><span class="p">(</span><span class="n">val</span><span class="p">)))</span>
+                        <span class="n">val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+                    <span class="k">except</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Failed to convert </span><span class="si">{}</span><span class="s1"> to ndarray.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
+                
+                <span class="c1"># Check if array is complex object</span>
+                <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">iscomplexobj</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+                    
+                    <span class="c1"># Try to convert to complex object</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Note: Data type of first element for </span><span class="si">{}</span><span class="s1"> is not complex, but is: </span><span class="si">{}</span><span class="s1">.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">,</span><span class="nb">type</span><span class="p">(</span><span class="n">val</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">])))</span>
+                        <span class="n">val</span> <span class="o">=</span> <span class="n">val</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">complex</span><span class="p">)</span>
+                    <span class="k">except</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Failed to convert </span><span class="si">{}</span><span class="s1"> complex data type.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="Operator.save_ops"><a class="viewcode-back" href="../../../qudipy.qutils.html#qudipy.qutils.matrices.Operator.save_ops">[docs]</a>    <span class="k">def</span> <span class="nf">save_ops</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        </span>
+<span class="sd">        Save the operator dictionary in the current working directory as an </span>
+<span class="sd">        object file for later use.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        filename : String</span>
+<span class="sd">            Name of operator dictionary file. If the file type suffix is not </span>
+<span class="sd">            included in the filename, it will be appended on to the filename</span>
+<span class="sd">            string.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None.</span>
+
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="c1"># Check if the correct file type/name was given</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_name</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+
+        <span class="c1"># Default name for operator library object file</span>
+        <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="s1">&#39;Operator Library.npz&#39;</span>
+
+        <span class="c1"># Save operator object file to working directory</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">savez</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">lib</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Saved dictionary with operators, </span><span class="si">{}</span><span class="s1">, to the file: </span><span class="si">{}</span><span class="s1">.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lib</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">filename</span><span class="p">))</span></div>
+        
+<div class="viewcode-block" id="Operator.load_ops"><a class="viewcode-back" href="../../../qudipy.qutils.html#qudipy.qutils.matrices.Operator.load_ops">[docs]</a>    <span class="k">def</span> <span class="nf">load_ops</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">f_type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">disp</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        </span>
+<span class="sd">        Load the operator object file for later use.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        filename : String</span>
+<span class="sd">            Name of the file with extension .npz for the operator object.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        lib: Dictionary</span>
+<span class="sd">            Dictionary containing operators.</span>
+
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="c1"># Check if the correct file type/name was given</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_name</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+
+        <span class="c1"># Load filename data object and convert to dictionary</span>
+        <span class="n">lib</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">filename</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">disp</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Loaded existing dictionary with operators: </span><span class="si">{}</span><span class="s1">.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">lib</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+
+
+
+        <span class="k">return</span> <span class="n">lib</span></div>
+
+<div class="viewcode-block" id="Operator.add_operators"><a class="viewcode-back" href="../../../qudipy.qutils.html#qudipy.qutils.matrices.Operator.add_operators">[docs]</a>    <span class="k">def</span> <span class="nf">add_operators</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_ops</span><span class="p">,</span> <span class="n">disp</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        </span>
+<span class="sd">        Add operator dictionary to an existing operator dictionary.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        new_ops : Dictionary</span>
+<span class="sd">            Dictionary of operators to add to exisiting dictionary.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None.</span>
+
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">if</span> <span class="n">disp</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Adding operators: </span><span class="si">{}</span><span class="s1">.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">new_ops</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+
+        <span class="c1"># Check the new operators</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_ops</span><span class="p">(</span><span class="n">new_ops</span><span class="p">)</span>
+
+        <span class="c1"># If any non-unitary operator exist assign false</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_unitary</span><span class="p">(</span><span class="n">new_ops</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">False</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_unitary</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">is_unitary</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="c1"># Merge existing dictionary with dictionary of new operators</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lib</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">lib</span><span class="p">,</span> <span class="o">**</span><span class="n">new_ops</span><span class="p">}</span></div>
+
+<div class="viewcode-block" id="Operator.remove_operators"><a class="viewcode-back" href="../../../qudipy.qutils.html#qudipy.qutils.matrices.Operator.remove_operators">[docs]</a>    <span class="k">def</span> <span class="nf">remove_operators</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op_names</span><span class="p">,</span> <span class="n">disp</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        </span>
+<span class="sd">        Remove operator items from existing operator dictionary.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        op_names : List</span>
+<span class="sd">            List of dictionary key strings that are to be removed from the</span>
+<span class="sd">            existing dictionary.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None.</span>
+
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">if</span> <span class="n">disp</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Removing unitary operators: </span><span class="si">{}</span><span class="s1">.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">op_names</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">op_names</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lib</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+
+        <span class="c1"># Check if updated dictionary contains only unitary operators</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_unitary</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_unitary</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lib</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Operator.construct"><a class="viewcode-back" href="../../../qudipy.qutils.html#qudipy.qutils.matrices.Operator.construct">[docs]</a>    <span class="k">def</span> <span class="nf">construct</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">O</span><span class="p">,</span> <span class="n">key_prefix</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Creates matrix U_k of dimensions 2**N x 2**N for specified operator O</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        N: int</span>
+<span class="sd">            Number of 1-qubit degrees of freedom in the operator.</span>
+<span class="sd">        k: int</span>
+<span class="sd">            Position of the Pauli matrix in the tensor product.</span>
+<span class="sd">        O: 2D complex array</span>
+<span class="sd">        key_prefix: string</span>
+<span class="sd">            optional key prefix name argument. Key structure is key_prefix_N#K#.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        u_k: 2D complex array</span>
+<span class="sd">            Matrix U_k of dimensions 2**N x 2**N </span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">u_k</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">kron</span><span class="p">(</span><span class="n">O</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="p">(</span><span class="n">N</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)))</span>
+        <span class="k">else</span><span class="p">:</span>    
+            <span class="n">u_k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lib</span><span class="p">[</span><span class="s1">&#39;PAULI_I&#39;</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">N</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">k</span> <span class="ow">is</span> <span class="n">m</span><span class="p">:</span>
+                    <span class="n">u_k</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">kron</span><span class="p">(</span><span class="n">u_k</span><span class="p">,</span> <span class="n">O</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">u_k</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">kron</span><span class="p">(</span><span class="n">u_k</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lib</span><span class="p">[</span><span class="s1">&#39;PAULI_I&#39;</span><span class="p">])</span>
+
+        <span class="c1"># update the operator library when a key name prefix is provided</span>
+        <span class="k">if</span> <span class="n">key_prefix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            
+            <span class="n">op_key</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">_N</span><span class="si">{}</span><span class="s1">K</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key_prefix</span><span class="p">,</span><span class="n">N</span><span class="p">,</span><span class="n">k</span><span class="p">)</span>
+            
+            <span class="c1"># Prevent duplicate operator entries</span>
+            <span class="k">if</span> <span class="n">op_key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lib</span><span class="p">:</span>
+
+                <span class="c1"># construct dictionary item for operator</span>
+                <span class="n">operator_def</span> <span class="o">=</span> <span class="p">{</span>
+                        <span class="n">op_key</span><span class="p">:</span> <span class="n">u_k</span>
+                <span class="p">}</span>
+                
+                <span class="c1"># Add operator to loaded dictionary</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">add_operators</span><span class="p">(</span><span class="n">operator_def</span><span class="p">)</span>
+                <span class="c1"># Save to operator library object</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">save_ops</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">u_k</span></div>
+
+<div class="viewcode-block" id="Operator.coded_op"><a class="viewcode-back" href="../../../qudipy.qutils.html#qudipy.qutils.matrices.Operator.coded_op">[docs]</a>    <span class="k">def</span> <span class="nf">coded_op</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">save</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Manages arbitrarily defined operators that were hard coded i.e. saves</span>
+<span class="sd">        the operator to the operator library if specified in the operator</span>
+<span class="sd">        function call and only computes the operator if it does not exist in</span>
+<span class="sd">        the operator library.</span>
+<span class="sd">        ----------</span>
+<span class="sd">        func : function</span>
+<span class="sd">            An arbitrary function is sent.</span>
+<span class="sd">        op_key : str</span>
+<span class="sd">            Operator key name.            </span>
+<span class="sd">        save : bool</span>
+<span class="sd">            boolean indicator from original function call to save the operator</span>
+<span class="sd">            to the library if true.</span>
+<span class="sd">        **kwargs : dictionary</span>
+<span class="sd">            General structure: {&#39;var1&#39;: val1, ..., &#39;varN&#39;: valN,</span>
+<span class="sd">                &#39;struct&#39;: stuct, &#39;func&#39;, func}</span>
+<span class="sd">            Contains variable names and values used to construct the operator,</span>
+<span class="sd">            as well as, functions to help constuct the operator and operator </span>
+<span class="sd">            library name.</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        : complex 2D array</span>
+<span class="sd">            The computed or loaded operator</span>
+<span class="sd">            </span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="c1"># Define operator key name     </span>
+        <span class="n">curframe</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">currentframe</span><span class="p">()</span>
+        <span class="n">calframe</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getouterframes</span><span class="p">(</span><span class="n">curframe</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">method_name</span> <span class="o">=</span> <span class="n">calframe</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">3</span><span class="p">]</span>
+
+        <span class="c1"># Append variable names and values to the operator name</span>
+        <span class="n">op_key</span> <span class="o">=</span> <span class="n">method_name</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;struct&#39;</span><span class="p">,</span> <span class="s1">&#39;func&#39;</span><span class="p">]:</span>
+                <span class="n">op_key</span> <span class="o">+=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;struct&#39;</span><span class="p">](</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+
+        <span class="c1"># If operator doesn&#39;s exist, save it if specified. If the operator does</span>
+        <span class="c1"># exist then retrieve it from library</span>
+        <span class="k">if</span> <span class="n">op_key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lib</span><span class="p">:</span>
+            <span class="c1"># Retrieve operator</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">lib</span><span class="p">[</span><span class="n">op_key</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Compute operator for any specified function</span>
+            <span class="n">op</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;func&#39;</span><span class="p">](</span><span class="bp">self</span><span class="p">)</span>
+            
+            <span class="k">if</span> <span class="n">save</span><span class="p">:</span>
+                <span class="c1"># Construct dictionary item for operator</span>
+                <span class="n">operator_def</span> <span class="o">=</span> <span class="p">{</span>
+                        <span class="n">op_key</span><span class="p">:</span> <span class="n">op</span>
+                <span class="p">}</span>
+                
+                <span class="c1"># Add operator to loaded dictionary</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">add_operators</span><span class="p">(</span><span class="n">operator_def</span><span class="p">)</span>
+                <span class="c1"># Save to operator library object</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">save_ops</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">op</span></div>
+
+    <span class="c1">##### Hard Coded Operators #####</span>
+
+<div class="viewcode-block" id="Operator.PAULI_X"><a class="viewcode-back" href="../../../qudipy.qutils.html#qudipy.qutils.matrices.Operator.PAULI_X">[docs]</a>    <span class="k">def</span> <span class="nf">PAULI_X</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Defines a raising operator of the k-th qubit</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        N : int</span>
+<span class="sd">            Number of 1-qubit degrees of freedom in the operators.</span>
+<span class="sd">        k : int</span>
+<span class="sd">            Position of the raising operators in the tensor product.</span>
+<span class="sd">        save : bool</span>
+<span class="sd">            boolean indicator from original function call to save the operator</span>
+<span class="sd">            to the library if true.</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        : complex 2D array</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="c1"># Structure for appened names formed from the kwarg keys and values</span>
+        <span class="k">def</span> <span class="nf">struct</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+            <span class="c1"># Ignored: struct and func </span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s1">&#39;_</span><span class="si">{</span><span class="n">key</span><span class="si">}{</span><span class="n">val</span><span class="si">}</span><span class="s1">&#39;</span>
+
+        <span class="c1"># Define a function to construct the operator when needed</span>
+        <span class="k">def</span> <span class="nf">func</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="n">N_val</span> <span class="o">=</span> <span class="n">N</span>
+            <span class="n">k_val</span> <span class="o">=</span> <span class="n">k</span>
+
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">construct</span><span class="p">(</span><span class="n">N_val</span><span class="p">,</span><span class="n">k_val</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">lib</span><span class="p">[</span><span class="s1">&#39;PAULI_X&#39;</span><span class="p">])</span>
+
+        <span class="c1"># Define variable dictionary for operator</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;N&#39;</span><span class="p">:</span> <span class="n">N</span><span class="p">,</span> <span class="s1">&#39;k&#39;</span><span class="p">:</span> <span class="n">k</span><span class="p">,</span> <span class="s1">&#39;struct&#39;</span><span class="p">:</span> <span class="n">struct</span><span class="p">,</span> <span class="s1">&#39;func&#39;</span><span class="p">:</span> <span class="n">func</span><span class="p">}</span>
+
+        <span class="c1"># Check if the operator exist or needs to be saved</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">coded_op</span><span class="p">(</span><span class="n">save</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Operator.PAULI_Y"><a class="viewcode-back" href="../../../qudipy.qutils.html#qudipy.qutils.matrices.Operator.PAULI_Y">[docs]</a>    <span class="k">def</span> <span class="nf">PAULI_Y</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Defines a raising operator of the k-th qubit</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        N : int</span>
+<span class="sd">            Number of 1-qubit degrees of freedom in the operators.</span>
+<span class="sd">        k : int</span>
+<span class="sd">            Position of the raising operators in the tensor product.</span>
+<span class="sd">        save : bool</span>
+<span class="sd">            boolean indicator from original function call to save the operator</span>
+<span class="sd">            to the library if true.</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        : complex 2D array</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="c1"># Structure for appened names formed from the kwarg keys and values</span>
+        <span class="k">def</span> <span class="nf">struct</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+            <span class="c1"># Ignored: struct and func </span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s1">&#39;_</span><span class="si">{</span><span class="n">key</span><span class="si">}{</span><span class="n">val</span><span class="si">}</span><span class="s1">&#39;</span>
+
+        <span class="c1"># Define a function to construct the operator when needed</span>
+        <span class="k">def</span> <span class="nf">func</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="n">N_val</span> <span class="o">=</span> <span class="n">N</span>
+            <span class="n">k_val</span> <span class="o">=</span> <span class="n">k</span>
+
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">construct</span><span class="p">(</span><span class="n">N_val</span><span class="p">,</span><span class="n">k_val</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">lib</span><span class="p">[</span><span class="s1">&#39;PAULI_Y&#39;</span><span class="p">])</span>
+
+        <span class="c1"># Define variable dictionary for operator</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;N&#39;</span><span class="p">:</span> <span class="n">N</span><span class="p">,</span> <span class="s1">&#39;k&#39;</span><span class="p">:</span> <span class="n">k</span><span class="p">,</span> <span class="s1">&#39;struct&#39;</span><span class="p">:</span> <span class="n">struct</span><span class="p">,</span> <span class="s1">&#39;func&#39;</span><span class="p">:</span> <span class="n">func</span><span class="p">}</span>
+
+        <span class="c1"># Check if the operator exist or needs to be saved</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">coded_op</span><span class="p">(</span><span class="n">save</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Operator.PAULI_Z"><a class="viewcode-back" href="../../../qudipy.qutils.html#qudipy.qutils.matrices.Operator.PAULI_Z">[docs]</a>    <span class="k">def</span> <span class="nf">PAULI_Z</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Defines a raising operator of the k-th qubit</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        N : int</span>
+<span class="sd">            Number of 1-qubit degrees of freedom in the operators.</span>
+<span class="sd">        k : int</span>
+<span class="sd">            Position of the raising operators in the tensor product.</span>
+<span class="sd">        save : bool</span>
+<span class="sd">            boolean indicator from original function call to save the operator</span>
+<span class="sd">            to the library if true.</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        : complex 2D array</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="c1"># Structure for appened names formed from the kwarg keys and values</span>
+        <span class="k">def</span> <span class="nf">struct</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+            <span class="c1"># Ignored: struct and func </span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s1">&#39;_</span><span class="si">{</span><span class="n">key</span><span class="si">}{</span><span class="n">val</span><span class="si">}</span><span class="s1">&#39;</span>
+
+        <span class="c1"># Define a function to construct the operator when needed</span>
+        <span class="k">def</span> <span class="nf">func</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="n">N_val</span> <span class="o">=</span> <span class="n">N</span>
+            <span class="n">k_val</span> <span class="o">=</span> <span class="n">k</span>
+
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">construct</span><span class="p">(</span><span class="n">N_val</span><span class="p">,</span><span class="n">k_val</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">lib</span><span class="p">[</span><span class="s1">&#39;PAULI_Z&#39;</span><span class="p">])</span>
+
+        <span class="c1"># Define variable dictionary for operator</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;N&#39;</span><span class="p">:</span> <span class="n">N</span><span class="p">,</span> <span class="s1">&#39;k&#39;</span><span class="p">:</span> <span class="n">k</span><span class="p">,</span> <span class="s1">&#39;struct&#39;</span><span class="p">:</span> <span class="n">struct</span><span class="p">,</span> <span class="s1">&#39;func&#39;</span><span class="p">:</span> <span class="n">func</span><span class="p">}</span>
+
+        <span class="c1"># Check if the operator exist or needs to be saved</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">coded_op</span><span class="p">(</span><span class="n">save</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+    <span class="c1"># Ladder operator X_k + i Y_k</span>
+<div class="viewcode-block" id="Operator.SIGMA_PLUS"><a class="viewcode-back" href="../../../qudipy.qutils.html#qudipy.qutils.matrices.Operator.SIGMA_PLUS">[docs]</a>    <span class="k">def</span> <span class="nf">SIGMA_PLUS</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Defines a raising operator of the k-th qubit</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        N : int</span>
+<span class="sd">            Number of 1-qubit degrees of freedom in the operators.</span>
+<span class="sd">        k : int</span>
+<span class="sd">            Position of the raising operators in the tensor product.</span>
+<span class="sd">        save : bool</span>
+<span class="sd">            boolean indicator from original function call to save the operator</span>
+<span class="sd">            to the library if true.</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        : complex 2D array</span>
+<span class="sd">            The raising operators X_k + i Y_k</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="c1"># Structure for appened names formed from the kwarg keys and values</span>
+        <span class="k">def</span> <span class="nf">struct</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+            <span class="c1"># Ignored: struct and func </span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s1">&#39;_</span><span class="si">{</span><span class="n">key</span><span class="si">}{</span><span class="n">val</span><span class="si">}</span><span class="s1">&#39;</span>
+
+        <span class="c1"># Define a function to construct the operator when needed</span>
+        <span class="k">def</span> <span class="nf">func</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="n">N_val</span> <span class="o">=</span> <span class="n">N</span>
+            <span class="n">k_val</span> <span class="o">=</span> <span class="n">k</span>
+
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">PAULI_X</span><span class="p">(</span><span class="n">N_val</span><span class="p">,</span> <span class="n">k_val</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1.0</span><span class="n">j</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">PAULI_Y</span><span class="p">(</span><span class="n">N_val</span><span class="p">,</span> <span class="n">k_val</span><span class="p">)</span>
+
+        <span class="c1"># Define variable dictionary for operator</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;N&#39;</span><span class="p">:</span> <span class="n">N</span><span class="p">,</span> <span class="s1">&#39;k&#39;</span><span class="p">:</span> <span class="n">k</span><span class="p">,</span> <span class="s1">&#39;struct&#39;</span><span class="p">:</span> <span class="n">struct</span><span class="p">,</span> <span class="s1">&#39;func&#39;</span><span class="p">:</span> <span class="n">func</span><span class="p">}</span>
+
+        <span class="c1"># Check if the operator exist or needs to be saved</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">coded_op</span><span class="p">(</span><span class="n">save</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+    <span class="c1"># Ladder operator X_k - i Y_k</span>
+<div class="viewcode-block" id="Operator.SIGMA_MINUS"><a class="viewcode-back" href="../../../qudipy.qutils.html#qudipy.qutils.matrices.Operator.SIGMA_MINUS">[docs]</a>    <span class="k">def</span> <span class="nf">SIGMA_MINUS</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Defines a lowering operator of the k-th qubit</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        N : int</span>
+<span class="sd">            Number of 1-qubit degrees of freedom in the operators.</span>
+<span class="sd">        k : int</span>
+<span class="sd">            Position of the raising operators in the tensor product.</span>
+<span class="sd">        save : bool</span>
+<span class="sd">            boolean indicator from original function call to save the operator</span>
+<span class="sd">            to the library if true.</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        : complex 2D array</span>
+<span class="sd">            The lowering operators X_k - i Y_k</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="c1"># Structure for appened names formed from the kwarg keys and values</span>
+        <span class="k">def</span> <span class="nf">struct</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+            <span class="c1"># Ignored: struct and func </span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s1">&#39;_</span><span class="si">{</span><span class="n">key</span><span class="si">}{</span><span class="n">val</span><span class="si">}</span><span class="s1">&#39;</span>
+
+        <span class="c1"># Define a function to construct the operator when needed</span>
+        <span class="k">def</span> <span class="nf">func</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="n">N_val</span> <span class="o">=</span> <span class="n">N</span>
+            <span class="n">k_val</span> <span class="o">=</span> <span class="n">k</span>
+
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">PAULI_X</span><span class="p">(</span><span class="n">N_val</span><span class="p">,</span> <span class="n">k_val</span><span class="p">)</span> <span class="o">-</span> <span class="mf">1.0</span><span class="n">j</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">PAULI_Y</span><span class="p">(</span><span class="n">N_val</span><span class="p">,</span> <span class="n">k_val</span><span class="p">)</span>
+
+        <span class="c1"># Define variable dictionary for operator</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;N&#39;</span><span class="p">:</span> <span class="n">N</span><span class="p">,</span> <span class="s1">&#39;k&#39;</span><span class="p">:</span> <span class="n">k</span><span class="p">,</span> <span class="s1">&#39;struct&#39;</span><span class="p">:</span> <span class="n">struct</span><span class="p">,</span> <span class="s1">&#39;func&#39;</span><span class="p">:</span> <span class="n">func</span><span class="p">}</span>
+
+        <span class="c1"># Check if the operator exist or needs to be saved</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">coded_op</span><span class="p">(</span><span class="n">save</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Operator.UNIT"><a class="viewcode-back" href="../../../qudipy.qutils.html#qudipy.qutils.matrices.Operator.UNIT">[docs]</a>    <span class="k">def</span> <span class="nf">UNIT</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+       
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Defines UNIT matrix of dimensions 2**N x 2**N</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        N : int</span>
+<span class="sd">            Number of 1-qubit degrees of freedom in the operators.</span>
+<span class="sd">        save : bool</span>
+<span class="sd">            boolean indicator from original function call to save the operator</span>
+<span class="sd">            to the library if true.</span>
+<span class="sd">            </span>
+<span class="sd">        Keyword Arguments</span>
+<span class="sd">        -----------------</span>
+<span class="sd">        None.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        : 2D complex array</span>
+<span class="sd">        Unit matrix of dimensions 2**N x 2**N</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="c1"># Structure for appened names formed from the kwarg keys and values</span>
+        <span class="k">def</span> <span class="nf">struct</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+            <span class="c1"># Ignored: struct and func </span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s1">&#39;_</span><span class="si">{</span><span class="n">key</span><span class="si">}{</span><span class="n">val</span><span class="si">}</span><span class="s1">&#39;</span>
+
+        <span class="c1"># Define a function to construct the operator when needed</span>
+        <span class="k">def</span> <span class="nf">func</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="n">N_val</span> <span class="o">=</span> <span class="n">N</span>
+
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">((</span><span class="mi">2</span> <span class="o">**</span> <span class="n">N_val</span><span class="p">),</span> <span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="n">N_val</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+
+        <span class="c1"># Define variable dictionary for operator</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;N&#39;</span><span class="p">:</span> <span class="n">N</span><span class="p">,</span> <span class="s1">&#39;struct&#39;</span><span class="p">:</span> <span class="n">struct</span><span class="p">,</span> <span class="s1">&#39;func&#39;</span><span class="p">:</span> <span class="n">func</span><span class="p">}</span>
+
+        <span class="c1"># Check if the operator exist or needs to be saved</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">coded_op</span><span class="p">(</span><span class="n">save</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+        
+<div class="viewcode-block" id="Operator.E_UP"><a class="viewcode-back" href="../../../qudipy.qutils.html#qudipy.qutils.matrices.Operator.E_UP">[docs]</a>    <span class="k">def</span> <span class="nf">E_UP</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Defines matrix that projects k-th qubit on the state |↑〉≡ |0〉</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        N : int</span>
+<span class="sd">            Number of 1-qubit degrees of freedom in the operators.</span>
+<span class="sd">        k : int</span>
+<span class="sd">            Position of the projection matrix in the tensor product.</span>
+<span class="sd">        save : bool</span>
+<span class="sd">            boolean indicator from original function call to save the operator</span>
+<span class="sd">            to the library if true.</span>
+<span class="sd">            </span>
+<span class="sd">        Keyword Arguments</span>
+<span class="sd">        -----------------</span>
+<span class="sd">        None.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        : 2D complex array</span>
+<span class="sd">            Matrix |0〉〈0|_k of dimensions 2**N x 2**N </span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="c1"># Structure for appened names formed from the kwarg keys and values</span>
+        <span class="k">def</span> <span class="nf">struct</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+            <span class="c1"># Ignored: struct and func </span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s1">&#39;_</span><span class="si">{</span><span class="n">key</span><span class="si">}{</span><span class="n">val</span><span class="si">}</span><span class="s1">&#39;</span>
+
+        <span class="c1"># Define a function to construct the operator when needed</span>
+        <span class="k">def</span> <span class="nf">func</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="n">N_val</span> <span class="o">=</span> <span class="n">N</span>
+            <span class="n">k_val</span> <span class="o">=</span> <span class="n">k</span>
+
+            <span class="k">return</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">UNIT</span><span class="p">(</span><span class="n">N</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">PAULI_Z</span><span class="p">(</span><span class="n">N_val</span><span class="p">,</span> <span class="n">k_val</span><span class="p">))</span>
+
+        <span class="c1"># Define variable dictionary for operator</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;N&#39;</span><span class="p">:</span> <span class="n">N</span><span class="p">,</span> <span class="s1">&#39;k&#39;</span><span class="p">:</span> <span class="n">k</span><span class="p">,</span> <span class="s1">&#39;struct&#39;</span><span class="p">:</span> <span class="n">struct</span><span class="p">,</span> <span class="s1">&#39;func&#39;</span><span class="p">:</span> <span class="n">func</span><span class="p">}</span>
+
+        <span class="c1"># Check if the operator exist or needs to be saved</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">coded_op</span><span class="p">(</span><span class="n">save</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+        
+<div class="viewcode-block" id="Operator.E_DOWN"><a class="viewcode-back" href="../../../qudipy.qutils.html#qudipy.qutils.matrices.Operator.E_DOWN">[docs]</a>    <span class="k">def</span> <span class="nf">E_DOWN</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+      
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Defines matrix that projects k-th qubit on the state |↓〉≡ |1〉</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        N : int</span>
+<span class="sd">            Number of 1-qubit degrees of freedom in the operators.</span>
+<span class="sd">        k : int</span>
+<span class="sd">            Position of the projection matrix in the tensor product.</span>
+<span class="sd">        save : bool</span>
+<span class="sd">            boolean indicator from original function call to save the operator</span>
+<span class="sd">            to the library if true.</span>
+<span class="sd">            </span>
+<span class="sd">        Keyword Arguments</span>
+<span class="sd">        -----------------</span>
+<span class="sd">        None.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        : 2D complex array</span>
+<span class="sd">            Matrix |1〉〈1|_k of dimensions 2**N x 2**N </span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="c1"># Structure for appened names formed from the kwarg keys and values</span>
+        <span class="k">def</span> <span class="nf">struct</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+            <span class="c1"># Ignored: struct and func </span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s1">&#39;_</span><span class="si">{</span><span class="n">key</span><span class="si">}{</span><span class="n">val</span><span class="si">}</span><span class="s1">&#39;</span>
+
+        <span class="c1"># Define a function to construct the operator when needed</span>
+        <span class="k">def</span> <span class="nf">func</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="n">N_val</span> <span class="o">=</span> <span class="n">N</span>
+            <span class="n">k_val</span> <span class="o">=</span> <span class="n">k</span>
+
+            <span class="k">return</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">UNIT</span><span class="p">(</span><span class="n">N</span><span class="p">)</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">PAULI_Z</span><span class="p">(</span><span class="n">N_val</span><span class="p">,</span> <span class="n">k_val</span><span class="p">))</span>
+
+        <span class="c1"># Define variable dictionary for operator</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;N&#39;</span><span class="p">:</span> <span class="n">N</span><span class="p">,</span> <span class="s1">&#39;k&#39;</span><span class="p">:</span> <span class="n">k</span><span class="p">,</span> <span class="s1">&#39;struct&#39;</span><span class="p">:</span> <span class="n">struct</span><span class="p">,</span> <span class="s1">&#39;func&#39;</span><span class="p">:</span> <span class="n">func</span><span class="p">}</span>
+
+        <span class="c1"># Check if the operator exist or needs to be saved</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">coded_op</span><span class="p">(</span><span class="n">save</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Operator.CNOT"><a class="viewcode-back" href="../../../qudipy.qutils.html#qudipy.qutils.matrices.Operator.CNOT">[docs]</a>    <span class="k">def</span> <span class="nf">CNOT</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">ctrl</span><span class="p">,</span> <span class="n">trgt</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+       
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Defines a matrix for CNOT gate.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        N : int</span>
+<span class="sd">            Number of 1-qubit degrees of freedom in the operators.</span>
+<span class="sd">        ctrl: int</span>
+<span class="sd">            Index of the control qubit.</span>
+<span class="sd">        trgt: int</span>
+<span class="sd">            Index of the target qubit.</span>
+<span class="sd">        save : bool</span>
+<span class="sd">            boolean indicator from original function call to save the operator</span>
+<span class="sd">            to the library if true.</span>
+<span class="sd">            </span>
+<span class="sd">        Keyword Arguments</span>
+<span class="sd">        -----------------</span>
+<span class="sd">        None.</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        : 2D complex array</span>
+<span class="sd">            Matrix for CNOT gate</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="c1"># Structure for appened names formed from the kwarg keys and values</span>
+        <span class="k">def</span> <span class="nf">struct</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+            <span class="c1"># Ignored: struct and func </span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s1">&#39;_</span><span class="si">{</span><span class="n">key</span><span class="si">}{</span><span class="n">val</span><span class="si">}</span><span class="s1">&#39;</span>
+
+        <span class="c1"># Define a function to construct the operator when needed</span>
+        <span class="k">def</span> <span class="nf">func</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="n">N_val</span> <span class="o">=</span> <span class="n">N</span>
+            <span class="n">ctrl_val</span> <span class="o">=</span> <span class="n">ctrl</span>
+            <span class="n">trgt_val</span> <span class="o">=</span> <span class="n">trgt</span>
+
+            <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">E_UP</span><span class="p">(</span><span class="n">N_val</span><span class="p">,</span> <span class="n">ctrl_val</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">E_DOWN</span><span class="p">(</span><span class="n">N_val</span><span class="p">,</span> <span class="n">ctrl_val</span><span class="p">)</span> 
+<div class="viewcode-block" id="Operator.SWAP"><a class="viewcode-back" href="../../../qudipy.qutils.html#qudipy.qutils.matrices.Operator.SWAP">[docs]</a>                <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">PAULI_X</span><span class="p">(</span><span class="n">N_val</span><span class="p">,</span> <span class="n">trgt_val</span><span class="p">))</span>
+
+        <span class="c1"># Define variable dictionary for operator</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;N&#39;</span><span class="p">:</span> <span class="n">N</span><span class="p">,</span> <span class="s1">&#39;ctrl&#39;</span><span class="p">:</span> <span class="n">ctrl</span><span class="p">,</span> <span class="s1">&#39;trgt&#39;</span><span class="p">:</span> <span class="n">trgt</span><span class="p">,</span> <span class="s1">&#39;struct&#39;</span><span class="p">:</span> <span class="n">struct</span><span class="p">,</span> <span class="s1">&#39;func&#39;</span><span class="p">:</span> <span class="n">func</span><span class="p">}</span>
+
+        <span class="c1"># Check if the operator exist or needs to be saved</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">coded_op</span><span class="p">(</span><span class="n">save</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+    
+    <span class="k">def</span> <span class="nf">SWAP</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">k1</span><span class="p">,</span> <span class="n">k2</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+      
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Defines SWAP gate matrix for the qubits with the indices k1, k2.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        N : int</span>
+<span class="sd">            Number of 1-qubit degrees of freedom in the operators.</span>
+<span class="sd">        k1, k2: int</span>
+<span class="sd">            Indices of the qubits.</span>
+<span class="sd">        save : bool</span>
+<span class="sd">            boolean indicator from original function call to save the operator</span>
+<span class="sd">            to the library if true.</span>
+<span class="sd">        Keyword Arguments</span>
+<span class="sd">        -----------------</span>
+<span class="sd">        None.</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        : 2D complex array</span>
+<span class="sd">            Matrix for sqt(SWAP) gate </span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="c1"># Structure for appened names formed from the kwarg keys and values</span>
+        <span class="k">def</span> <span class="nf">struct</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+            <span class="c1"># Ignored: struct and func</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;N&#39;</span><span class="p">:</span> 
+                <span class="k">return</span> <span class="sa">f</span><span class="s1">&#39;_</span><span class="si">{</span><span class="n">key</span><span class="si">}{</span><span class="n">val</span><span class="si">}</span><span class="s1">&#39;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="sa">f</span><span class="s1">&#39;_</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1">_</span><span class="si">{</span><span class="n">val</span><span class="si">}</span><span class="s1">&#39;</span>
+
+        <span class="c1"># Define a function to construct the operator when needed</span>
+        <span class="k">def</span> <span class="nf">func</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="n">N_val</span> <span class="o">=</span> <span class="n">N</span>
+            <span class="n">k1_val</span> <span class="o">=</span> <span class="n">k1</span>
+            <span class="n">k2_val</span> <span class="o">=</span> <span class="n">k2</span>
+
+            <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">CNOT</span><span class="p">(</span><span class="n">N_val</span><span class="p">,</span> <span class="n">k1_val</span><span class="p">,</span> <span class="n">k2_val</span><span class="p">)</span> 
+<div class="viewcode-block" id="Operator.SIGMA_PRODUCT"><a class="viewcode-back" href="../../../qudipy.qutils.html#qudipy.qutils.matrices.Operator.SIGMA_PRODUCT">[docs]</a>                <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">CNOT</span><span class="p">(</span><span class="n">N_val</span><span class="p">,</span> <span class="n">k2_val</span><span class="p">,</span> <span class="n">k1_val</span><span class="p">)</span> 
+                <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">CNOT</span><span class="p">(</span><span class="n">N_val</span><span class="p">,</span> <span class="n">k1_val</span><span class="p">,</span> <span class="n">k2_val</span><span class="p">))</span>
+
+        <span class="c1"># Define variable dictionary for operator</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;N&#39;</span><span class="p">:</span> <span class="n">N</span><span class="p">,</span> <span class="s1">&#39;k1&#39;</span><span class="p">:</span> <span class="n">k1</span><span class="p">,</span> <span class="s1">&#39;k2&#39;</span><span class="p">:</span> <span class="n">k2</span><span class="p">,</span> <span class="s1">&#39;struct&#39;</span><span class="p">:</span> <span class="n">struct</span><span class="p">,</span> <span class="s1">&#39;func&#39;</span><span class="p">:</span> <span class="n">func</span><span class="p">}</span>
+
+        <span class="c1"># Check if the operator exist or needs to be saved</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">coded_op</span><span class="p">(</span><span class="n">save</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+   
+    <span class="k">def</span> <span class="nf">SIGMA_PRODUCT</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">k1</span><span class="p">,</span> <span class="n">k2</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+             
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Defines the dot product of two Pauli vectors.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        N : int</span>
+<span class="sd">            Number of 1-qubit degrees of freedom in the operators.</span>
+<span class="sd">        k1, k2: int</span>
+<span class="sd">            Indices of the qubits.</span>
+<span class="sd">        save : bool</span>
+<span class="sd">            boolean indicator from original function call to save the operator</span>
+<span class="sd">            to the library if true.</span>
+<span class="sd">        Keyword Arguments</span>
+<span class="sd">        -----------------</span>
+<span class="sd">        None.</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        : 2D complex array</span>
+<span class="sd">            The inner product \vec{sigma_k1} \cdot \vec{sigma_k2}</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="c1"># Structure for appened names formed from the kwarg keys and values</span>
+        <span class="k">def</span> <span class="nf">struct</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+            <span class="c1"># Ignored: struct and func</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;N&#39;</span><span class="p">:</span> 
+                <span class="k">return</span> <span class="sa">f</span><span class="s1">&#39;_</span><span class="si">{</span><span class="n">key</span><span class="si">}{</span><span class="n">val</span><span class="si">}</span><span class="s1">&#39;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="sa">f</span><span class="s1">&#39;_</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1">_</span><span class="si">{</span><span class="n">val</span><span class="si">}</span><span class="s1">&#39;</span>
+
+        <span class="c1"># Define a function to construct the operator when needed</span>
+        <span class="k">def</span> <span class="nf">func</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="n">N_val</span> <span class="o">=</span> <span class="n">N</span>
+            <span class="n">k1_val</span> <span class="o">=</span> <span class="n">k1</span>
+            <span class="n">k2_val</span> <span class="o">=</span> <span class="n">k2</span>
+
+            <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">PAULI_X</span><span class="p">(</span><span class="n">N_val</span><span class="p">,</span> <span class="n">k1_val</span><span class="p">)</span> 
+<div class="viewcode-block" id="Operator.RSWAP"><a class="viewcode-back" href="../../../qudipy.qutils.html#qudipy.qutils.matrices.Operator.RSWAP">[docs]</a>                <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">PAULI_X</span><span class="p">(</span><span class="n">N_val</span><span class="p">,</span> <span class="n">k2_val</span><span class="p">)</span> 
+                <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">PAULI_Y</span><span class="p">(</span><span class="n">N_val</span><span class="p">,</span> <span class="n">k1_val</span><span class="p">)</span> 
+                <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">PAULI_Y</span><span class="p">(</span><span class="n">N_val</span><span class="p">,</span> <span class="n">k2_val</span><span class="p">)</span> 
+                <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">PAULI_Z</span><span class="p">(</span><span class="n">N_val</span><span class="p">,</span> <span class="n">k1_val</span><span class="p">)</span> 
+                <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">PAULI_Z</span><span class="p">(</span><span class="n">N_val</span><span class="p">,</span> <span class="n">k2_val</span><span class="p">))</span>
+
+        <span class="c1"># Define variable dictionary for operator</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;N&#39;</span><span class="p">:</span> <span class="n">N</span><span class="p">,</span> <span class="s1">&#39;k1&#39;</span><span class="p">:</span> <span class="n">k1</span><span class="p">,</span> <span class="s1">&#39;k2&#39;</span><span class="p">:</span> <span class="n">k2</span><span class="p">,</span> <span class="s1">&#39;struct&#39;</span><span class="p">:</span> <span class="n">struct</span><span class="p">,</span> <span class="s1">&#39;func&#39;</span><span class="p">:</span> <span class="n">func</span><span class="p">}</span>
+
+        <span class="c1"># Check if the operator exist or needs to be saved</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">coded_op</span><span class="p">(</span><span class="n">save</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">RSWAP</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">k1</span><span class="p">,</span> <span class="n">k2</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Defines sqrt(SWAP) gate matrix for the qubits with the indices k1, k2.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        N : int</span>
+<span class="sd">            Number of 1-qubit degrees of freedom in the operators.</span>
+<span class="sd">        k1, k2: int</span>
+<span class="sd">            Indices of the qubits.</span>
+<span class="sd">        save : bool</span>
+<span class="sd">            boolean indicator from original function call to save the operator</span>
+<span class="sd">            to the library if true.</span>
+<span class="sd">        Keyword Arguments</span>
+<span class="sd">        -----------------</span>
+<span class="sd">        None.</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        : 2D complex array</span>
+<span class="sd">            Matrix for SWAP gate </span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="c1"># Structure for appened names formed from the kwarg keys and values</span>
+        <span class="k">def</span> <span class="nf">struct</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+            <span class="c1"># Ignored: struct and func</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;N&#39;</span><span class="p">:</span> 
+                <span class="k">return</span> <span class="sa">f</span><span class="s1">&#39;_</span><span class="si">{</span><span class="n">key</span><span class="si">}{</span><span class="n">val</span><span class="si">}</span><span class="s1">&#39;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="sa">f</span><span class="s1">&#39;_</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1">_</span><span class="si">{</span><span class="n">val</span><span class="si">}</span><span class="s1">&#39;</span>
+
+        <span class="c1"># Define a function to construct the operator when needed</span>
+        <span class="k">def</span> <span class="nf">func</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="n">N_val</span> <span class="o">=</span> <span class="n">N</span>
+            <span class="n">k1_val</span> <span class="o">=</span> <span class="n">k1</span>
+            <span class="n">k2_val</span> <span class="o">=</span> <span class="n">k2</span>
+
+            <span class="k">return</span> <span class="p">(</span><span class="nb">complex</span><span class="p">(</span><span class="mf">0.25</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.25</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">SIGMA_PRODUCT</span><span class="p">(</span><span class="n">N_val</span><span class="p">,</span> <span class="n">k1_val</span><span class="p">,</span> <span class="n">k2_val</span><span class="p">)</span> 
+            <span class="o">+</span> <span class="nb">complex</span><span class="p">(</span><span class="mf">1.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">UNIT</span><span class="p">(</span><span class="n">N_val</span><span class="p">))</span>
+
+        <span class="c1"># Define variable dictionary for operator</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;N&#39;</span><span class="p">:</span> <span class="n">N</span><span class="p">,</span> <span class="s1">&#39;k1&#39;</span><span class="p">:</span> <span class="n">k1</span><span class="p">,</span> <span class="s1">&#39;k2&#39;</span><span class="p">:</span> <span class="n">k2</span><span class="p">,</span> <span class="s1">&#39;struct&#39;</span><span class="p">:</span> <span class="n">struct</span><span class="p">,</span> <span class="s1">&#39;func&#39;</span><span class="p">:</span> <span class="n">func</span><span class="p">}</span>
+
+        <span class="c1"># Check if the operator exist or needs to be saved</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">coded_op</span><span class="p">(</span><span class="n">save</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Zach D. Merino.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

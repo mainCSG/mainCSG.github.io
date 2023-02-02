@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>qudipy.chargestability.csd_analysis &mdash; QuDiPy Documentation 1.0.0 documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/language_data.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> QuDiPy Documentation
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">QuDiPy Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">qudipy.chargestability.csd_analysis</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for qudipy.chargestability.csd_analysis</h1><div class="highlight"><pre>
+<span></span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">File used to analyze charge stability diagrams in order to produce </span>
+<span class="sd">capacitance matrices, virtual gating, lever arms, etc.</span>
+<span class="sd">For a good review of the Hough transform, check </span>
+<span class="sd">https://alyssaq.github.io/2014/understanding-hough-transform/.</span>
+<span class="sd">Hough transfrom code based off of </span>
+<span class="sd">https://github.com/alyssaq/hough_transform.</span>
+<span class="sd">&#39;&#39;&#39;</span>
+
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">matplotlib</span> <span class="k">as</span> <span class="nn">mpl</span>
+<span class="kn">import</span> <span class="nn">seaborn</span> <span class="k">as</span> <span class="nn">sns</span>
+<span class="kn">from</span> <span class="nn">scipy.ndimage</span> <span class="kn">import</span> <span class="n">gaussian_filter</span>
+<span class="kn">from</span> <span class="nn">sklearn</span> <span class="kn">import</span> <span class="n">cluster</span>
+<span class="kn">from</span> <span class="nn">sklearn.neighbors</span> <span class="kn">import</span> <span class="n">NearestCentroid</span>
+
+<div class="viewcode-block" id="CSDAnalysis"><a class="viewcode-back" href="../../../qudipy.chargestability.html#qudipy.chargestability.csd_analysis.CSDAnalysis">[docs]</a><span class="k">class</span> <span class="nc">CSDAnalysis</span><span class="p">:</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Initialize the charge stability diagram analysis class which</span>
+<span class="sd">    analyzes charge stability diagrams to extract parameters. </span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">csd</span><span class="p">,</span> <span class="n">capacitances</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">blur_sigma</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">         </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        csd : CSD object from csd_cim</span>
+
+<span class="sd">        Keyword Arguments</span>
+<span class="sd">        -----------------</span>
+<span class="sd">        capacitances: List </span>
+<span class="sd">            Used to convert from occupation to current for analysis. If</span>
+<span class="sd">            no capacitances are supplied, a colormap will be created </span>
+<span class="sd">            but this colormap will be arbitrary and thus not suitable</span>
+<span class="sd">            for further analysis (default None)</span>
+<span class="sd">        blur_sigma: If not None, do a Gaussian blur on the data to</span>
+<span class="sd">            simulate thermal broadening of transition lines with</span>
+<span class="sd">            standard deviation of the Gaussian kernel as blur_sigma.</span>
+<span class="sd">            A larger number means more smeared out (default None)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">capacitances</span> <span class="o">=</span> <span class="n">capacitances</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">csd</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">csd</span><span class="p">)</span> <span class="c1"># to avoid overwriting original csd object</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">csd_der</span> <span class="o">=</span> <span class="kc">None</span> 
+
+        <span class="c1"># Create a new empty DataFrame to put numbers instead of tuples corresponding to occupations</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">csd</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">v_1_values</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">v_2_values</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+        <span class="c1"># Attributes to be defined in later methods</span>
+        <span class="c1"># generate bitmap:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">csd_bitmap</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># hough transform:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">accumulator</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">thetas</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rhos</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># threshold_hough_accumulator:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">accumulator_threshold</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">db</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">centroids</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># find_tripletpoints</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">m_array</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">b_array</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">line_params</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">triple_points</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># If no capacitances are provided, create a color map using the hash of the occupation</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">capacitances</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">single_occupations</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">n_sites</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">n_sites</span><span class="p">)]</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">n_sites</span><span class="p">):</span>
+                <span class="n">single_occupations</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">hashes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="nb">hash</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">single_occupations</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">n_sites</span><span class="p">)])</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">v_2_values</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">v_1_values</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">csd</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">hashes</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">occupation</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">capacitances</span><span class="p">)</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">n_sites</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Warning</span><span class="p">(</span><span class="s2">&quot;Number of dot to charge sensor capacitances does not match&quot;</span> 
+                                <span class="o">+</span> <span class="s2">&quot; the number of dots&quot;</span><span class="p">)</span>
+            <span class="c1"># cast capacitances to numpy array to use numpy functions</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">capacitances</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">capacitances</span><span class="p">)</span>
+            <span class="c1"># going over v_2 in outer loop due to how numpy indexes 2d arrays</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">v_2_values</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">v_1_values</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">csd</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">capacitances</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">occupation</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+
+            <span class="c1"># Create derivative of charge stability diagram </span>
+            <span class="c1"># Replace Nans (undefined derivative) with 0s</span>
+            <span class="n">df_der_row</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> 
+            <span class="n">df_der_col</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">csd_der</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">df_der_row</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">df_der_col</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="c1"># sensitive to changes in x and y</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">csd_der</span> <span class="o">=</span> <span class="n">csd_der</span>
+
+        <span class="k">if</span> <span class="n">blur_sigma</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">capacitances</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Warning</span><span class="p">(</span><span class="s2">&quot;Blurring of data cannot occur when no capaciatnce are provided.&quot;</span> 
+                                <span class="o">+</span> <span class="s2">&quot; Data will not be changed&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">csd</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">gaussian_filter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">csd</span><span class="p">,</span> <span class="n">blur_sigma</span><span class="p">),</span>
+                                            <span class="n">columns</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">v_1_values</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">v_2_values</span><span class="p">)</span>
+
+<div class="viewcode-block" id="CSDAnalysis.generate_bitmap"><a class="viewcode-back" href="../../../qudipy.chargestability.html#qudipy.chargestability.csd_analysis.CSDAnalysis.generate_bitmap">[docs]</a>    <span class="k">def</span> <span class="nf">generate_bitmap</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">threshold</span><span class="p">,</span> <span class="n">threshold_type</span><span class="o">=</span><span class="s1">&#39;percentile&#39;</span><span class="p">,</span> <span class="n">plotting</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Transforms the charge stability diagram into a bitmap. Threshold</span>
+<span class="sd">        determines whether bit is considered &#39;on&#39; or &#39;off&#39;</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        threshold: float</span>
+<span class="sd">            Specifies the threshold, which determines whether bit is </span>
+<span class="sd">            considered &#39;on&#39; or &#39;off&#39;. Behaves differently depending </span>
+<span class="sd">            on threshold_type</span>
+
+<span class="sd">        Keyword Arguments</span>
+<span class="sd">        -----------------</span>
+<span class="sd">        threshold_type: string</span>
+<span class="sd">            Flag for which type of thresholding to do (default </span>
+<span class="sd">            &#39;percentile&#39;)</span>
+<span class="sd">            -   &#39;percentile&#39;: will set all elements in the array above </span>
+<span class="sd">                the set percentile to 1 and all those below to 0,</span>
+<span class="sd">                ignoring NaN values </span>
+<span class="sd">                e.g with threshold=99, only elements above the 99th </span>
+<span class="sd">                percentile will be set to 1</span>
+<span class="sd">            -   &#39;absolute&#39;: will set all elements in the array above the </span>
+<span class="sd">                specified value to 1 and all those below to 0 </span>
+<span class="sd">                e.g with threshold=20, only elements whos is value </span>
+<span class="sd">                greater or equal 20 will be set to 1</span>
+<span class="sd">        plotting: bool</span>
+<span class="sd">            Flag which determines whether or not to plot the resulting</span>
+<span class="sd">            thresholded Hough accumulator (default False)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">if</span> <span class="n">threshold_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;percentile&#39;</span><span class="p">:</span>
+            <span class="c1"># Converts percentile type threshold into absolute type to use same for loop</span>
+            <span class="n">threshold</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanpercentile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">csd_der</span><span class="p">,</span> <span class="n">threshold</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">threshold_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;absolute&#39;</span><span class="p">:</span>
+            <span class="c1"># Do nothing to the threshold, but avoid raising an error</span>
+            <span class="k">pass</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Unrecognized threshold type: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">threshold_type</span><span class="p">))</span>
+        
+        <span class="c1"># Make bitmap</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">csd_bitmap</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">csd_der</span><span class="o">.</span><span class="n">mask</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">csd_der</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">threshold</span><span class="p">,</span> 
+                                                <span class="n">other</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">mask</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">csd_der</span><span class="p">)</span> 
+                                                <span class="o">&lt;=</span> <span class="n">threshold</span><span class="p">,</span> <span class="n">other</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">plotting</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__plot_heatmap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">csd_bitmap</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">v_1_values</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">v_2_values</span><span class="p">,</span> 
+                                <span class="sa">r</span><span class="s1">&#39;V$_1$&#39;</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;V$_2$&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CSDAnalysis.plot"><a class="viewcode-back" href="../../../qudipy.chargestability.html#qudipy.chargestability.csd_analysis.CSDAnalysis.plot">[docs]</a>    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">derivative</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Wrapper which plots the charge stability diagram, and the</span>
+<span class="sd">        derivative of the charge stability diagram if it is meaningful</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="c1"># Plot colobar and indicate &quot;current&quot; if that result is requested</span>
+        <span class="k">if</span> <span class="n">derivative</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">cbar_flag</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">cbar_kws</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;label&#39;</span><span class="p">:</span> <span class="s1">&#39;Current (arb.)&#39;</span><span class="p">}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">cbar_flag</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">cbar_kws</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="c1"># Plot the chagre stability diagram</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__plot_heatmap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">csd</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;V$_1$&#39;</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;V$_2$&#39;</span><span class="p">,</span> <span class="n">cbar</span><span class="o">=</span><span class="n">cbar_flag</span><span class="p">,</span>
+                            <span class="n">cbar_kws</span><span class="o">=</span><span class="n">cbar_kws</span><span class="p">)</span>
+
+        <span class="c1"># Plot the &quot;derivative&quot; of the charge stability diagram, if desired</span>
+        <span class="k">if</span> <span class="n">derivative</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__plot_heatmap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">csd_der</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;V$_1$&#39;</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;V$_2$&#39;</span><span class="p">,</span> <span class="n">cbar</span><span class="o">=</span><span class="n">cbar_flag</span><span class="p">,</span>
+                                <span class="n">cbar_kws</span><span class="o">=</span><span class="n">cbar_kws</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CSDAnalysis.hough_transform"><a class="viewcode-back" href="../../../qudipy.chargestability.html#qudipy.chargestability.csd_analysis.CSDAnalysis.hough_transform">[docs]</a>    <span class="k">def</span> <span class="nf">hough_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_thetas</span><span class="o">=</span><span class="mi">180</span><span class="p">,</span> <span class="n">theta_min</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">theta_max</span><span class="o">=</span><span class="mi">90</span><span class="p">,</span> <span class="n">plotting</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Performs the Hough transform on the charge stability diagram</span>
+<span class="sd">        bitmap stored in the object</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        Keyword Arguments</span>
+<span class="sd">        -----------------</span>
+<span class="sd">        #TODO confirm types</span>
+<span class="sd">        num_thetas: int</span>
+<span class="sd">            number of angle points to sweep over (default 180)</span>
+<span class="sd">        theta_min: float</span>
+<span class="sd">            smallest angle (in degrees) to start the sweep from, </span>
+<span class="sd">            which should not be smaller than -90 (default -90)</span>
+<span class="sd">        theta_max: float</span>
+<span class="sd">            largest angle (in degrees) to sweep to, which should</span>
+<span class="sd">            not be greater than 90 (default 90)</span>
+<span class="sd">        plotting: bool</span>
+<span class="sd">            flag which determines whether to plot the resulting</span>
+<span class="sd">            Hough accumulator (default False)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Accumulator: 2D numpy array</span>
+<span class="sd">            Counts in each bin for a particular value of theta and rho </span>
+<span class="sd">        thetas: 1D numpy array</span>
+<span class="sd">            Values of theta for which accumulator swept over</span>
+<span class="sd">        rhos: 1D numpy array</span>
+<span class="sd">            Values of distance for which accumulator swept over</span>
+
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="c1"># Get charge stability diagram bitmap</span>
+        <span class="n">img</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">csd_bitmap</span>
+        
+        <span class="c1"># Rho and Theta ranges</span>
+        <span class="n">thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">theta_min</span><span class="p">,</span> <span class="n">theta_max</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="n">num_thetas</span><span class="p">))</span>
+        <span class="c1">#TODO review the following 3 lines of code -- seems they are repeated below\</span>
+        <span class="c1">#but only the variables created in the second block of code are used</span>
+        <span class="n">width</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">height</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">diag_len</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">width</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">height</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+
+        <span class="n">index_height</span><span class="p">,</span> <span class="n">index_width</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">index_diag_len</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">index_width</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">index_height</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)))</span>
+        <span class="n">rhos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="n">diag_len</span><span class="p">,</span> <span class="n">diag_len</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="mi">2</span><span class="o">*</span><span class="n">index_diag_len</span><span class="p">)</span>
+
+        <span class="c1"># Cache some resuable values</span>
+        <span class="n">cos_t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">thetas</span><span class="p">)</span>
+        <span class="n">sin_t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">thetas</span><span class="p">)</span>  
+
+        <span class="c1"># Hough accumulator array of theta vs rho</span>
+        <span class="n">accumulator</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">2</span> <span class="o">*</span> <span class="n">index_diag_len</span><span class="p">,</span> <span class="n">num_thetas</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint64</span><span class="p">)</span>
+        <span class="n">y_idxs</span><span class="p">,</span> <span class="n">x_idxs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">img</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">())</span> <span class="c1"># indices of y and x</span>
+
+        <span class="c1"># Vote in the hough accumulator</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x_idxs</span><span class="p">)):</span>
+            <span class="n">x_index</span> <span class="o">=</span> <span class="n">x_idxs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">y_index</span> <span class="o">=</span> <span class="n">y_idxs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+            <span class="n">x</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="n">x_index</span><span class="p">]</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">y_index</span><span class="p">]</span>
+
+            <span class="k">for</span> <span class="n">t_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_thetas</span><span class="p">):</span>
+                <span class="c1"># Multiply x and y by corresponding cos and sin theta to determine rho</span>
+                <span class="n">rho</span> <span class="o">=</span> <span class="n">x</span> <span class="o">*</span> <span class="n">cos_t</span><span class="p">[</span><span class="n">t_idx</span><span class="p">]</span> <span class="o">+</span> <span class="n">y</span> <span class="o">*</span> <span class="n">sin_t</span><span class="p">[</span><span class="n">t_idx</span><span class="p">]</span>
+                <span class="c1"># Find index of the nearest value in rhos to rho, and add vote there</span>
+                <span class="n">rho_index</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">rhos</span> <span class="o">-</span> <span class="n">rho</span><span class="p">))</span><span class="o">.</span><span class="n">argmin</span><span class="p">()</span>
+                <span class="n">accumulator</span><span class="p">[</span><span class="n">rho_index</span><span class="p">,</span> <span class="n">t_idx</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="c1"># Store values in object for later use</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">accumulator</span> <span class="o">=</span> <span class="n">accumulator</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">thetas</span> <span class="o">=</span> <span class="n">thetas</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rhos</span> <span class="o">=</span> <span class="n">rhos</span>
+
+        <span class="k">if</span> <span class="n">plotting</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="c1"># Round data to avoid ridiculously long tick markers</span>
+            <span class="n">rhos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">rhos</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span>
+            <span class="n">thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">thetas</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span>
+            <span class="c1"># Call heatmap plotting function</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__plot_heatmap</span><span class="p">(</span><span class="n">accumulator</span><span class="p">,</span> <span class="n">thetas</span><span class="p">,</span> <span class="n">rhos</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;$\theta$ (rad)&#39;</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;$\rho$ (V)&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">accumulator</span><span class="p">,</span> <span class="n">thetas</span><span class="p">,</span> <span class="n">rhos</span></div>
+
+<div class="viewcode-block" id="CSDAnalysis.threshold_hough_accumulator"><a class="viewcode-back" href="../../../qudipy.chargestability.html#qudipy.chargestability.csd_analysis.CSDAnalysis.threshold_hough_accumulator">[docs]</a>    <span class="k">def</span> <span class="nf">threshold_hough_accumulator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">threshold</span><span class="p">,</span> <span class="n">threshold_type</span><span class="o">=</span><span class="s1">&#39;percentile&#39;</span><span class="p">,</span> <span class="n">plotting</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Transforms the Hough transform accumulator stored in the objects</span>
+<span class="sd">        into a binary accumulator using a threshold. Threshold </span>
+<span class="sd">        determines whether accumulator value is set to 1 or 0. The </span>
+<span class="sd">        threshold flag determines how the threshold is interpreted.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        threshold: float  </span>
+<span class="sd">            Specifies the threshold. Behaves differently depending on</span>
+<span class="sd">            threshold_type</span>
+
+<span class="sd">        Keyword Arguments</span>
+<span class="sd">        -----------------</span>
+<span class="sd">        threshold_type: string</span>
+<span class="sd">            Flag for type of thresholding to do (default &#39;percentile&#39;)</span>
+<span class="sd">            - &#39;percentile&#39;: will set all elements in the array above </span>
+<span class="sd">               the set percentile to 1 and all those below to 0,</span>
+<span class="sd">               ignoring NaN values  </span>
+<span class="sd">               e.g with threshold=99, only elements above the 99th </span>
+<span class="sd">               percentile will be set to 1</span>
+<span class="sd">            - &#39;absolute&#39;: will set all elements in the array above the </span>
+<span class="sd">              specified value to 1 and all those below to 0 </span>
+<span class="sd">              e.g with threshold=20, only elements whose value is </span>
+<span class="sd">              greater or equal 20 will be set to 1</span>
+<span class="sd">        plotting: bool</span>
+<span class="sd">            flag which determines whether or not to plot the </span>
+<span class="sd">            resulting thresholded Hough accumulator (default False)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        accumulator_threshold: 2D numpy array </span>
+<span class="sd">            Array with counts (either 0 or 1), each corresponding to </span>
+<span class="sd">            elements in self.accumulator</span>
+
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">if</span> <span class="n">threshold_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;percentile&#39;</span><span class="p">:</span>
+            <span class="c1"># Converts percentile type threshold into absolute type to use same for loop</span>
+            <span class="n">threshold</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanpercentile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">accumulator</span><span class="p">,</span> <span class="n">threshold</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">threshold_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;absolute&#39;</span><span class="p">:</span>
+            <span class="c1"># Do nothing to the threshold, but avoid raising an error</span>
+            <span class="k">pass</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Unrecognized threshold type: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">threshold_type</span><span class="p">))</span>
+
+        <span class="c1"># Go through elements in the accumulator, setting all the elements above the threshold to 1</span>
+        <span class="n">accumulator_threshold</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">accumulator</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">ndenumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">accumulator</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">value</span> <span class="o">&gt;=</span> <span class="n">threshold</span><span class="p">:</span>
+                <span class="n">accumulator_threshold</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">accumulator_threshold</span> <span class="o">=</span> <span class="n">accumulator_threshold</span>
+
+        <span class="k">if</span> <span class="n">plotting</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="c1"># Round data to avoid ridiculously long tick markers</span>
+            <span class="n">rhos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rhos</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span>
+            <span class="n">thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">thetas</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span>
+            <span class="c1"># Call heatmap plotting function</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__plot_heatmap</span><span class="p">(</span><span class="n">accumulator_threshold</span><span class="p">,</span> <span class="n">thetas</span><span class="p">,</span> <span class="n">rhos</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;$\theta$ (rad)&#39;</span><span class="p">,</span>
+                                <span class="sa">r</span><span class="s1">&#39;$\rho$ (V)&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">accumulator_threshold</span></div>
+
+<div class="viewcode-block" id="CSDAnalysis.hough_cluster"><a class="viewcode-back" href="../../../qudipy.chargestability.html#qudipy.chargestability.csd_analysis.CSDAnalysis.hough_cluster">[docs]</a>    <span class="k">def</span> <span class="nf">hough_cluster</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">eps</span><span class="p">,</span> <span class="n">min_samples</span><span class="p">,</span> <span class="n">plotting</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Clusters the points in the thresholded Hough transform </span>
+<span class="sd">        accumulator.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        #TODO confirm types</span>
+<span class="sd">        eps: float</span>
+<span class="sd">            maximum distance for points to be considered in the local</span>
+<span class="sd">            neighbourhood of each other</span>
+<span class="sd">        min_samples: int</span>
+<span class="sd">            minimum number of samples within the local</span>
+<span class="sd">            neighbourhood in order for the point to be considered </span>
+<span class="sd">            a core part of the cluster</span>
+
+<span class="sd">        Keyword Arguments</span>
+<span class="sd">        -----------------</span>
+<span class="sd">        plotting: bool</span>
+<span class="sd">            boolean flag which sets whether or not to plot the</span>
+<span class="sd">            results of clustering (default False)</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        centroids: numpy array of &lt;type&gt;</span>
+<span class="sd">            numpy array of pairs [theta, rhos] corresponding to </span>
+<span class="sd">            valid charge transition line</span>
+
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="c1"># Reorder accumulator threshold parameters as a list of pairs of indices instead of 2D array</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">accumulator_threshold</span><span class="o">.</span><span class="n">nonzero</span><span class="p">())</span>
+        <span class="n">points_index</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">])):</span>
+            <span class="n">points_index</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="n">i</span><span class="p">],</span> <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">i</span><span class="p">]])</span>
+
+        <span class="c1"># Function that does the clusterting. Save the labels for later</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">db</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">DBSCAN</span><span class="p">(</span><span class="n">eps</span><span class="o">=</span><span class="n">eps</span><span class="p">,</span> <span class="n">min_samples</span><span class="o">=</span><span class="n">min_samples</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">points_index</span><span class="p">)</span>
+        <span class="n">labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">labels_</span>
+
+        <span class="c1"># Number of clusters in labels, ignoring noise if present.</span>
+        <span class="n">n_clusters_</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">labels</span><span class="p">))</span> <span class="o">-</span> <span class="p">(</span><span class="mi">1</span> <span class="k">if</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">in</span> <span class="n">labels</span> <span class="k">else</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># Convert from indices to pairs of the for [theta, rho] and convert into a numpy array</span>
+        <span class="n">points</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">pair</span> <span class="ow">in</span> <span class="n">points_index</span><span class="p">:</span>
+            <span class="n">points</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">thetas</span><span class="p">[</span><span class="n">pair</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span> <span class="bp">self</span><span class="o">.</span><span class="n">rhos</span><span class="p">[</span><span class="n">pair</span><span class="p">[</span><span class="mi">1</span><span class="p">]]])</span>
+        <span class="n">points</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">points</span><span class="p">)</span>
+
+        <span class="c1"># Plotting subroutine which plots all the point in different clusters in different colors</span>
+        <span class="k">if</span> <span class="n">plotting</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="c1"># take the transpose of points for ease of plotting </span>
+            <span class="n">temp_points</span> <span class="o">=</span> <span class="n">points</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span>
+            <span class="c1"># Create uniques colors for each cluster</span>
+            <span class="n">unique_labels</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span>
+            <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">viridis</span><span class="p">(</span><span class="n">each</span><span class="p">)</span> <span class="k">for</span> <span class="n">each</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">unique_labels</span><span class="p">))]</span>
+            <span class="c1"># Loop over each group and corresponding color</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">col</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">unique_labels</span><span class="p">,</span> <span class="n">colors</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                    <span class="c1"># Black used for noise.</span>
+                    <span class="n">col</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+
+                <span class="n">points_to_plot_x</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">points_to_plot_y</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">labels</span><span class="p">)):</span>
+                    <span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="n">labels</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
+                        <span class="n">points_to_plot_x</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">temp_points</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">i</span><span class="p">])</span>
+                        <span class="n">points_to_plot_y</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">temp_points</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="n">i</span><span class="p">])</span>
+
+                <span class="n">sns</span><span class="o">.</span><span class="n">scatterplot</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">points_to_plot_x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">points_to_plot_y</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">col</span><span class="p">),</span> <span class="n">s</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+
+            <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;Estimated number of clusters: </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">n_clusters_</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;$\rho$ (V)&#39;</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;$\theta$ (rad)&#39;</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+        <span class="c1"># get centroids of each cluster and save for later</span>
+        <span class="n">clf</span> <span class="o">=</span> <span class="n">NearestCentroid</span><span class="p">()</span>
+        <span class="n">clf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
+        <span class="n">centroids</span> <span class="o">=</span> <span class="n">clf</span><span class="o">.</span><span class="n">centroids_</span>
+
+        <span class="c1"># Remove noise from the clustering if it is present (since it&#39;s label is -1 and all others </span>
+        <span class="c1"># are positive, it will always be the first in the list of centroids)</span>
+        <span class="k">if</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">in</span> <span class="n">labels</span><span class="p">:</span>
+            <span class="n">centroids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">centroids</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># TODO determine better way to determine invalid charge transitions and exclude them</span>
+        <span class="c1"># drop centroids where theta &lt; 0 (which correcpond to positive slope)</span>
+        <span class="n">valid_centroids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">centroids</span> <span class="k">if</span> <span class="n">i</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">centroids</span> <span class="o">=</span> <span class="n">valid_centroids</span>
+
+        <span class="k">return</span> <span class="n">valid_centroids</span></div>
+
+    <span class="k">def</span> <span class="nf">__plot_heatmap</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">x_values</span><span class="p">,</span> <span class="n">y_values</span><span class="p">,</span> <span class="n">x_label</span><span class="p">,</span> <span class="n">y_label</span><span class="p">,</span> <span class="n">cbar</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cbar_kws</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Private function which formats and plots pcolormesh heatmaps.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        data: Numpy array or Pandas Dataframe</span>
+<span class="sd">            Contains the data to plot</span>
+<span class="sd">        x_values: list</span>
+<span class="sd">            x values for the heatmap. If &quot;data&quot; is a numpy array, can</span>
+<span class="sd">            be None</span>
+<span class="sd">        y_values: list</span>
+<span class="sd">            y values for the heatmap. If &quot;data&quot; is a numpy array, can </span>
+<span class="sd">            be None</span>
+<span class="sd">        x_label: string</span>
+<span class="sd">            Label to add to x axis if plot</span>
+<span class="sd">        y_label: string</span>
+<span class="sd">            Label to add to y axis of plot</span>
+
+<span class="sd">        Keyword Arguments</span>
+<span class="sd">        -----------------</span>
+<span class="sd">        cbar: bool</span>
+<span class="sd">            Whether or not to display a colobar for the heatmap (Default </span>
+<span class="sd">            False)</span>
+<span class="sd">        cbar_kws: Colorbar keyword arguments to pass to plot (Default</span>
+<span class="sd">            None, initialized to empty dictionary)</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="c1"># Set cbar_kws to an empty dictionary if it is None</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">cbar_kws</span><span class="p">:</span>
+            <span class="n">cbar_kws</span><span class="o">=</span><span class="nb">dict</span><span class="p">()</span>
+
+        <span class="c1"># Cast to a dataframe if data is not already for ease of plotting</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">())):</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">y_values</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">x_values</span><span class="p">)</span>
+        
+        <span class="c1"># Initialize Plot</span>
+        <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+        
+        <span class="c1"># Set Colorbar</span>
+        <span class="n">cmap</span> <span class="o">=</span> <span class="n">mpl</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">magma</span>
+        
+        <span class="c1"># Create Plot</span>
+        <span class="k">if</span> <span class="n">x_values</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">y_values</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+          <span class="n">s</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">x_values</span><span class="p">,</span> <span class="n">y_values</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">shading</span> <span class="o">=</span><span class="s1">&#39;gouraud&#39;</span><span class="p">,</span> <span class="n">cmap</span> <span class="o">=</span> <span class="n">cmap</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">s</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">shading</span> <span class="o">=</span><span class="s1">&#39;flat&#39;</span><span class="p">,</span> <span class="n">cmap</span> <span class="o">=</span> <span class="n">cmap</span><span class="p">)</span>
+          
+        <span class="c1"># Format Colourbar</span>
+        <span class="k">if</span> <span class="n">cbar</span><span class="p">:</span>
+          <span class="n">norm</span> <span class="o">=</span> <span class="n">mpl</span><span class="o">.</span><span class="n">colors</span><span class="o">.</span><span class="n">Normalize</span><span class="p">(</span><span class="n">vmin</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">vmax</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">.</span><span class="n">max</span><span class="p">())</span>
+          <span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+          <span class="k">if</span> <span class="n">cbar_kws</span> <span class="o">!=</span> <span class="p">{}:</span>
+            <span class="n">label</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">cbar_kws</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+          <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">mpl</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">ScalarMappable</span><span class="p">(</span><span class="n">norm</span> <span class="o">=</span> <span class="n">norm</span><span class="p">,</span> <span class="n">cmap</span> <span class="o">=</span> <span class="n">cmap</span><span class="p">),</span> <span class="n">orientation</span><span class="o">=</span><span class="s1">&#39;vertical&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">)</span>
+        
+        <span class="c1"># Set Axis Titles</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="n">x_label</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="n">y_label</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+<div class="viewcode-block" id="CSDAnalysis.plot_csd_with_lines"><a class="viewcode-back" href="../../../qudipy.chargestability.html#qudipy.chargestability.csd_analysis.CSDAnalysis.plot_csd_with_lines">[docs]</a>    <span class="k">def</span> <span class="nf">plot_csd_with_lines</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Function which plots the CSD with the fitted lines over top of it</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="c1"># Save number of points in charge stability diagram for later use</span>
+        <span class="n">num</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># Create the heatmap figure</span>
+        <span class="n">f</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">cmap</span> <span class="o">=</span> <span class="n">mpl</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">magma</span>
+        <span class="n">C</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">csd</span>
+        <span class="n">x_vals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">C</span><span class="o">.</span><span class="n">columns</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">num</span><span class="p">)</span>
+        <span class="n">y_vals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">C</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">values</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">num</span><span class="p">)</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">x_vals</span><span class="p">,</span> <span class="n">y_vals</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">shading</span> <span class="o">=</span><span class="s1">&#39;nearest&#39;</span><span class="p">,</span> <span class="n">cmap</span> <span class="o">=</span> <span class="n">cmap</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;V$_1$&quot;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;V$_2$&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Create second axis with same x and y axis as the heatmap</span>
+        <span class="n">ax2</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">twinx</span><span class="p">()</span><span class="o">.</span><span class="n">twiny</span><span class="p">()</span>
+
+        <span class="c1"># For each centroid, convert from polar coordiantes to slope/intercept form and plot </span>
+        <span class="c1"># on second axis</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">v_g1_min</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">v_g1_max</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">centroid</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">centroids</span><span class="p">:</span>
+            <span class="n">theta</span> <span class="o">=</span> <span class="n">centroid</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">rho</span> <span class="o">=</span> <span class="n">centroid</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">m</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="n">rho</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">m</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="n">b</span>
+            <span class="n">sns</span><span class="o">.</span><span class="n">lineplot</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax2</span><span class="p">)</span>
+
+        <span class="c1"># format the secodn axis and show the plot</span>
+        <span class="n">ax2</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">v_g1_min</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">v_g1_max</span><span class="p">])</span>
+        <span class="n">ax2</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">v_g2_min</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">v_g2_max</span><span class="p">])</span>
+        <span class="n">ax2</span><span class="o">.</span><span class="n">get_yaxis</span><span class="p">()</span><span class="o">.</span><span class="n">set_ticks</span><span class="p">([])</span>
+        <span class="n">ax2</span><span class="o">.</span><span class="n">get_xaxis</span><span class="p">()</span><span class="o">.</span><span class="n">set_ticks</span><span class="p">([])</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">xlabel</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;V$_1$&#39;</span><span class="p">,</span> <span class="n">ylabel</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;V$_2$&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="CSDAnalysis.find_tripletpoints"><a class="viewcode-back" href="../../../qudipy.chargestability.html#qudipy.chargestability.csd_analysis.CSDAnalysis.find_tripletpoints">[docs]</a>    <span class="k">def</span> <span class="nf">find_tripletpoints</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Finds locations of triple points in a charge stability diagram</span>
+<span class="sd">        This function is NOT general and only works in the case of 4</span>
+<span class="sd">        main transition lines with a middle transition that is missing.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        triple_points: list of tuples with correspond to coordinates</span>
+<span class="sd">        (x,y) of the triple point</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">m_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">b_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">centroid</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">centroids</span><span class="p">:</span>
+            <span class="n">theta</span> <span class="o">=</span> <span class="n">centroid</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">rho</span> <span class="o">=</span> <span class="n">centroid</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">m_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">))</span>
+            <span class="n">b_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rho</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">))</span>
+
+        <span class="c1"># Sort m, then use the same sorting index so each (m,b) pair is kept and store for later</span>
+        <span class="n">m_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">m_list</span><span class="p">)</span>
+        <span class="n">b_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">b_list</span><span class="p">)</span>
+        <span class="n">m_sort</span> <span class="o">=</span> <span class="n">m_array</span><span class="o">.</span><span class="n">argsort</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">m_array</span> <span class="o">=</span> <span class="n">m_array</span><span class="p">[</span><span class="n">m_sort</span><span class="p">[::]]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">b_array</span> <span class="o">=</span> <span class="n">b_array</span><span class="p">[</span><span class="n">m_sort</span><span class="p">[::]]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">line_params</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">m_array</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">b_array</span><span class="p">))</span>
+
+        <span class="c1"># Reorder the line parameters if the values don&#39;t match up with number scheme</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">line_params</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">line_params</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">line_params</span><span class="p">[[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">line_params</span><span class="p">[[</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">]]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">line_params</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">line_params</span><span class="p">[</span><span class="mi">3</span><span class="p">,</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">line_params</span><span class="p">[[</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">]]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">line_params</span><span class="p">[[</span><span class="mi">3</span><span class="p">,</span><span class="mi">2</span><span class="p">]]</span>
+
+
+        <span class="n">candidate_points</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">m_array</span><span class="p">)):</span>
+            <span class="c1"># Make sure you aren&#39;t looping over the same pair twice</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span><span class="p">):</span>
+                <span class="c1"># Extract values and compute expected intersection point</span>
+                <span class="n">m1_temp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">m_array</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                <span class="n">m2_temp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">m_array</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+                <span class="n">b1_temp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">b_array</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                <span class="n">b2_temp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">b_array</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+                <span class="n">x_temp</span> <span class="o">=</span> <span class="p">(</span><span class="n">b2_temp</span><span class="o">-</span><span class="n">b1_temp</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">m1_temp</span><span class="o">-</span><span class="n">m2_temp</span><span class="p">)</span>
+                <span class="n">y_temp</span> <span class="o">=</span> <span class="n">m1_temp</span> <span class="o">*</span> <span class="n">x_temp</span> <span class="o">+</span> <span class="n">b1_temp</span>
+                <span class="c1"># Discard if expected interection point lies outside the CSD</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">x_temp</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">v_g1_min</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">x_temp</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">v_g1_max</span><span class="p">)</span> <span class="ow">or</span> \
+                    <span class="p">(</span><span class="n">y_temp</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">v_g2_min</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">y_temp</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">v_g2_max</span><span class="p">):</span>
+                    <span class="k">continue</span>
+                <span class="n">candidate_points</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">x_temp</span><span class="p">,</span> <span class="n">y_temp</span><span class="p">])</span>
+
+        <span class="c1"># Convert to numpy arrays for ease of manipulation</span>
+        <span class="n">candidate_points</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">candidate_points</span><span class="p">)</span>
+
+        <span class="c1"># Remove max and min x elements from points, which removes the invalid triple points</span>
+        <span class="n">candidate_points</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">candidate_points</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">candidate_points</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> 
+                                    <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">triple_points</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">candidate_points</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">candidate_points</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="c1"># Sort so the triple point with the smallest x comes first</span>
+        <span class="n">triple_points</span> <span class="o">=</span> <span class="n">triple_points</span><span class="p">[</span><span class="n">triple_points</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">argsort</span><span class="p">()]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">triple_points</span> <span class="o">=</span> <span class="n">triple_points</span>
+
+        <span class="k">return</span> <span class="n">triple_points</span></div>
+
+<div class="viewcode-block" id="CSDAnalysis.plot_triple_points"><a class="viewcode-back" href="../../../qudipy.chargestability.html#qudipy.chargestability.csd_analysis.CSDAnalysis.plot_triple_points">[docs]</a>    <span class="k">def</span> <span class="nf">plot_triple_points</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Plots charge stability diagram with fitted lines (terminated at</span>
+<span class="sd">        the correct triple points). This function is NOT general and </span>
+<span class="sd">        only works in the case of 4 main transition lines with a middle </span>
+<span class="sd">        transition that is missing.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="c1"># Extract the coordinates for the two triple points</span>
+        <span class="n">x_electron</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">triple_points</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">y_electron</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">triple_points</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+        
+        <span class="n">x_hole</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">triple_points</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">y_hole</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">triple_points</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="c1"># Create the heatmap figure</span>
+        <span class="n">num</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">f</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">cmap</span> <span class="o">=</span> <span class="n">mpl</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">magma</span>
+        <span class="n">C</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">csd</span>
+        <span class="n">x_vals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">C</span><span class="o">.</span><span class="n">columns</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">num</span><span class="p">)</span>
+        <span class="n">y_vals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">C</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">values</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">num</span><span class="p">)</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">x_vals</span><span class="p">,</span> <span class="n">y_vals</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">shading</span> <span class="o">=</span><span class="s1">&#39;nearest&#39;</span><span class="p">,</span> <span class="n">cmap</span> <span class="o">=</span> <span class="n">cmap</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;V$_1$&quot;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;V$_2$&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Create second axis with same x and y axis as the heatmap</span>
+        <span class="n">ax2</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">twinx</span><span class="p">()</span><span class="o">.</span><span class="n">twiny</span><span class="p">()</span>
+
+        <span class="c1"># Create the x ranges for the various lines to plot on</span>
+        <span class="n">x_1</span> <span class="o">=</span> <span class="p">[</span><span class="n">x_electron</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">v_g1_max</span><span class="p">]</span>
+        <span class="n">x_2</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">v_g1_min</span><span class="p">,</span> <span class="n">x_hole</span><span class="p">]</span>
+        <span class="n">x_3</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">v_g1_min</span><span class="p">,</span> <span class="n">x_electron</span><span class="p">]</span>
+        <span class="n">x_4</span> <span class="o">=</span> <span class="p">[</span><span class="n">x_hole</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">v_g1_max</span><span class="p">]</span>
+        <span class="n">x_5</span> <span class="o">=</span> <span class="p">[</span><span class="n">x_electron</span><span class="p">,</span> <span class="n">x_hole</span><span class="p">]</span>
+        <span class="n">x_ranges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">x_1</span><span class="p">,</span> <span class="n">x_2</span><span class="p">,</span> <span class="n">x_3</span><span class="p">,</span> <span class="n">x_4</span><span class="p">,</span> <span class="n">x_5</span><span class="p">])</span>
+        
+        <span class="c1"># Add the last line for the transition betweent the two points</span>
+        <span class="n">m_5</span> <span class="o">=</span> <span class="p">(</span><span class="n">y_hole</span> <span class="o">-</span> <span class="n">y_electron</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">x_hole</span> <span class="o">-</span> <span class="n">x_electron</span><span class="p">)</span>
+        <span class="n">b_5</span> <span class="o">=</span> <span class="n">y_electron</span> <span class="o">-</span> <span class="n">m_5</span> <span class="o">*</span> <span class="n">x_electron</span>
+        <span class="n">line_5</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">m_5</span><span class="p">,</span> <span class="n">b_5</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">line_params</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">line_params</span><span class="p">,</span> <span class="n">line_5</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="n">x_range</span><span class="p">,</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">x_ranges</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">line_params</span><span class="p">):</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">x_range</span> <span class="o">+</span> <span class="n">line</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">sns</span><span class="o">.</span><span class="n">lineplot</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x_range</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax2</span><span class="p">)</span>
+
+        <span class="c1"># Plot the two triple points</span>
+        <span class="n">sns</span><span class="o">.</span><span class="n">scatterplot</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="p">[</span><span class="n">x_hole</span><span class="p">,</span> <span class="n">x_electron</span><span class="p">],</span> <span class="n">y</span><span class="o">=</span><span class="p">[</span><span class="n">y_hole</span><span class="p">,</span> <span class="n">y_electron</span><span class="p">],</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax2</span><span class="p">)</span>
+
+        <span class="c1"># format the secodn axis and show the plot</span>
+        <span class="n">ax2</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">v_g1_min</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">v_g1_max</span><span class="p">])</span>
+        <span class="n">ax2</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">v_g2_min</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">csd</span><span class="o">.</span><span class="n">v_g2_max</span><span class="p">])</span>
+        <span class="n">ax2</span><span class="o">.</span><span class="n">get_yaxis</span><span class="p">()</span><span class="o">.</span><span class="n">set_ticks</span><span class="p">([])</span>
+        <span class="n">ax2</span><span class="o">.</span><span class="n">get_xaxis</span><span class="p">()</span><span class="o">.</span><span class="n">set_ticks</span><span class="p">([])</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">xlabel</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;V$_1$&#39;</span><span class="p">,</span> <span class="n">ylabel</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;V$_2$&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div></div>
+      
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Zach D. Merino.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
